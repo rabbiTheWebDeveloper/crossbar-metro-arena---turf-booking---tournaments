@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Court, TimeSlot, BookingAddOn, Booking } from '../types';
 import { BOOKING_ADDONS, VENUE_INFO } from '../data/initialData';

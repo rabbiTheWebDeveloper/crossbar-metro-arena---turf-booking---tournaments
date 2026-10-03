@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Booking, TournamentRegistration } from '../types';
 import { COURTS, VENUE_INFO } from '../data/initialData';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Tournament, TournamentRegistration } from '../types';
 import { Trophy, Calendar, Users, DollarSign, Award, ChevronRight, CheckCircle2, Shield, Flame, AlertCircle } from 'lucide-react';

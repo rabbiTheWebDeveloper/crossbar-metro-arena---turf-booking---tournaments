@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useMemo } from 'react';
 import { Court, TimeSlot, Booking } from '../types';
 import { COURTS } from '../data/initialData';

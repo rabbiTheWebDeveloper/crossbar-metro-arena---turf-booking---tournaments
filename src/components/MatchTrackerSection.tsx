@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Booking, CommunityMatchChallenge } from '../types';
 import { Calendar, Clock, Users, Phone, Shield, Plus, MessageSquare, Flame, CheckCircle, Search, Filter } from 'lucide-react';

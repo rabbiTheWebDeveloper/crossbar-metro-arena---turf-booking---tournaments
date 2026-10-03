@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { VENUE_INFO } from '../data/initialData';
 import { MapPin, Phone, Mail, Globe, Train, Car, Shield, Sparkles, Coffee, Clock, CheckCircle2, MessageSquare, CloudSun } from 'lucide-react';

@@ -1,12 +1,16 @@
+'use client';
+
 import React from 'react';
+import Link from 'next/link';
 import { CrossbarLogo } from './CrossbarLogo';
 import { VENUE_INFO } from '../data/initialData';
-import { Phone, Mail, Globe, MapPin, Train, Heart, Shield, ArrowUp } from 'lucide-react';
+import { Phone, Mail, Globe, Train, Shield, ArrowUp } from 'lucide-react';
+import { useArena } from '../context/ArenaContext';
 
 interface FooterProps {
-  onNavigate: (sectionId: string) => void;
-  onOpenSquadBuilder: () => void;
-  onOpenAdmin: () => void;
+  onNavigate?: (sectionId: string) => void;
+  onOpenSquadBuilder?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -14,8 +18,14 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenSquadBuilder,
   onOpenAdmin
 }) => {
+  const arena = useArena();
+  const openSquad = onOpenSquadBuilder ?? (() => arena.setShowSquadModal(true));
+  const openAdmin = onOpenAdmin ?? (() => arena.setShowAdminModal(true));
+
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -24,9 +34,11 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-white/10">
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <CrossbarLogo size="lg" />
+            <Link href="/" className="inline-block">
+              <CrossbarLogo size="lg" />
+            </Link>
             <p className="text-slate-400 text-xs sm:text-sm max-w-sm leading-relaxed mt-2">
-              Crossbar Metro Arena is Dhaka's premier floodlit outdoor football turf, located right next to the Uttara Metro Center viaduct. Professional shock-pad artificial turf designed for competitive small-sided games and championship tournaments.
+              Crossbar Metro Arena is Dhaka&apos;s premier floodlit outdoor football turf, located right next to the Uttara Metro Center viaduct. Professional shock-pad artificial turf designed for competitive small-sided games and championship tournaments.
             </p>
             <div className="flex items-center gap-3 text-xs text-slate-300">
               <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -43,44 +55,52 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <ul className="space-y-2">
               <li>
-                <button
-                  onClick={() => onNavigate('booking')}
+                <Link
+                  href="/booking"
                   className="hover:text-emerald-400 transition-colors cursor-pointer"
                 >
                   Book Court Slot
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('tournaments')}
+                <Link
+                  href="/tournaments"
                   className="hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  Tournaments & Cups
-                </button>
+                  Tournaments &amp; Cups
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={onOpenSquadBuilder}
+                <Link
+                  href="/squad-builder"
                   className="hover:text-emerald-400 transition-colors cursor-pointer text-emerald-300 font-medium"
                 >
                   Tag Your Match Squad 🔥
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('schedule')}
+                <Link
+                  href="/matches"
                   className="hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  Live Fixtures & Challenges
-                </button>
+                  Live Fixtures &amp; Challenges
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigate('location')}
+                <Link
+                  href="/venue"
                   className="hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  Location & Metro Map
-                </button>
+                  Location &amp; Metro Map
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/passes"
+                  className="hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  My Match Passes 🎟️
+                </Link>
               </li>
             </ul>
           </div>
@@ -94,7 +114,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>Pitch Alpha (7v7 / 8v8 Main Turf)</li>
               <li>Pitch Bravo (5v5 Fast Speed Cage)</li>
               <li>400 Lux LED Stadium Floodlighting</li>
-              <li>Changing Cabins & Fresh Showers</li>
+              <li>Changing Cabins &amp; Fresh Showers</li>
               <li>Clean Prayer Space (Wudu Ready)</li>
               <li>Trackside Barista Refreshments</li>
               <li>Guarded Free Parking</li>
@@ -104,7 +124,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Contact Details */}
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">
-              Connect & Reach
+              Connect &amp; Reach
             </div>
             <ul className="space-y-2.5">
               <li className="flex items-center gap-2">
@@ -140,17 +160,17 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[11px]">
           <div>
-            © {new Date().getFullYear()} Crossbar Metro Arena. Uttara Metro Center, Sector 17, Dhaka, Bangladesh. All rights reserved.
+            © 2026 Crossbar Metro Arena. Uttara Metro Center, Sector 17, Dhaka, Bangladesh. All rights reserved.
           </div>
 
           <div className="flex items-center gap-4">
-            <button
-              onClick={onOpenAdmin}
+            <Link
+              href="/admin"
               className="text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
             >
               <Shield className="w-3 h-3 text-emerald-400" />
               <span>Turf Staff Portal</span>
-            </button>
+            </Link>
             <span>·</span>
             <button
               onClick={scrollToTop}

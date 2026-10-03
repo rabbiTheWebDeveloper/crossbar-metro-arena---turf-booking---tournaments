@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { CrossbarLogo } from './CrossbarLogo';
 import { VENUE_INFO } from '../data/initialData';

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Cloud, Sun, CloudRain, Wind, Droplets, RefreshCw, Thermometer, ShieldCheck, Sparkles, AlertTriangle, ArrowUpRight } from 'lucide-react';
 

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Booking } from '../types';
 import { X, Ticket, Calendar, Clock, MapPin, Share2, ChevronRight, CheckCircle2 } from 'lucide-react';

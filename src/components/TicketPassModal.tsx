@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Booking } from '../types';
 import { VENUE_INFO } from '../data/initialData';
