@@ -1,0 +1,6 @@
+{
+  "name": "Crossbar Metro Arena - Turf Booking & Tournaments",
+  "description": "Book your slot and register for football tournaments at Crossbar Metro Arena. Premium outdoor sports turf located at Uttara Metro Center, Sector 17, Dhaka.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
