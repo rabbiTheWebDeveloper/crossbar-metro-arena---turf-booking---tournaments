@@ -9,11 +9,13 @@ import { BookingModal } from './BookingModal';
 interface BookingSectionProps {
   bookings: Booking[];
   onBookingSuccess: (booking: Booking) => void;
+  hideHeading?: boolean;
 }
 
 export const BookingSection: React.FC<BookingSectionProps> = ({
   bookings,
-  onBookingSuccess
+  onBookingSuccess,
+  hideHeading = false
 }) => {
   const [selectedCourtId, setSelectedCourtId] = useState<string>('pitch-alpha');
 
@@ -133,7 +135,7 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     <section id="booking" className="py-12 md:py-20 bg-[#090e13] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
+        <div className={`text-center max-w-3xl mx-auto mb-10 ${hideHeading ? 'hidden' : ''}`}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Clock className="w-3.5 h-3.5" />
             <span>Real-Time Slot Engine</span>

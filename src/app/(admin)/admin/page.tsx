@@ -137,7 +137,7 @@ export default function AdminPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl p-4">
+        <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
             <span>Total Revenue</span>
             <DollarSign className="w-4 h-4 text-emerald-400" />
@@ -148,7 +148,7 @@ export default function AdminPage() {
           <div className="text-[10px] text-slate-500 mt-1">Confirmed &amp; pending payments</div>
         </div>
 
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl p-4">
+        <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
             <span>Reserved Slots</span>
             <Calendar className="w-4 h-4 text-sky-400" />
@@ -159,7 +159,7 @@ export default function AdminPage() {
           <div className="text-[10px] text-slate-500 mt-1">{paidFullCount} marked Paid in Full</div>
         </div>
 
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl p-4">
+        <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
             <span>Tournaments Registered</span>
             <Trophy className="w-4 h-4 text-amber-400" />
@@ -170,7 +170,7 @@ export default function AdminPage() {
           <div className="text-[10px] text-slate-500 mt-1">Across Super Cup &amp; Blitz</div>
         </div>
 
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl p-4">
+        <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
             <span>Pitches Active</span>
             <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -199,13 +199,13 @@ export default function AdminPage() {
 
           {/* Bookings Table / List */}
           {filteredBookings.length === 0 ? (
-            <div className="text-center py-16 bg-[#0b1218] border border-white/10 rounded-2xl text-slate-400">
+            <div className="text-center py-16 glass rounded-2xl text-slate-400">
               <Calendar className="w-8 h-8 mx-auto mb-2 text-slate-600" />
               <div className="text-white font-bold text-sm">No reservations matching query</div>
               <p className="text-xs text-slate-500 mt-1">Try another keyword or create a manual booking.</p>
             </div>
           ) : (
-            <div className="bg-[#0b1218] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+            <div className="glass rounded-2xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-900/80 border-b border-white/10 text-slate-400 uppercase font-mono text-[10px]">
@@ -283,7 +283,7 @@ export default function AdminPage() {
 
       {/* TAB 2: Tournament Registrations */}
       {activeTab === 'tournaments' && (
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <div className="glass rounded-2xl overflow-hidden shadow-xl">
           {registrations.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <Trophy className="w-8 h-8 mx-auto mb-2 text-slate-600" />
@@ -340,7 +340,7 @@ export default function AdminPage() {
 
       {/* TAB 3: Add Manual Slot Reservation */}
       {activeTab === 'add_slot' && (
-        <div className="bg-[#0b1218] border border-white/10 rounded-2xl p-6 max-w-2xl mx-auto shadow-xl">
+        <div className="glass rounded-2xl p-6 max-w-2xl mx-auto shadow-xl">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
             <Plus className="w-5 h-5 text-emerald-400" />
             <h2 className="text-lg font-bold text-white font-display uppercase">

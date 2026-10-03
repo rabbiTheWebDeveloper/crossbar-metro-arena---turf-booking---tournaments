@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CrossbarLogo } from '../../../components/CrossbarLogo';
+import { PageHero } from '../../../components/PageHero';
 import { VENUE_INFO } from '../../../data/initialData';
 import { Users, Share2, Copy, Check, Sparkles, RefreshCw, Shirt, Calendar, Trophy, ChevronRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -103,35 +104,34 @@ export default function SquadBuilderPage() {
   };
 
   return (
-    <div className="py-8 md:py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-white/10 mb-8">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Interactive Tactical Room</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-display uppercase tracking-tight text-white">
-            Squad Lineup &amp; Tactics Board
-          </h1>
-          <p className="text-slate-400 text-sm sm:text-base mt-1 max-w-2xl">
-            Pick your 7v7 or 5v5 tactical setup, assign player jersey numbers and captain armbands, customize kit color, and export or share via WhatsApp with your squad.
-          </p>
-        </div>
+    <>
+    <PageHero
+      crumb="Tag Squad"
+      eyebrow="Interactive Tactical Room"
+      eyebrowIcon={Sparkles}
+      title="Squad Lineup &"
+      highlight="Tactics Board"
+      description="Pick your 7v7 or 5v5 setup, assign jersey numbers and captain armbands, customise your kit and share the lineup with your squad on WhatsApp."
+      stats={[
+        { label: 'Format', value: format === '7v7' ? '7 vs 7' : '5 vs 5', icon: Users },
+        { label: 'Formation', value: formation, icon: Shirt },
+        { label: 'Players', value: `${players.length} on pitch`, icon: Trophy },
+        { label: 'Kit', value: kitStyles[kitColor].label, icon: Sparkles }
+      ]}
+      actions={
+        <button
+          onClick={() => router.push('/booking')}
+          className="btn-volt inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm"
+        >
+          <Calendar className="w-4 h-4" />
+          <span>Book Turf For Squad</span>
+        </button>
+      }
+    />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/booking')}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-500 text-black hover:bg-emerald-400 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Book Turf For Squad</span>
-          </button>
-        </div>
-      </div>
-
+    <div className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Main Tactical Pitch Workspace */}
-      <div className="bg-[#0b1016] border border-emerald-500/30 rounded-3xl p-4 sm:p-8 shadow-2xl">
+      <div className="glass rounded-3xl p-4 sm:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Pitch Container */}
           <div className="lg:col-span-6 flex flex-col items-center">
@@ -356,5 +356,6 @@ export default function SquadBuilderPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -8,11 +8,13 @@ import { TournamentModal } from './TournamentModal';
 interface TournamentSectionProps {
   tournaments: Tournament[];
   onRegistrationSuccess: (reg: TournamentRegistration) => void;
+  hideHeading?: boolean;
 }
 
 export const TournamentSection: React.FC<TournamentSectionProps> = ({
   tournaments,
-  onRegistrationSuccess
+  onRegistrationSuccess,
+  hideHeading = false
 }) => {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [justRegisteredTeam, setJustRegisteredTeam] = useState<TournamentRegistration | null>(null);
@@ -24,7 +26,7 @@ export const TournamentSection: React.FC<TournamentSectionProps> = ({
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        <div className={`text-center max-w-3xl mx-auto mb-12 ${hideHeading ? 'hidden' : ''}`}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
             <span>Tournaments & Cups</span>

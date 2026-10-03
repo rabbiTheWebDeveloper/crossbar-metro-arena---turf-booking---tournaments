@@ -7,9 +7,10 @@ import { TurfWeatherWidget } from './TurfWeatherWidget';
 
 interface VenueLocationSectionProps {
   onBookSlotClick?: () => void;
+  hideHeading?: boolean;
 }
 
-export const VenueLocationSection: React.FC<VenueLocationSectionProps> = ({ onBookSlotClick }) => {
+export const VenueLocationSection: React.FC<VenueLocationSectionProps> = ({ onBookSlotClick, hideHeading = false }) => {
   const [inquiryName, setInquiryName] = useState('');
   const [inquiryPhone, setInquiryPhone] = useState('');
   const [inquiryMsg, setInquiryMsg] = useState('');
@@ -69,7 +70,7 @@ export const VenueLocationSection: React.FC<VenueLocationSectionProps> = ({ onBo
     <section id="location" className="py-10 sm:py-16 md:py-24 bg-[#070b0e] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+        <div className={`text-center max-w-3xl mx-auto mb-8 sm:mb-12 ${hideHeading ? 'hidden' : ''}`}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3">
             <MapPin className="w-3.5 h-3.5" />
             <span>Prime Uttara Location</span>

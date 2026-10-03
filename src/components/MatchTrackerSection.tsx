@@ -10,13 +10,15 @@ interface MatchTrackerSectionProps {
   challenges: CommunityMatchChallenge[];
   onAddChallenge: (challenge: CommunityMatchChallenge) => void;
   onBookSlotClick: () => void;
+  hideHeading?: boolean;
 }
 
 export const MatchTrackerSection: React.FC<MatchTrackerSectionProps> = ({
   bookings,
   challenges,
   onAddChallenge,
-  onBookSlotClick
+  onBookSlotClick,
+  hideHeading = false
 }) => {
   const [activeTab, setActiveTab] = useState<'fixtures' | 'challenges'>('fixtures');
   const [showPostChallengeModal, setShowPostChallengeModal] = useState(false);
@@ -61,7 +63,7 @@ export const MatchTrackerSection: React.FC<MatchTrackerSectionProps> = ({
     <section id="schedule" className="py-14 md:py-24 bg-[#090e13] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
+        <div className={`text-center max-w-3xl mx-auto mb-10 ${hideHeading ? 'hidden' : ''}`}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
             <Flame className="w-3.5 h-3.5 text-emerald-400" />
             <span>Matchday Center</span>
