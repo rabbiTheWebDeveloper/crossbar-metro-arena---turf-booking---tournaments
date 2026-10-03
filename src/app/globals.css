@@ -138,8 +138,86 @@
 .slide-in-from-bottom { animation-name: slide-up-kf; animation-duration: 0.3s; }
 .slide-in-from-right { animation-name: slide-right-kf; animation-duration: 0.3s; }
 
+/* Animated Stadium Floodlights & Headings */
+@keyframes floodlight-beam-left {
+  0%, 100% {
+    transform: rotate(-12deg) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: rotate(8deg) scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+@keyframes floodlight-beam-right {
+  0%, 100% {
+    transform: rotate(12deg) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: rotate(-8deg) scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+@keyframes text-shimmer-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes neon-pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.35)) drop-shadow(0 0 35px rgba(16, 185, 129, 0.15));
+  }
+  50% {
+    filter: drop-shadow(0 0 28px rgba(52, 211, 153, 0.75)) drop-shadow(0 0 65px rgba(16, 185, 129, 0.4));
+  }
+}
+
+@keyframes radar-ping-slow {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  70%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.animate-floodlight-left {
+  animation: floodlight-beam-left 7s ease-in-out infinite;
+  transform-origin: top left;
+}
+
+.animate-floodlight-right {
+  animation: floodlight-beam-right 7s ease-in-out infinite 0.5s;
+  transform-origin: top right;
+}
+
+.animate-text-shimmer {
+  background-size: 200% auto;
+  animation: text-shimmer-flow 3.5s ease-in-out infinite;
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-radar-ping {
+  animation: radar-ping-slow 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .page-enter, .page-enter-2, .page-enter-3, .float-slow, .animate-in { animation: none !important; }
+  .page-enter, .page-enter-2, .page-enter-3, .float-slow, .animate-in, .animate-floodlight-left, .animate-floodlight-right, .animate-text-shimmer, .animate-neon-pulse, .animate-radar-ping { animation: none !important; }
 }
 
 /* ---------- Scrollbars ---------- */
