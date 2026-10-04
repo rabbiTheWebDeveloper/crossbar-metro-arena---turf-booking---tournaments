@@ -77,6 +77,9 @@ export const ArenaManagerModal: React.FC<ArenaManagerModalProps> = ({
       courtPrice: manualPrice,
       addOnsPrice: 0,
       totalPrice: manualPrice,
+      paymentType: manualPayment === 'paid_full' ? 'full_payment' : 'advance_500',
+      advanceAmount: manualPayment === 'paid_full' ? manualPrice : 500,
+      dueAmount: manualPayment === 'paid_full' ? 0 : Math.max(0, manualPrice - 500),
       paymentMethod: 'pay_at_turf',
       paymentStatus: manualPayment,
       createdAt: new Date().toISOString()

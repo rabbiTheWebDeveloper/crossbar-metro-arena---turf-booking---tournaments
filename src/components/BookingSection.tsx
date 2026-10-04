@@ -2,8 +2,24 @@
 
 import React, { useState, useMemo } from 'react';
 import { Court, TimeSlot, Booking } from '../types';
-import { COURTS } from '../data/initialData';
-import { Calendar, Clock, Sun, Moon, Sparkles, Shield, ChevronRight, Check, AlertCircle } from 'lucide-react';
+import { COURTS, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+import { useArena } from '../context/ArenaContext';
+import {
+  Calendar,
+  Clock,
+  Sun,
+  Moon,
+  Sparkles,
+  Shield,
+  ChevronRight,
+  Check,
+  AlertCircle,
+  Timer,
+  Lock,
+  Layers,
+  Flame,
+  ArrowRight
+} from 'lucide-react';
 import { BookingModal } from './BookingModal';
 
 interface BookingSectionProps {
@@ -17,371 +33,464 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
   onBookingSuccess,
   hideHeading = false
 }) => {
+  const { pricing, slotHolds } = useArena();
   const [selectedCourtId, setSelectedCourtId] = useState<string>('pitch-alpha');
 
-  // Next 14 dates generator starting from today/tomorrow
-  const dateOptions = useMemo(() => {
+  // 60-day calendar calculation
+  const today = useMemo(() => new Date(), []);
+  const maxDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 60);
+    return d.toISOString().split('T')[0];
+  }, []);
+  const todayStr = useMemo(() => today.toISOString().split('T')[0], [today]);
+
+  // Generate 60 days list for easy horizontal browsing
+  const calendarDates = useMemo(() => {
     const dates = [];
     const base = new Date();
-    // Start from today
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 60; i++) {
       const d = new Date(base);
       d.setDate(base.getDate() + i);
       const iso = d.toISOString().split('T')[0];
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
       const dayNum = d.toLocaleDateString('en-US', { day: '2-digit' });
       const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+      const isWeekend = d.getDay() === 5 || d.getDay() === 6; // Friday/Saturday in Dhaka
       dates.push({
         iso,
         dayName: i === 0 ? 'Today' : i === 1 ? 'Tmrw' : dayName,
         dayNum,
         monthName,
-        isWeekend: d.getDay() === 5 || d.getDay() === 6 // Friday/Saturday in BD
+        isWeekend
       });
     }
     return dates;
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState<string>(dateOptions[0].iso);
-  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'morning' | 'afternoon' | 'prime_night' | 'late_night'>('all');
-
-  // Modal state
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState<TimeSlot | null>(null);
 
   const selectedCourt = COURTS.find(c => c.id === selectedCourtId) || COURTS[0];
 
-  // Generate 1-hour slots from 06:00 to 02:00 next day
+  // Determine if selected date is weekend (Friday or Saturday)
+  const isWeekendSelected = useMemo(() => {
+    const d = new Date(selectedDate);
+    const day = d.getDay();
+    return day === 5 || day === 6;
+  }, [selectedDate]);
+
+  // Compute exactly 12 slots for selected court & date based on 90-minute schedule
   const slots: TimeSlot[] = useMemo(() => {
-    const rawSlots: { start: number; end: number; period: TimeSlot['period'] }[] = [
-      // Morning
-      { start: 6, end: 7, period: 'morning' },
-      { start: 7, end: 8, period: 'morning' },
-      { start: 8, end: 9, period: 'morning' },
-      { start: 9, end: 10, period: 'morning' },
-      { start: 10, end: 11, period: 'morning' },
-      { start: 11, end: 12, period: 'morning' },
-      // Afternoon
-      { start: 12, end: 13, period: 'afternoon' },
-      { start: 13, end: 14, period: 'afternoon' },
-      { start: 14, end: 15, period: 'afternoon' },
-      { start: 15, end: 16, period: 'afternoon' },
-      { start: 16, end: 17, period: 'afternoon' },
-      { start: 17, end: 18, period: 'afternoon' },
-      // Floodlight Prime Night
-      { start: 18, end: 19, period: 'prime_night' },
-      { start: 19, end: 20, period: 'prime_night' },
-      { start: 20, end: 21, period: 'prime_night' },
-      { start: 21, end: 22, period: 'prime_night' },
-      { start: 22, end: 23, period: 'prime_night' },
-      // Late Night
-      { start: 23, end: 24, period: 'late_night' },
-      { start: 0, end: 1, period: 'late_night' },
-      { start: 1, end: 2, period: 'late_night' }
-    ];
+    const now = Date.now();
 
-    const formatHour = (h: number) => {
-      const isPm = h >= 12 && h < 24;
-      const num = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      return `${String(num).padStart(2, '0')}:00 ${isPm ? 'PM' : 'AM'}`;
-    };
+    return SCHEDULE_SLOTS_DEFINITION.map((def) => {
+      // Base dynamic price calculation from admin pricing
+      let basePrice = 2000;
+      if (def.period === 'morning') basePrice = pricing.morningSlotPrice;
+      else if (def.period === 'afternoon') basePrice = pricing.afternoonSlotPrice;
+      else if (def.period === 'evening') basePrice = pricing.eveningSlotPrice;
 
-    return rawSlots.map((s, idx) => {
-      const startTimeStr = `${String(s.start).padStart(2, '0')}:00`;
-      const endTimeStr = `${String(s.end).padStart(2, '0')}:00`;
-      const displayTime = `${formatHour(s.start)} - ${formatHour(s.end)}`;
-      const isPeak = s.period === 'prime_night' || s.period === 'late_night';
-      const price = isPeak ? selectedCourt.nightPrice : selectedCourt.dayPrice;
+      // Pitch multiplier: Pitch Bravo (5v5) is cheaper; Full Arena is higher
+      if (selectedCourt.id === 'pitch-bravo') {
+        basePrice = Math.round(basePrice * 0.85);
+      } else if (selectedCourt.id === 'full-arena') {
+        basePrice = Math.round(basePrice * 1.6);
+      }
 
-      // Check if slot is already booked in our store for this court and date
+      // Weekend surcharge (Friday & Saturday in Dhaka)
+      const slotPrice = isWeekendSelected ? basePrice + pricing.weekendSurcharge : basePrice;
+
+      // Strict no double booking: check if already booked
       const existingBooking = bookings.find(
-        b => b.courtId === selectedCourt.id && b.date === selectedDate && b.startTime === startTimeStr
+        b => b.courtId === selectedCourt.id && b.date === selectedDate && (b.slotNumber === def.slotNumber || b.startTime === def.startTime)
       );
+
+      // Check active 10-minute hold
+      const slotKey = `${selectedCourt.id}_${selectedDate}_${def.slotNumber}`;
+      const activeHold = slotHolds.find(h => h.slotKey === slotKey && h.expiresAt > now);
 
       let status: TimeSlot['status'] = 'available';
       let bookedBy: string | undefined = undefined;
       let bookingId: string | undefined = undefined;
+      let holdExpiresAt: number | undefined = undefined;
 
       if (existingBooking) {
         status = 'booked';
         bookedBy = existingBooking.teamName;
-        bookingId = existingBooking.id;
+        bookingId = existingBooking.bookingCode;
+      } else if (activeHold) {
+        status = 'holding';
+        bookedBy = `${activeHold.teamName} (In Checkout)`;
+        holdExpiresAt = activeHold.expiresAt;
       }
 
       return {
-        id: `slot-${selectedCourt.id}-${selectedDate}-${idx}`,
+        id: `slot-${selectedCourt.id}-${selectedDate}-${def.slotNumber}`,
+        slotNumber: def.slotNumber,
         courtId: selectedCourt.id,
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        displayTime,
-        period: s.period,
-        price,
-        isPeak,
+        startTime: def.startTime,
+        endTime: def.endTime,
+        displayTime: def.displayTime,
+        durationMinutes: 90,
+        period: def.period,
+        price: slotPrice,
+        isPeak: def.period === 'evening' || isWeekendSelected,
         status,
         bookedBy,
-        bookingId
+        bookingId,
+        holdExpiresAt
       };
     });
-  }, [selectedCourt, selectedDate, bookings]);
+  }, [selectedCourt.id, selectedDate, pricing, isWeekendSelected, bookings, slotHolds]);
 
-  // Filtered slots by selected period
+  // Filter slots by selected period
   const filteredSlots = useMemo(() => {
     if (selectedPeriod === 'all') return slots;
     return slots.filter(s => s.period === selectedPeriod);
   }, [slots, selectedPeriod]);
 
-  const availableCount = filteredSlots.filter(s => s.status === 'available').length;
+  // Slot counts
+  const availableCount = slots.filter(s => s.status === 'available').length;
+  const bookedCount = slots.filter(s => s.status === 'booked').length;
+  const holdingCount = slots.filter(s => s.status === 'holding').length;
 
   return (
-    <section id="booking" className="py-12 md:py-20 bg-[#090e13] border-t border-white/5 relative">
+    <section id="booking" className="relative py-12 md:py-16 text-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Heading */}
         {!hideHeading && (
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold tracking-wide uppercase mb-3">
               <Clock className="w-3.5 h-3.5" />
-              <span>Real-Time Slot Engine</span>
+              <span>Official Match Booking Engine · 12 Daily 90-Min Slots</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
-              Reserve Your Playing Slot
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white font-display">
+              Reserve Your <span className="text-emerald-400">Floodlit Turf Slot</span>
             </h2>
-            <p className="text-slate-400 text-sm sm:text-base mt-2">
-              Select your preferred pitch, date, and hourly slot. Instant confirmation pass generated on booking.
+            <p className="mt-2 text-slate-300 text-sm sm:text-base">
+              12 slots daily (06:00 AM to 12:00 AM Midnight), 90 minutes each. Pick any date up to 60 days ahead. Pay online with bKash, Nagad or card with just a <strong className="text-emerald-400">৳500 advance</strong> or full payment.
             </p>
           </div>
         )}
 
-        {/* Step 1: Court Selector */}
+        {/* 1. Court Selector */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Step 1: Choose Pitch Arena</span>
-            <span className="text-xs text-emerald-400 font-semibold">{COURTS.length} Available Layouts</span>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-emerald-400" />
+              <span>Step 1: Select Pitch Specification</span>
+            </label>
+            <span className="text-xs text-emerald-400/90 font-medium">
+              Floodlit · Metro Viaduct View
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             {COURTS.map((court) => {
               const isSelected = selectedCourtId === court.id;
               return (
                 <button
                   key={court.id}
+                  type="button"
                   onClick={() => setSelectedCourtId(court.id)}
-                  className={`p-4 sm:p-5 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer group ${
+                  className={`text-left p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden ${
                     isSelected
-                      ? 'bg-gradient-to-b from-emerald-950/60 to-slate-900 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500'
-                      : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+                      ? 'bg-gradient-to-b from-emerald-950/70 to-slate-900 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/40'
+                      : 'bg-slate-900/60 border-white/10 hover:border-white/20 hover:bg-slate-900/80'
                   }`}
                 >
-                  {/* Selected checkmark */}
-                  {isSelected && (
-                    <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center font-bold text-xs">
-                      <Check className="w-4 h-4" />
-                    </div>
-                  )}
-
-                  <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 font-mono mb-1">
-                    {court.format}
-                  </div>
-                  <h3 className="text-lg font-bold text-white font-display mb-1 group-hover:text-emerald-300 transition-colors">
-                    {court.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mb-4 line-clamp-2">
-                    {court.tagline}
-                  </p>
-
-                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                  <div className="flex items-start justify-between mb-2">
                     <div>
-                      <span className="text-slate-400">Day: </span>
-                      <span className="font-bold text-white font-mono">৳{court.dayPrice}</span>
-                      <span className="text-slate-500 text-[10px]">/hr</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                        {court.code} · {court.format}
+                      </span>
+                      <h3 className="text-base sm:text-lg font-bold text-white mt-1.5 font-display">
+                        {court.name}
+                      </h3>
                     </div>
-                    <div>
-                      <span className="text-slate-400">Night Floodlight: </span>
-                      <span className="font-bold text-emerald-400 font-mono">৳{court.nightPrice}</span>
-                      <span className="text-slate-500 text-[10px]">/hr</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Step 2: Date Selector (Horizontal Scrollable Strip) */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Step 2: Select Match Date</span>
-            <span className="text-[10px] sm:text-xs text-slate-400">14-Day Advance Window</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-            {dateOptions.map((item) => {
-              const isSelected = selectedDate === item.iso;
-              return (
-                <button
-                  key={item.iso}
-                  onClick={() => setSelectedDate(item.iso)}
-                  className={`flex flex-col items-center justify-center min-w-[62px] sm:min-w-[76px] py-2 sm:py-3 px-1.5 sm:px-2 rounded-xl border transition-all shrink-0 cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-md shadow-emerald-500/20 scale-102'
-                      : 'bg-white/[0.03] text-slate-300 border-white/10 hover:border-white/20 hover:bg-white/[0.06]'
-                  }`}
-                >
-                  <span className={`text-[10px] sm:text-[11px] uppercase tracking-wider ${isSelected ? 'text-slate-950 font-extrabold' : 'text-slate-400'}`}>
-                    {item.dayName}
-                  </span>
-                  <span className={`text-lg sm:text-2xl font-black font-display leading-tight my-0.5 ${isSelected ? 'text-slate-950' : 'text-white'}`}>
-                    {item.dayNum}
-                  </span>
-                  <span className={`text-[9px] sm:text-[10px] uppercase font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
-                    {item.monthName}
-                  </span>
-                  {item.isWeekend && !isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1"></span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Step 3: Time Filter Tabs */}
-        <div className="mb-5 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
-            <div className="flex items-center gap-1 p-1 bg-white/5 border border-white/10 rounded-xl whitespace-nowrap min-w-max">
-              <button
-                onClick={() => setSelectedPeriod('all')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  selectedPeriod === 'all' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                All Slots
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('morning')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer ${
-                  selectedPeriod === 'morning' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Sun className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Morning</span>
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('afternoon')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  selectedPeriod === 'afternoon' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Afternoon
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('prime_night')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer ${
-                  selectedPeriod === 'prime_night' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Moon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Prime Floodlight</span>
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('late_night')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  selectedPeriod === 'late_night' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Late Night (Till 2 AM)
-              </button>
-            </div>
-          </div>
-
-          <div className="text-[11px] sm:text-xs text-slate-400 flex items-center gap-2 self-end sm:self-auto">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="text-white font-medium">{availableCount} Available</span>
-            <span className="text-slate-600">|</span>
-            <span className="w-2 h-2 rounded-full bg-rose-500/80"></span>
-            <span>Booked</span>
-          </div>
-        </div>
-
-        {/* Step 4: Time Slots Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-          {filteredSlots.map((slot) => {
-            const isBooked = slot.status === 'booked';
-            return (
-              <div
-                key={slot.id}
-                className={`p-2.5 sm:p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
-                  isBooked
-                    ? 'bg-rose-950/20 border-rose-900/40 opacity-75'
-                    : 'bg-white/[0.03] border-white/10 hover:border-emerald-500/50 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-emerald-500/10'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1 gap-1">
-                    <span className="text-[11px] sm:text-xs font-semibold text-white truncate">
-                      {slot.startTime} - {slot.endTime}
-                    </span>
-                    {slot.isPeak && !isBooked && (
-                      <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
-                        Peak
+                    {isSelected && (
+                      <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </span>
                     )}
                   </div>
-
-                  <div className="text-xs sm:text-sm font-mono font-bold text-emerald-400 mb-2">
-                    ৳{slot.price.toLocaleString()}
+                  <p className="text-xs text-slate-300 line-clamp-1 mb-2">
+                    {court.tagline}
+                  </p>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-white/10">
+                    <span className="text-slate-400">{court.dimensions}</span>
+                    <span className="font-bold text-emerald-400">90 Min Sessions</span>
                   </div>
-                </div>
-
-                {isBooked ? (
-                  <div className="pt-1.5 sm:pt-2 border-t border-rose-900/30">
-                    <span className="block text-[10px] sm:text-[11px] font-semibold text-rose-400 uppercase tracking-wide">
-                      Reserved
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] text-slate-400 truncate block">
-                      {slot.bookedBy || 'Private Squad'}
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setSelectedSlotForBooking(slot)}
-                    className="w-full py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-500 text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer group active:scale-95"
-                  >
-                    <span>Book Slot</span>
-                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Pitch Specifications Footer Banner */}
-        <div className="mt-8 p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <Shield className="w-4 h-4 text-emerald-400" />
-            </div>
+        {/* 2. 60-Day Calendar Browser */}
+        <div className="mb-8 p-4 sm:p-6 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <strong className="text-white">{selectedCourt.name}:</strong> {selectedCourt.turfType} · {selectedCourt.dimensions}
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-400" />
+                <span>Step 2: Choose Date (60-Day Advance Booking Window)</span>
+              </label>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isWeekendSelected ? (
+                  <span className="text-amber-400 font-semibold flex items-center gap-1">
+                    <Flame className="w-3 h-3" /> Weekend Rate Active (Friday & Saturday)
+                  </span>
+                ) : (
+                  <span>Weekday Standard Rates (Sunday – Thursday)</span>
+                )}
+              </p>
+            </div>
+
+            {/* Direct date input for rapid 60-day jumping */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 hidden sm:inline">Jump to Date:</span>
+              <input
+                type="date"
+                min={todayStr}
+                max={maxDate}
+                value={selectedDate}
+                onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-emerald-500"
+              />
             </div>
           </div>
-          <div className="flex items-center gap-4 text-slate-300 font-medium shrink-0">
-            <span>✓ Match Bibs Available</span>
-            <span>✓ Free High-Mast Lights</span>
-            <span>✓ Mineral Water</span>
+
+          {/* Horizontal scrollable date pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-emerald-500/20">
+            {calendarDates.slice(0, 28).map((d) => {
+              const isSelected = selectedDate === d.iso;
+              return (
+                <button
+                  key={d.iso}
+                  type="button"
+                  onClick={() => setSelectedDate(d.iso)}
+                  className={`shrink-0 flex flex-col items-center justify-center min-w-[70px] py-2.5 px-3 rounded-xl border transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-md shadow-emerald-500/20'
+                      : d.isWeekend
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                      : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <span className={`text-[10px] uppercase font-bold tracking-wider ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>
+                    {d.dayName}
+                  </span>
+                  <span className="text-lg font-black leading-none my-1 font-mono">
+                    {d.dayNum}
+                  </span>
+                  <span className={`text-[10px] ${isSelected ? 'text-slate-900 font-semibold' : 'text-slate-400'}`}>
+                    {d.monthName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+            <span>Scroll right for more dates or use date picker for dates up to 60 days ahead</span>
+            <span className="text-emerald-400 font-semibold">{selectedDate}</span>
+          </div>
+        </div>
+
+        {/* 3. Slot Schedule (12 Slots x 90 Mins) */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-base sm:text-lg font-bold text-white uppercase tracking-tight font-display">
+                12 Daily Slots (90 Mins Each · 06:00 AM – 12:00 AM)
+              </h3>
+            </div>
+
+            {/* Filter pills & legend */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10 text-xs">
+                {(['all', 'morning', 'afternoon', 'evening'] as const).map((period) => (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`px-2.5 py-1 rounded capitalize transition-colors cursor-pointer text-xs font-medium ${
+                      selectedPeriod === period
+                        ? 'bg-emerald-500 text-slate-950 font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {period === 'evening' ? 'Evening Prime' : period}
+                  </button>
+                ))}
+              </div>
+
+              {/* Status tally */}
+              <div className="hidden lg:flex items-center gap-3 text-xs text-slate-300 ml-2">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{availableCount} Available</span>
+                </span>
+                {holdingCount > 0 && (
+                  <span className="flex items-center gap-1.5 text-amber-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <span>{holdingCount} In Payment</span>
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-600" />
+                  <span>{bookedCount} Booked</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 12 Slots Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            {filteredSlots.map((slot) => {
+              const isAvailable = slot.status === 'available';
+              const isHolding = slot.status === 'holding';
+              const isBooked = slot.status === 'booked';
+
+              return (
+                <div
+                  key={slot.id}
+                  className={`p-4 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isAvailable
+                      ? 'bg-slate-900/70 border-white/10 hover:border-emerald-500/60 hover:bg-slate-900/90 shadow-sm'
+                      : isHolding
+                      ? 'bg-amber-950/20 border-amber-500/40 text-amber-200'
+                      : 'bg-slate-950/60 border-white/5 opacity-70'
+                  }`}
+                >
+                  <div>
+                    {/* Top Row: Slot # & Period */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10">
+                        Slot #{slot.slotNumber} · 90 Min
+                      </span>
+                      {slot.period === 'evening' ? (
+                        <span className="text-[10px] font-semibold text-amber-400 flex items-center gap-1">
+                          <Moon className="w-3 h-3" /> Floodlight Prime
+                        </span>
+                      ) : slot.period === 'morning' ? (
+                        <span className="text-[10px] font-semibold text-sky-400 flex items-center gap-1">
+                          <Sun className="w-3 h-3" /> Morning Fresh
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          Afternoon
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Time */}
+                    <div className="font-mono text-base font-bold text-white mb-1">
+                      {slot.displayTime}
+                    </div>
+
+                    {/* Price & Advance Note */}
+                    <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-white/10">
+                      <div>
+                        <span className="text-xl font-black text-emerald-400 font-mono">
+                          ৳{slot.price.toLocaleString()}
+                        </span>
+                        <div className="text-[11px] text-slate-400">
+                          Pay ৳500 adv or full
+                        </div>
+                      </div>
+
+                      {/* Status indicator */}
+                      <div>
+                        {isAvailable && (
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                            Free Slot
+                          </span>
+                        )}
+                        {isHolding && (
+                          <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                            <Timer className="w-3 h-3 animate-spin" /> Held 10 Min
+                          </span>
+                        )}
+                        {isBooked && (
+                          <span className="text-[11px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> {slot.bookedBy || 'Reserved'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action button */}
+                  <div className="mt-3 pt-2">
+                    {isAvailable ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSlotForBooking(slot)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                      >
+                        <span>Book Slot Now</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : isHolding ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-2 px-3 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20 cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        <Timer className="w-3.5 h-3.5" />
+                        <span>Held for Payment</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-2 px-3 rounded-xl bg-white/5 text-slate-500 text-xs font-medium cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Unavailable · One Slot, One Team</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Feature note banner */}
+        <div className="mt-8 p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-300">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>
+              <strong>Crossbar Metro Arena Guarantee:</strong> Strict no double-booking policy. 10-minute hold protects your slot during checkout. Pay online securely with bKash, Nagad, or Card.
+            </span>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="font-semibold text-emerald-400">Need Help?</span>
+            <a
+              href="https://wa.me/8801796337133?text=Hi%20Crossbar%2C%20I%20have%20a%20question%20about%20booking"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold"
+            >
+              WhatsApp Turf Support
+            </a>
           </div>
         </div>
       </div>
 
-      {/* Booking Modal */}
+      {/* Booking Checkout Modal */}
       {selectedSlotForBooking && (
         <BookingModal
           court={selectedCourt}
           slot={selectedSlotForBooking}
           selectedDate={selectedDate}
           onClose={() => setSelectedSlotForBooking(null)}
-          onBookingConfirmed={(newBooking) => {
+          onBookingConfirmed={(b) => {
+            onBookingSuccess(b);
             setSelectedSlotForBooking(null);
-            onBookingSuccess(newBooking);
           }}
         />
       )}

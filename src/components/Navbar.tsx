@@ -2,43 +2,44 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { VENUE_INFO } from '../data/initialData';
-import { Phone, Calendar, Trophy, Users, MapPin, Ticket, ShieldCheck, Menu, X, MessageSquare, ChevronRight, Train } from 'lucide-react';
-import { Booking } from '../types';
+import {
+  Phone,
+  Calendar,
+  Trophy,
+  Users,
+  MapPin,
+  Ticket,
+  ShieldCheck,
+  Menu,
+  X,
+  MessageSquare,
+  ChevronRight,
+  Train,
+  ShoppingBag,
+  Camera,
+  Info,
+  Smartphone,
+  TrendingUp,
+  User,
+  Shield
+} from 'lucide-react';
 import { useArena } from '../context/ArenaContext';
 
 interface NavbarProps {
   activeSection?: string;
   onNavigate?: (sectionId: string) => void;
-  userBookings?: Booking[];
-  onOpenMyBookings?: () => void;
-  onOpenAdmin?: () => void;
-  onOpenSquadBuilder?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-  activeSection,
-  onNavigate,
-  userBookings: propBookings,
-  onOpenMyBookings,
-  onOpenAdmin,
-  onOpenSquadBuilder
-}) => {
+export const Navbar: React.FC<NavbarProps> = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
-  // Arena context fallback
-  const arena = useArena();
-  const bookings = propBookings ?? arena.bookings;
-  const openPasses = onOpenMyBookings ?? (() => arena.setShowPassesDrawer(true));
-  const openAdmin = onOpenAdmin ?? (() => arena.setShowAdminModal(true));
-  const openSquad = onOpenSquadBuilder ?? (() => arena.setShowSquadModal(true));
+  const { bookings, setShowInstallModal } = useArena();
 
-  // Monitor scroll for enhanced backdrop blur and border
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 15);
@@ -47,7 +48,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -59,12 +59,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [mobileMenuOpen]);
 
+  // Main navigation items specified in the one-page brief
   const navItems = [
-    { id: 'booking', href: '/booking', label: 'Book Slot', icon: Calendar, description: 'Hourly pitch availability' },
-    { id: 'tournaments', href: '/tournaments', label: 'Tournaments', icon: Trophy, description: '৳60K+ Prize Cups & Leagues' },
-    { id: 'squad-builder', href: '/squad-builder', label: 'Tag Squad', icon: Users, badge: 'HOT', description: 'Create lineup card & formations' },
-    { id: 'matches', href: '/matches', label: 'Live Fixtures', icon: Ticket, description: 'Confirmed matches & challenges' },
-    { id: 'venue', href: '/venue', label: 'Metro & Venue', icon: MapPin, description: 'Uttara Metro Center, Sec 17' },
+    { id: 'booking', href: '/booking', label: 'Booking', icon: Calendar },
+    { id: 'results', href: '/results', label: 'Match Day Results', icon: Trophy },
+    { id: 'events', href: '/events', label: 'Events & Tournaments', icon: Shield },
+    { id: 'shop', href: '/shop', label: 'Shop', icon: ShoppingBag },
+    { id: 'gallery', href: '/gallery', label: 'Gallery', icon: Camera },
+    { id: 'about', href: '/about', label: 'About', icon: Info },
   ];
 
   return (
@@ -73,12 +75,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         ? 'bg-[#070b0f]/95 backdrop-blur-md shadow-xl shadow-black/50 border-b border-emerald-500/20'
         : 'bg-[#080d12]/95 backdrop-blur-sm border-b border-white/10'
     }`}>
-      {/* 1. TOP ANNOUNCEMENT & CONTACT MICRO-BAR */}
+      {/* 1. TOP ANNOUNCEMENT & DASHBOARDS SWITCHER MICRO-BAR */}
       <div className="bg-gradient-to-r from-emerald-950/90 via-slate-950 to-emerald-950/80 border-b border-emerald-500/20 px-4 sm:px-6 h-8 flex items-center text-xs text-slate-300">
         <div className="max-w-7xl w-full mx-auto flex items-center justify-between gap-3">
+          
           {/* Location & Metro Link */}
           <Link
-            href="/venue"
+            href="/about"
             className="inline-flex items-center gap-2 truncate hover:opacity-90 transition-opacity"
           >
             <span className="relative flex h-2 w-2 shrink-0">
@@ -89,29 +92,57 @@ export const Navbar: React.FC<NavbarProps> = ({
               Uttara Metro Center, Sec 17
             </span>
             <span className="hidden md:inline text-slate-400 text-[11px] font-normal">
-              · MRT Line-6 Elevated Viaduct
+              · 2 Min from MRT Line-6
             </span>
           </Link>
 
-          {/* Quick Hotline & Staff Access */}
-          <div className="flex items-center gap-3 shrink-0 text-[11px] sm:text-xs">
-            <a
-              href={`tel:${VENUE_INFO.phone}`}
-              className="inline-flex items-center gap-1.5 text-slate-200 hover:text-emerald-400 font-bold transition-colors"
+          {/* Three Dashboards Switcher & Install App */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-[11px] sm:text-xs">
+            {/* Install App Quick Prompt */}
+            <button
+              type="button"
+              onClick={() => setShowInstallModal(true)}
+              className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold transition-colors cursor-pointer"
             >
-              <Phone className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span className="font-mono tracking-wide">{VENUE_INFO.phone}</span>
-            </a>
+              <Smartphone className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span>Install App</span>
+            </button>
 
-            <span className="text-white/20 hidden sm:inline leading-none">|</span>
+            <span className="text-white/20 leading-none">|</span>
+
+            {/* Dashboard Links */}
+            <Link
+              href="/player"
+              className={`inline-flex items-center gap-1 transition-colors ${
+                pathname.startsWith('/player') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <User className="w-3 h-3 shrink-0" />
+              <span className="hidden sm:inline">Player</span>
+            </Link>
+
+            <span className="text-white/20 leading-none">·</span>
 
             <Link
               href="/admin"
-              className="inline-flex items-center gap-1 text-slate-400 hover:text-emerald-300 transition-colors"
-              title="Arena Staff Access"
+              className={`inline-flex items-center gap-1 transition-colors ${
+                pathname.startsWith('/admin') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400/80 shrink-0" />
-              <span className="hidden sm:inline">Staff</span>
+              <ShieldCheck className="w-3 h-3 shrink-0" />
+              <span className="hidden sm:inline">Admin</span>
+            </Link>
+
+            <span className="text-white/20 leading-none">·</span>
+
+            <Link
+              href="/investor"
+              className={`inline-flex items-center gap-1 transition-colors ${
+                pathname.startsWith('/investor') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <TrendingUp className="w-3 h-3 shrink-0" />
+              <span className="hidden sm:inline">Investor</span>
             </Link>
           </div>
         </div>
@@ -128,44 +159,39 @@ export const Navbar: React.FC<NavbarProps> = ({
           <CrossbarLogo size="responsive" />
         </Link>
 
-        {/* Desktop Navigation Links (Center - Unified Alignment & No Text Wrapping) */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+        {/* Desktop Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || (pathname === '/' && activeSection === item.id);
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={`h-9 px-3 xl:px-3.5 rounded-xl text-xs xl:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-2 border ${
+                className={`h-9 px-3 rounded-xl text-xs xl:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 border ${
                   isActive
                     ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 shadow-sm shadow-emerald-500/10'
                     : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
                 <span className="leading-none">{item.label}</span>
-                {item.badge && (
-                  <span className="ml-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 leading-none shrink-0 inline-flex items-center">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right Action Cluster (Right - Uniform Height & Alignment) */}
+        {/* Right Action Cluster */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* My Passes Button */}
           {bookings.length > 0 && (
             <Link
-              href="/passes"
+              href="/player"
               className="h-9 px-3 rounded-xl text-xs font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-2 shadow-sm"
               title="View your match passes"
             >
               <Ticket className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="hidden sm:inline leading-none">My Passes</span>
+              <span className="hidden sm:inline leading-none">Passes</span>
               <span className="w-4 h-4 flex items-center justify-center rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black shrink-0 leading-none">
                 {bookings.length}
               </span>
@@ -208,13 +234,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* 3. MOBILE DRAWER OVERLAY & PANEL */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in"
             onClick={() => setMobileMenuOpen(false)}
           ></div>
 
-          {/* Drawer Menu Container */}
           <div className="relative bg-[#0c131a] border-t border-emerald-500/30 rounded-t-3xl max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
             {/* Drawer Header */}
             <div className="p-4 border-b border-white/10 flex items-center justify-between sticky top-0 bg-[#0c131a]/95 backdrop-blur-md z-10">
@@ -232,27 +256,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mobile Nav Links List */}
             <div className="p-4 space-y-2">
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
-                  pathname === '/'
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                    : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${pathname === '/' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-400'}`}>
-                    <Train className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">Arena Home</div>
-                    <div className="text-[11px] text-slate-400">Main overview &amp; stadium teaser</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500" />
-              </Link>
-
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-1">
+                Main Pages
+              </div>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -261,84 +267,92 @@ export const Navbar: React.FC<NavbarProps> = ({
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center justify-between p-3 rounded-2xl transition-all border ${
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
                       isActive
-                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                        : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold'
+                        : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-400'}`}>
-                        <Icon className="w-5 h-5" />
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isActive ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/5 text-emerald-400'
+                      }`}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <div className="text-left">
-                        <div className="font-semibold text-sm flex items-center gap-2">
-                          <span>{item.label}</span>
-                          {item.badge && (
-                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 leading-none">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-400">{item.description}</div>
-                      </div>
+                      <span className="text-sm font-semibold">{item.label}</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-500" />
                   </Link>
                 );
               })}
 
-              {/* Passes button on mobile */}
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 pt-3">
+                Three Dashboards
+              </div>
+              
               <Link
-                href="/passes"
+                href="/player"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
-                  pathname === '/passes'
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                    : 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
-                }`}
+                className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-slate-300"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-                    <Ticket className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <User className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">My Match Passes</div>
-                    <div className="text-[11px] text-emerald-400/80">{bookings.length} saved booking passes</div>
+                    <div className="text-sm font-semibold text-white">Player Dashboard</div>
+                    <div className="text-[11px] text-slate-400">My passes, teams, post scores</div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-emerald-400/60" />
+                <ChevronRight className="w-4 h-4 text-slate-500" />
               </Link>
-            </div>
 
-            {/* Mobile Footer CTAs */}
-            <div className="p-4 border-t border-white/10 bg-black/40 space-y-2">
               <Link
-                href="/booking"
+                href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="btn-volt w-full py-3.5 rounded-2xl font-black text-center flex items-center justify-center gap-2"
+                className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-slate-300"
               >
-                <Calendar className="w-4 h-4" />
-                <span>BOOK A COURT NOW</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">Admin Dashboard</div>
+                    <div className="text-[11px] text-slate-400">12-slot radar, expenses, prices</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500" />
               </Link>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <a
-                  href={`tel:${VENUE_INFO.phone}`}
-                  className="py-2.5 px-3 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-white/10"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Call Desk</span>
-                </a>
-                <Link
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 px-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-xs font-semibold flex items-center justify-center gap-1.5 hover:text-white"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Arena Staff</span>
-                </Link>
-              </div>
+              <Link
+                href="/investor"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-slate-300"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">Investor Dashboard</div>
+                    <div className="text-[11px] text-slate-400">Net profit share & live payouts</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500" />
+              </Link>
+
+              {/* Install App CTA in drawer */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowInstallModal(true);
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+              >
+                <Smartphone className="w-4 h-4 text-slate-950" />
+                <span>Install Mobile App (PWA)</span>
+              </button>
             </div>
           </div>
         </div>

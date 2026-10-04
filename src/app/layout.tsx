@@ -2,23 +2,24 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ArenaProvider } from '../context/ArenaContext';
 import { GlobalModals } from '../components/GlobalModals';
+import { FloatingWhatsApp } from '../components/FloatingWhatsApp';
 
 export const metadata: Metadata = {
-  title: 'Crossbar Metro Arena | Premium Outdoor Turf & Tournaments | Uttara, Dhaka',
-  description: 'Book your football slot and register tournaments at Crossbar Metro Arena. Premium outdoor turf right next to Uttara Metro Center, Sector 17, Dhaka.',
-  keywords: ['crossbar metro arena', 'dhaka turf booking', 'football turf uttara', 'uttara metro center', 'turf tournament bangladesh', '7v7 football turf'],
+  title: 'Crossbar Metro Arena | Dhaka’s Premier Floodlit Outdoor Turf | bookcrossbar.com',
+  description: 'Book your football slot and register tournaments at Crossbar Metro Arena. 12 daily 90-minute slots, 60-day calendar, ৳500 advance, and live investor profit share at Uttara Metro Center, Dhaka.',
+  keywords: ['crossbar metro arena', 'bookcrossbar.com', 'dhaka turf booking', 'football turf uttara', 'uttara metro center', 'turf tournament bangladesh', '7v7 football turf'],
   authors: [{ name: 'Crossbar Metro Arena' }],
   openGraph: {
-    title: 'Crossbar Metro Arena | Premium Outdoor Turf & Tournaments',
-    description: 'Foundations going down, game day coming up! Premium outdoor turf for football & sports events at Uttara Metro Center, Dhaka.',
+    title: 'Crossbar Metro Arena | Dhaka’s Premier Floodlit Outdoor Turf',
+    description: '12 daily 90-minute slots, pay online with bKash/Nagad/Card (৳500 advance or full). Live investor profit share at bookcrossbar.com.',
     type: 'website',
     locale: 'en_US',
     siteName: 'Crossbar Metro Arena',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Crossbar Metro Arena | Premium Outdoor Turf & Tournaments',
-    description: 'Book your football slot and register tournaments at Crossbar Metro Arena. Next to Uttara Metro Center.',
+    title: 'Crossbar Metro Arena | Dhaka’s Premier Floodlit Outdoor Turf',
+    description: '12 daily 90-minute slots, pay online with bKash/Nagad/Card. Next to Uttara Metro Center.',
   },
 };
 
@@ -47,6 +48,7 @@ export default function RootLayout({
         <ArenaProvider>
           {children}
           <GlobalModals />
+          <FloatingWhatsApp />
         </ArenaProvider>
       </body>
     </html>

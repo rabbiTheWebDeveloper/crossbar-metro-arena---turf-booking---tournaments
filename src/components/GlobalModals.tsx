@@ -6,6 +6,7 @@ import { TicketPassModal } from './TicketPassModal';
 import { SquadBuilderModal } from './SquadBuilderModal';
 import { ArenaManagerModal } from './ArenaManagerModal';
 import { MyPassesDrawer } from './MyPassesDrawer';
+import { InstallAppModal } from './InstallAppModal';
 
 export const GlobalModals: React.FC = () => {
   const {
@@ -21,7 +22,7 @@ export const GlobalModals: React.FC = () => {
     setShowPassesDrawer,
     handleUpdateBookingStatus,
     handleCancelBooking,
-    handleAddManualBooking
+    handleBookingSuccess
   } = useArena();
 
   return (
@@ -49,7 +50,7 @@ export const GlobalModals: React.FC = () => {
           onClose={() => setShowAdminModal(false)}
           onUpdateBookingStatus={handleUpdateBookingStatus}
           onCancelBooking={handleCancelBooking}
-          onAddManualBooking={handleAddManualBooking}
+          onAddManualBooking={handleBookingSuccess}
         />
       )}
 
@@ -62,14 +63,12 @@ export const GlobalModals: React.FC = () => {
             setShowPassesDrawer(false);
             setActiveTicketPass(b);
           }}
-          onBookMore={() => {
-            setShowPassesDrawer(false);
-            if (typeof window !== 'undefined') {
-              window.location.href = '/booking';
-            }
-          }}
+          onBookMore={() => setShowPassesDrawer(false)}
         />
       )}
+
+      {/* Install Mobile / PWA App Modal */}
+      <InstallAppModal />
     </>
   );
 };

@@ -5,23 +5,28 @@ import { useArena } from '../../../context/ArenaContext';
 import { BookingSection } from '../../../components/BookingSection';
 import { TurfWeatherWidget } from '../../../components/TurfWeatherWidget';
 import { PageHero } from '../../../components/PageHero';
-import { Zap, Clock, Shield, CheckCircle2, Sun, Moon, Ticket, Footprints } from 'lucide-react';
+import { Zap, Clock, Shield, CheckCircle2, Sun, Moon, Ticket, Footprints, Calendar } from 'lucide-react';
 
 const GUIDELINES = [
   {
-    icon: Footprints,
-    title: 'Footwear Guidelines',
-    text: 'Turf shoes (TF) or molded rubber studs (FG/AG) recommended. Metal studs are strictly forbidden to protect the 50mm shock-pad turf.'
-  },
-  {
     icon: Clock,
-    title: 'Slot Timing & Warm-up',
-    text: 'Arrive 15 minutes before kickoff. Dugout benches and the warm-up zone are open before your slot begins.'
+    title: '12 Slots Daily (90 Mins Each)',
+    text: 'Fixed 90-minute matches from 06:00 AM to 12:00 AM Midnight. No overlapping games. One slot, one team.'
   },
   {
     icon: Shield,
-    title: 'Payment & Cancellation',
-    text: 'Pay via bKash, Nagad, card or at the counter. Reschedule up to 6 hours before kickoff from your digital pass.'
+    title: '৳500 Advance or Full Payment',
+    text: 'Secure your slot online with bKash, Nagad, or Card. Choose between a ৳500 advance (pay rest at counter) or 100% full online clearance.'
+  },
+  {
+    icon: Calendar,
+    title: '60-Day Advance Booking Window',
+    text: 'Pick any match date up to 60 days in advance. Weekend rates (Friday & Saturday) apply automatically.'
+  },
+  {
+    icon: Footprints,
+    title: 'Turf Footwear Guidelines',
+    text: 'Turf shoes (TF) or rubber molded studs (AG) required. Metal studs strictly forbidden on 50mm shock-pad turf.'
   }
 ];
 
@@ -32,16 +37,16 @@ export default function BookingPage() {
     <>
       <PageHero
         crumb="Book Slot"
-        eyebrow="Real-Time Slot Engine"
+        eyebrow="Official Crossbar Booking Engine"
         eyebrowIcon={Zap}
         title="Reserve Your"
-        highlight="Turf Pitch"
-        description="Pick Pitch Alpha (7v7), Pitch Bravo (5v5 speed cage) or a full-arena buyout. Instant digital match pass with flexible payment options."
+        highlight="90-Min Turf Slot"
+        description="12 slots daily, 90 minutes each, from 6 AM to 12 AM. Pick any date up to 60 days ahead. Pay online with bKash, Nagad, or Card (৳500 advance or full)."
         stats={[
-          { label: 'Open Hours', value: '6AM – 2AM', icon: Clock },
-          { label: 'Day Rate', value: 'from ৳1,600', icon: Sun },
-          { label: 'Night Rate', value: 'from ৳2,400', icon: Moon },
-          { label: 'Your Passes', value: `${bookings.length} active`, icon: Ticket }
+          { label: 'Schedule', value: '12 Slots / Day', icon: Clock },
+          { label: 'Match Time', value: '90 Mins', icon: Zap },
+          { label: 'Advance Window', value: 'Up to 60 Days', icon: Calendar },
+          { label: 'Online Advance', value: '৳500 or Full', icon: Shield }
         ]}
       />
 
@@ -58,25 +63,29 @@ export default function BookingPage() {
 
       {/* Guidelines */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="flex items-center gap-2 mb-5">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <h2 className="text-xl font-black font-display uppercase tracking-wide text-white">
-            Before You Play
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {GUIDELINES.map((g) => {
-            const Icon = g.icon;
-            return (
-              <div key={g.title} className="glass glass-hover rounded-2xl p-6">
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 mb-4">
-                  <Icon className="w-5 h-5" />
+        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">
+            <Shield className="w-4 h-4" />
+            <span>Crossbar Arena Match Day Regulations</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 font-display">
+            Official Booking Policies & Turf Ground Rules
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {GUIDELINES.map((g, idx) => {
+              const Icon = g.icon;
+              return (
+                <div key={idx} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-3">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-bold text-white mb-1.5">{g.title}</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">{g.text}</p>
                 </div>
-                <h3 className="text-white font-bold text-base font-display">{g.title}</h3>
-                <p className="text-slate-400 text-sm mt-2 leading-relaxed">{g.text}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
     </>

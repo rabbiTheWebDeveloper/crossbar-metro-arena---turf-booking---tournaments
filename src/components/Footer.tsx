@@ -4,23 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { CrossbarLogo } from './CrossbarLogo';
 import { VENUE_INFO } from '../data/initialData';
-import { Phone, Mail, Globe, Train, Shield, ArrowUp } from 'lucide-react';
+import { Phone, Mail, Globe, Train, Shield, ArrowUp, Smartphone, MessageSquare, Heart } from 'lucide-react';
 import { useArena } from '../context/ArenaContext';
 
-interface FooterProps {
-  onNavigate?: (sectionId: string) => void;
-  onOpenSquadBuilder?: () => void;
-  onOpenAdmin?: () => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({
-  onNavigate,
-  onOpenSquadBuilder,
-  onOpenAdmin
-}) => {
-  const arena = useArena();
-  const openSquad = onOpenSquadBuilder ?? (() => arena.setShowSquadModal(true));
-  const openAdmin = onOpenAdmin ?? (() => arena.setShowAdminModal(true));
+export const Footer: React.FC = () => {
+  const { setShowInstallModal } = useArena();
 
   const scrollToTop = () => {
     if (typeof window !== 'undefined') {
@@ -32,149 +20,165 @@ export const Footer: React.FC<FooterProps> = ({
     <footer className="bg-[#05080b] border-t border-white/10 pt-12 pb-8 text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-white/10">
+          
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-block">
               <CrossbarLogo size="lg" />
             </Link>
             <p className="text-slate-400 text-xs sm:text-sm max-w-sm leading-relaxed mt-2">
-              Crossbar Metro Arena is Dhaka&apos;s premier floodlit outdoor football turf, located right next to the Uttara Metro Center viaduct. Professional shock-pad artificial turf designed for competitive small-sided games and championship tournaments.
+              Crossbar Metro Arena is Dhaka&apos;s premier floodlit outdoor turf at <strong className="text-white">bookcrossbar.com</strong>. 12 daily 90-minute slots, 60-day advance calendar, ৳500 online advance booking, and live investor profit share.
             </p>
-            <div className="flex items-center gap-3 text-xs text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 pt-1">
               <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                 <Train className="w-3.5 h-3.5" />
-                <span>Uttara Metro Center · Sector 17</span>
+                <span>Uttara Center Metro Station (MRT Line-6)</span>
               </span>
+            </div>
+
+            {/* Install App Quick CTA */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Install Mobile App (PWA & Android)</span>
+              </button>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Website Pages */}
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">
-              Quick Links
+              Arena Pages
             </div>
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/booking"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  Book Court Slot
+                <Link href="/" className="hover:text-emerald-400 transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/tournaments"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  Tournaments &amp; Cups
+                <Link href="/booking" className="hover:text-emerald-400 transition-colors text-emerald-400 font-medium">
+                  Booking (12 Slots · 90 Min)
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/squad-builder"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer text-emerald-300 font-medium"
-                >
-                  Tag Your Match Squad 🔥
+                <Link href="/results" className="hover:text-emerald-400 transition-colors">
+                  Match Day Results &amp; Scorers
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/matches"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  Live Fixtures &amp; Challenges
+                <Link href="/events" className="hover:text-emerald-400 transition-colors">
+                  Events &amp; Tournaments
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/venue"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  Location &amp; Metro Map
+                <Link href="/shop" className="hover:text-emerald-400 transition-colors">
+                  Shop (Reserve &amp; Pickup)
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/passes"
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  My Match Passes 🎟️
+                <Link href="/gallery" className="hover:text-emerald-400 transition-colors">
+                  4K Pitch Gallery
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="hover:text-emerald-400 transition-colors">
+                  About Venue &amp; Metro Guide
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Pitch & Amenities */}
+          {/* Three Dashboards */}
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">
-              Facilities
+              Three Dashboards
             </div>
-            <ul className="space-y-2 text-slate-400">
-              <li>Pitch Alpha (7v7 / 8v8 Main Turf)</li>
-              <li>Pitch Bravo (5v5 Fast Speed Cage)</li>
-              <li>400 Lux LED Stadium Floodlighting</li>
-              <li>Changing Cabins &amp; Fresh Showers</li>
-              <li>Clean Prayer Space (Wudu Ready)</li>
-              <li>Trackside Barista Refreshments</li>
-              <li>Guarded Free Parking</li>
-            </ul>
-          </div>
-
-          {/* Contact Details */}
-          <div className="space-y-3">
-            <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">
-              Connect &amp; Reach
-            </div>
-            <ul className="space-y-2.5">
-              <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <a href={`tel:${VENUE_INFO.phone}`} className="text-slate-200 hover:text-emerald-400 font-mono font-bold">
-                  {VENUE_INFO.phone}
-                </a>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/player" className="hover:text-emerald-400 transition-colors">
+                  Player Dashboard (My Passes, Teams, Post Scores)
+                </Link>
               </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <a href={`mailto:${VENUE_INFO.email}`} className="text-slate-300 hover:text-emerald-400 truncate">
-                  {VENUE_INFO.email}
-                </a>
+              <li>
+                <Link href="/admin" className="hover:text-emerald-400 transition-colors">
+                  Admin Panel (12-Slot Radar, Expenses, Prices)
+                </Link>
               </li>
-              <li className="flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-slate-300 font-mono">{VENUE_INFO.website}</span>
+              <li>
+                <Link href="/investor" className="hover:text-emerald-400 transition-colors text-emerald-300 font-medium">
+                  Investor Dashboard (Live Net Profit Share)
+                </Link>
               </li>
               <li className="pt-2">
-                <a
-                  href={VENUE_INFO.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white hover:border-emerald-500/50 hover:bg-white/10 transition-colors"
-                >
-                  <span>Facebook Page</span>
-                </a>
+                <span className="text-[11px] text-slate-500 block">
+                  Rule: Income - Expenses = Net Profit. In a loss month, nobody gets a share.
+                </span>
               </li>
             </ul>
           </div>
+
+          {/* Contact & Support */}
+          <div className="space-y-3">
+            <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">
+              Turf Hotline
+            </div>
+            <ul className="space-y-2.5">
+              <li>
+                <a
+                  href={`tel:${VENUE_INFO.phone}`}
+                  className="flex items-center gap-2 hover:text-emerald-400 transition-colors text-white font-mono font-bold"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{VENUE_INFO.phoneFormatted}</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={VENUE_INFO.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-[#25D366] hover:underline font-semibold"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>WhatsApp Booking Chat</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`mailto:${VENUE_INFO.email}`}
+                  className="flex items-center gap-2 hover:text-emerald-400 transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{VENUE_INFO.email}</span>
+                </a>
+              </li>
+              <li>
+                <div className="text-[11px] text-slate-400 leading-relaxed pt-1">
+                  Sector 17, Uttara Metro Center, Dhaka, 1230
+                </div>
+              </li>
+            </ul>
+          </div>
+
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[11px]">
-          <div>
-            © 2026 Crossbar Metro Arena. Uttara Metro Center, Sector 17, Dhaka, Bangladesh. All rights reserved.
+        {/* Bottom Bar */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>© 2026 Crossbar Metro Arena ({VENUE_INFO.website}). All rights reserved.</span>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
-            >
-              <Shield className="w-3 h-3 text-emerald-400" />
-              <span>Turf Staff Portal</span>
-            </Link>
-            <span>·</span>
+            <span className="text-emerald-400/80">Payments via bKash, Nagad &amp; SSLCommerz</span>
             <button
               onClick={scrollToTop}
-              className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors p-1"
+              title="Back to top"
             >
               <span>Back to Top</span>
               <ArrowUp className="w-3 h-3" />

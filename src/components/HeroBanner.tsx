@@ -69,10 +69,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_#34d399]" />
             </span>
             <span className="font-extrabold text-emerald-400 tracking-wider text-[11px] sm:text-xs uppercase">
-              FOUNDATIONS POURED · PHASE 1
+              12 DAILY SLOTS · 90 MINS EACH · ৳500 ADVANCE
             </span>
             <span className="text-slate-500 hidden xs:inline">·</span>
-            <span className="text-slate-200 hidden sm:inline">Game Day Coming Up! ⚽ 🏗️</span>
+            <span className="text-slate-200 hidden sm:inline">bookcrossbar.com ⚽ 🏗️</span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[11px] sm:text-xs font-semibold backdrop-blur-md">
@@ -107,7 +107,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </h1>
 
           <p className="text-slate-300 text-sm sm:text-base md:text-lg font-normal max-w-2xl mx-auto mb-7 sm:mb-9 leading-relaxed px-3 page-enter-3">
-            FIFA-grade shock-pad football turf with panoramic views of the Dhaka Metro Rail. Reserve your match slots, tag your squad, and battle in high-stakes tournaments.
+            12 fixed 90-minute slots daily from 6 AM to 12 AM. Pick any date up to 60 days ahead. Pay online with bKash, Nagad or card with just a <strong className="text-emerald-400">৳500 advance</strong> or full clearance. Strict no double-booking guarantee.
           </p>
 
           {/* Action CTAs */}

@@ -6,24 +6,34 @@ export interface Court {
   format: '7 vs 7' | '5 vs 5' | 'Multi-Format';
   dimensions: string;
   turfType: string;
-  dayPrice: number;    // BDT per hour (06:00 - 18:00)
-  nightPrice: number;  // BDT per hour (18:00 - 02:00 Floodlight Prime)
+  dayPrice: number;    // BDT base
+  nightPrice: number;  // BDT prime
   features: string[];
   recommendedPlayers: string;
 }
 
+export interface PricingConfig {
+  morningSlotPrice: number;   // 06:00 - 12:00 (Slots 1-4)
+  afternoonSlotPrice: number; // 12:00 - 18:00 (Slots 5-8)
+  eveningSlotPrice: number;   // 18:00 - 00:00 (Slots 9-12)
+  weekendSurcharge: number;   // Additional BDT for Friday and Saturday
+}
+
 export interface TimeSlot {
   id: string;
+  slotNumber: number; // 1 to 12
   courtId: string;
-  startTime: string; // e.g. "18:00"
-  endTime: string;   // e.g. "19:00"
-  displayTime: string;
-  period: 'morning' | 'afternoon' | 'prime_night' | 'late_night';
+  startTime: string;  // e.g. "06:00"
+  endTime: string;    // e.g. "07:30"
+  displayTime: string;// e.g. "06:00 AM - 07:30 AM"
+  durationMinutes: 90;
+  period: 'morning' | 'afternoon' | 'evening';
   price: number;
   isPeak: boolean;
-  status: 'available' | 'booked' | 'blocked' | 'tournament';
+  status: 'available' | 'holding' | 'booked' | 'blocked';
   bookedBy?: string;
   bookingId?: string;
+  holdExpiresAt?: number; // 10 minute hold expiration timestamp
 }
 
 export interface BookingAddOn {
@@ -39,7 +49,8 @@ export interface Booking {
   bookingCode: string;
   courtId: string;
   courtName: string;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD (up to 60 days ahead)
+  slotNumber?: number; // 1 to 12
   startTime: string;
   endTime: string;
   displayTime: string;
@@ -52,8 +63,12 @@ export interface Booking {
   courtPrice: number;
   addOnsPrice: number;
   totalPrice: number;
+  paymentType: 'advance_500' | 'full_payment' | 'pay_at_turf';
+  advanceAmount: number; // ৳500 or full
+  dueAmount: number;     // Remaining balance to be paid at turf
   paymentMethod: 'pay_at_turf' | 'bkash' | 'nagad' | 'card';
   paymentStatus: 'confirmed_unpaid' | 'paid_advance' | 'paid_full';
+  holdExpiresAt?: number;
   notes?: string;
   createdAt: string;
 }
@@ -112,6 +127,103 @@ export interface SquadPlayer {
   id: string;
   name: string;
   number: number;
-  position: string; // e.g. GK, CB, LB, RB, CM, RW, LW, ST
+  position: string;
   role?: string;
+  goals?: number;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  number: number;
+  position: 'GK' | 'DEF' | 'MID' | 'FWD';
+  role: 'Captain' | 'Vice Captain' | 'Player';
+  phone?: string;
+  goals: number;
+  matchesPlayed: number;
+}
+
+export interface PlayerTeam {
+  id: string;
+  name: string;
+  shortCode: string;
+  captainName: string;
+  captainPhone: string;
+  homeColor: string;
+  stats: {
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    gf: number; // goals for
+    ga: number; // goals against
+    points: number;
+  };
+  players: TeamMember[];
+}
+
+export interface GoalScorerRecord {
+  playerName: string;
+  teamName: string;
+  minute?: number;
+}
+
+export interface MatchDayResult {
+  id: string;
+  date: string;
+  slotDisplay: string;
+  courtName: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  scorers: GoalScorerRecord[];
+  matchType: string;
+  postedBy: string;
+  postedAt: string;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  category: 'turf_maintenance' | 'floodlight_electricity' | 'staff_wages' | 'equipment' | 'cleaning' | 'marketing' | 'other';
+  title: string;
+  amount: number;
+  date: string;
+  receiptNote?: string;
+  recordedBy: string;
+}
+
+export interface InvestorRecord {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  sharePercentage: number; // % e.g. 15 for 15%
+  capitalInvested: number;
+  joinedDate: string;
+  payoutsPaid: number;
+}
+
+export interface ShopProduct {
+  id: string;
+  name: string;
+  category: 'footwear' | 'balls' | 'apparel' | 'accessories' | 'drinks';
+  price: number;
+  badge?: string;
+  description: string;
+  specs: string[];
+  inStock: boolean;
+  image?: string;
+}
+
+export interface ShopReservation {
+  id: string;
+  reservationCode: string;
+  productId: string;
+  productName: string;
+  price: number;
+  customerName: string;
+  customerPhone: string;
+  status: 'reserved_pickup' | 'collected' | 'cancelled';
+  reservedAt: string;
 }
