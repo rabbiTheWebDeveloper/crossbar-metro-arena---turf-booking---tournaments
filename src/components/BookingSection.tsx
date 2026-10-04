@@ -135,18 +135,20 @@ export const BookingSection: React.FC<BookingSectionProps> = ({
     <section id="booking" className="py-12 md:py-20 bg-[#090e13] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className={`text-center max-w-3xl mx-auto mb-10 ${hideHeading ? 'hidden' : ''}`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Real-Time Slot Engine</span>
+        {!hideHeading && (
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Real-Time Slot Engine</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
+              Reserve Your Playing Slot
+            </h2>
+            <p className="text-slate-400 text-sm sm:text-base mt-2">
+              Select your preferred pitch, date, and hourly slot. Instant confirmation pass generated on booking.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
-            Reserve Your Playing Slot
-          </h2>
-          <p className="text-slate-400 text-sm sm:text-base mt-2">
-            Select your preferred pitch, date, and hourly slot. Instant confirmation pass generated on booking.
-          </p>
-        </div>
+        )}
 
         {/* Step 1: Court Selector */}
         <div className="mb-8">

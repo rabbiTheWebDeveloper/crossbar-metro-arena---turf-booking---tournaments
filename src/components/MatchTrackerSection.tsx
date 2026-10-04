@@ -63,18 +63,20 @@ export const MatchTrackerSection: React.FC<MatchTrackerSectionProps> = ({
     <section id="schedule" className="py-14 md:py-24 bg-[#090e13] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className={`text-center max-w-3xl mx-auto mb-10 ${hideHeading ? 'hidden' : ''}`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
-            <Flame className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Matchday Center</span>
+        {!hideHeading && (
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
+              <Flame className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Matchday Center</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
+              Upcoming Matches &amp; Squad Challenges
+            </h2>
+            <p className="text-slate-400 text-sm sm:text-base mt-2">
+              Track live arena schedule, discover booked kickoffs, or challenge local Dhaka squads for an intense friendly.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
-            Upcoming Matches & Squad Challenges
-          </h2>
-          <p className="text-slate-400 text-sm sm:text-base mt-2">
-            Track live arena schedule, discover booked kickoffs, or challenge local Dhaka squads for an intense friendly.
-          </p>
-        </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">

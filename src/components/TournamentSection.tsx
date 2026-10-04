@@ -26,18 +26,20 @@ export const TournamentSection: React.FC<TournamentSectionProps> = ({
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
-        <div className={`text-center max-w-3xl mx-auto mb-12 ${hideHeading ? 'hidden' : ''}`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Tournaments & Cups</span>
+        {!hideHeading && (
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span>Tournaments & Cups</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
+              Championship Tournaments & Leagues
+            </h2>
+            <p className="text-slate-400 text-sm sm:text-base mt-2">
+              Bring your squad to compete for grand trophies, medals, and huge cash prizes at Crossbar Metro Arena.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
-            Championship Tournaments & Leagues
-          </h2>
-          <p className="text-slate-400 text-sm sm:text-base mt-2">
-            Bring your squad to compete for grand trophies, medals, and huge cash prizes at Crossbar Metro Arena.
-          </p>
-        </div>
+        )}
 
         {/* Success Alert if just registered */}
         {justRegisteredTeam && (

@@ -70,18 +70,20 @@ export const VenueLocationSection: React.FC<VenueLocationSectionProps> = ({ onBo
     <section id="location" className="py-10 sm:py-16 md:py-24 bg-[#070b0e] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className={`text-center max-w-3xl mx-auto mb-8 sm:mb-12 ${hideHeading ? 'hidden' : ''}`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>Prime Uttara Location</span>
+        {!hideHeading && (
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Prime Uttara Location</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
+              How to Reach &amp; Venue Amenities
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm md:text-base mt-2 px-2">
+              Uttara Metro Center, Sector 17, Dhaka-1230. The most easily accessible football turf in Dhaka via Metro Rail.
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-display uppercase tracking-tight">
-            How to Reach & Venue Amenities
-          </h2>
-          <p className="text-slate-400 text-xs sm:text-sm md:text-base mt-2 px-2">
-            Uttara Metro Center, Sector 17, Dhaka-1230. The most easily accessible football turf in Dhaka via Metro Rail.
-          </p>
-        </div>
+        )}
 
         {/* Metro Highlight Banner */}
         <div className="mb-8 sm:mb-12 p-4 sm:p-6 md:p-8 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-[#0e1620] border border-emerald-500/30 relative overflow-hidden">
