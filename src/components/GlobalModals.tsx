@@ -7,6 +7,11 @@ import { SquadBuilderModal } from './SquadBuilderModal';
 import { ArenaManagerModal } from './ArenaManagerModal';
 import { MyPassesDrawer } from './MyPassesDrawer';
 import { InstallAppModal } from './InstallAppModal';
+import { AuthModal } from './AuthModal';
+import { SSLCommerzModal } from './SSLCommerzModal';
+import { ShopCartDrawer } from './ShopCartDrawer';
+import { HandoverGuideModal } from './HandoverGuideModal';
+import { MobileBottomNav } from './MobileBottomNav';
 
 export const GlobalModals: React.FC = () => {
   const {
@@ -69,6 +74,21 @@ export const GlobalModals: React.FC = () => {
 
       {/* Install Mobile / PWA App Modal */}
       <InstallAppModal />
+
+      {/* User Authentication & Role Switcher Modal */}
+      <AuthModal />
+
+      {/* SSLCommerz Online Payment Gateway Simulation Modal */}
+      <SSLCommerzModal />
+
+      {/* Shop Cart Drawer */}
+      <ShopCartDrawer />
+
+      {/* Handover & Admin Operational Guide Modal */}
+      <HandoverGuideModal />
+
+      {/* Fixed Mobile Bottom Tab Bar (Home, Match Day, Book, Shop, Me) */}
+      <MobileBottomNav />
     </>
   );
 };

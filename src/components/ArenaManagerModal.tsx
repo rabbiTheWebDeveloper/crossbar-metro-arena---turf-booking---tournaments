@@ -58,12 +58,14 @@ export const ArenaManagerModal: React.FC<ArenaManagerModalProps> = ({
     };
 
     const courtObj = COURTS.find(c => c.id === manualCourtId) || COURTS[0];
+    const slotIdx = Math.max(1, Math.min(12, Math.floor((startH - 6) / 1.5) + 1));
 
     const newB: Booking = {
       id: `manual-${Date.now()}`,
       bookingCode: `CMA-${Math.floor(1000 + Math.random() * 9000)}`,
       courtId: manualCourtId,
       courtName: courtObj.name,
+      slotNumber: slotIdx,
       date: manualDate,
       startTime: `${String(startH).padStart(2, '0')}:00`,
       endTime: `${String(endH).padStart(2, '0')}:00`,

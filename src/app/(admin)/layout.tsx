@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from '../../components/CrossbarLogo';
-import { ShieldCheck, ArrowLeft, ExternalLink, Calendar, Users, DollarSign } from 'lucide-react';
+import { ArrowLeft, TrendingUp, ShieldCheck } from 'lucide-react';
 import { useArena } from '../../context/ArenaContext';
 
 export default function AdminLayout({
@@ -11,8 +12,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { bookings, registrations } = useArena();
-  const totalRevenue = bookings.reduce((sum, b) => sum + b.totalPrice, 0);
+  const pathname = usePathname();
+  const { bookings, currentUser, grossRevenue } = useArena();
+  const isInvestorView = pathname?.includes('/investor');
 
   return (
     <div className="min-h-screen bg-[#070b0e] text-slate-100 flex flex-col font-sans">
@@ -35,15 +37,37 @@ export default function AdminLayout({
         <div className="flex items-center gap-3 sm:gap-4 text-xs">
           <div className="hidden md:flex items-center gap-4 bg-slate-900/80 border border-white/10 px-3 py-1.5 rounded-xl">
             <div>
-              <span className="text-slate-400">Bookings: </span>
+              <span className="text-slate-400">Total Bookings: </span>
               <span className="font-bold text-white font-mono">{bookings.length}</span>
             </div>
             <div className="w-px h-3 bg-white/20"></div>
             <div>
-              <span className="text-slate-400">Total Rev: </span>
-              <span className="font-bold text-emerald-400 font-mono">৳{totalRevenue.toLocaleString()}</span>
+              <span className="text-slate-400">Gross Income: </span>
+              <span className="font-bold text-emerald-400 font-mono">৳{grossRevenue.toLocaleString()}</span>
             </div>
           </div>
+
+          {/* Quick tab toggle between Admin & Investor if user has permission */}
+          {(currentUser?.role === 'admin' || !currentUser) && (
+            <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-xl">
+              <Link
+                href="/admin"
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                  !isInvestorView ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Admin
+              </Link>
+              <Link
+                href="/investor"
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                  isInvestorView ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Investor
+              </Link>
+            </div>
+          )}
 
           <Link
             href="/"

@@ -64,6 +64,7 @@ export const TournamentModal: React.FC<TournamentModalProps> = ({
       captainName: captainName.trim(),
       captainPhone: captainPhone.trim(),
       captainEmail: captainEmail.trim() || `${teamName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      playerCount: playerList.length,
       jerseyColor: jerseyColor.trim(),
       playersList: playerList,
       paymentMethod,

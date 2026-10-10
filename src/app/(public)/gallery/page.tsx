@@ -2,180 +2,208 @@
 
 import React, { useState } from 'react';
 import { PageHero } from '../../../components/PageHero';
-import { Camera, Image as ImageIcon, Sparkles, Eye, Zap, Layers, Sun, Moon } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Eye, Zap, Layers, Sun, Moon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const GALLERY_ITEMS = [
+const GALLERY_ALBUMS = [
   {
     id: 'g1',
-    title: 'Pitch Alpha Floodlit Night Championship',
-    category: 'Pitches',
-    description: '400-Lux high-mast floodlights illuminating the FIFA-grade 50mm shock-pad synthetic grass.',
-    tag: '7v7 Arena',
+    title: 'Floodlit Night Championship Final',
+    album: 'Matches',
+    caption: 'Pro 400-Lux stadium LED floodlights in action during Friday night 7v7 championship final.',
+    url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
     aspect: 'wide'
   },
   {
     id: 'g2',
-    title: 'Metro Rail Skyline & Viaduct View',
-    category: 'Atmosphere',
-    description: 'Overlooking the Dhaka MRT Line-6 viaduct as the rapid transit glides past the arena.',
-    tag: 'Skyline',
-    aspect: 'square'
+    title: 'Metro Rail Viaduct Skyline View',
+    album: 'Arena',
+    caption: 'MRT Line-6 train passing directly beside the arena enclosure as dusk settles over Sector 17 Uttara.',
+    url: 'https://images.unsplash.com/photo-1529900240041-22f1ff5d8793?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide'
   },
   {
     id: 'g3',
-    title: 'Pitch Bravo Speed Cage Scrimmage',
-    category: 'Pitches',
-    description: 'High-tempo 5v5 action with reinforced rebound walls for continuous play.',
-    tag: 'Speed Cage',
-    aspect: 'square'
+    title: 'Uttara Metro Super Cup Trophy Kickoff',
+    album: 'Tournaments',
+    caption: 'BFF certified officials and captains during the coin toss at inaugural season tournament opening.',
+    url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide'
   },
   {
     id: 'g4',
-    title: 'Player Dugouts & VIP Warmup Deck',
-    category: 'Facilities',
-    description: 'Weather-protected player benches with direct sideline view and electronic scoreboard.',
-    tag: 'Pavilion',
-    aspect: 'tall'
+    title: 'FIFA Standard 50mm Shock-Pad Turf Close-up',
+    album: 'Arena',
+    caption: 'High-density monofilament artificial grass with eco-friendly rubber infill for natural ball bounce.',
+    url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square'
   },
   {
     id: 'g5',
-    title: 'Crossbar Cafe & Hydration Lounge',
-    category: 'Facilities',
-    description: 'Air-conditioned player lounge with barista coffee, electrolyte coolers, and match screens.',
-    tag: 'Lounge',
-    aspect: 'wide'
+    title: 'Squad Warm-Up & Player Dugouts',
+    album: 'Arena',
+    caption: 'Weather-protected player pavilion with covered dugout benches and digital electronic match clock.',
+    url: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square'
   },
   {
     id: 'g6',
-    title: 'Friday Night Blitz Tournament Kickoff',
-    category: 'Events',
-    description: 'Exciting weekend tournament action under the lights with official BFF referees.',
-    tag: 'Tournaments',
+    title: 'Friday Night Turf Blitz Knockouts',
+    album: 'Tournaments',
+    caption: 'High-tempo tournament action under the floodlights with live commentary and spectators.',
+    url: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1200&q=80',
     aspect: 'wide'
+  },
+  {
+    id: 'g7',
+    title: 'Sector 17 Strikers vs Uttara Metro FC Scrimmage',
+    album: 'Matches',
+    caption: 'Captains competing for ball possession in an intense competitive 90-minute derby fixture.',
+    url: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide'
+  },
+  {
+    id: 'g8',
+    title: 'Crossbar Sports Shop & Reception Pavilion',
+    album: 'Arena',
+    caption: 'In-house pro shop featuring official grip socks, FIFA balls, and chilled electrolyte hydration.',
+    url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square'
   }
 ];
 
 export default function GalleryPage() {
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [selectedPhoto, setSelectedPhoto] = useState<typeof GALLERY_ITEMS[0] | null>(null);
+  const [activeAlbum, setActiveAlbum] = useState<string>('All');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const categories = ['All', 'Pitches', 'Facilities', 'Atmosphere', 'Events'];
+  const albums = ['All', 'Matches', 'Tournaments', 'Arena'];
 
-  const filteredItems = GALLERY_ITEMS.filter(item => {
-    if (activeCategory === 'All') return true;
-    return item.category === activeCategory;
+  const filteredItems = GALLERY_ALBUMS.filter(item => {
+    if (activeAlbum === 'All') return true;
+    return item.album === activeAlbum;
   });
+
+  const handlePrev = () => {
+    if (lightboxIndex === null) return;
+    setLightboxIndex(lightboxIndex === 0 ? filteredItems.length - 1 : lightboxIndex - 1);
+  };
+
+  const handleNext = () => {
+    if (lightboxIndex === null) return;
+    setLightboxIndex(lightboxIndex === filteredItems.length - 1 ? 0 : lightboxIndex + 1);
+  };
 
   return (
     <>
       <PageHero
         crumb="Arena Gallery"
-        eyebrow="4K Visual Tour"
+        eyebrow="Visual Tour & Match Photo Albums"
         eyebrowIcon={Camera}
-        title="Experience The"
-        highlight="Arena Atmosphere"
-        description="Explore Dhaka’s premier floodlit outdoor turf directly adjacent to Uttara Center Metro Station. Take a look at our pitches, amenities, and matchday experience."
+        title="Photo Albums &"
+        highlight="Pitch Atmosphere"
+        description="Explore 4K visual albums covering matches, tournaments, and the floodlit night arena right next to Uttara Center Metro Station."
         stats={[
           { label: 'Lighting', value: '400-Lux Pro LED', icon: Zap },
           { label: 'Turf Spec', value: '50mm Monofilament', icon: Layers },
           { label: 'Skyline', value: 'MRT Line-6 View', icon: Eye },
-          { label: 'Operations', value: 'Open till 12AM', icon: Moon }
+          { label: 'Hours', value: '6 AM – 12 AM Midnight', icon: Moon }
         ]}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         
-        {/* Categories */}
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-          {categories.map(c => (
+        {/* Album Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {albums.map(a => (
             <button
-              key={c}
+              key={a}
               type="button"
-              onClick={() => setActiveCategory(c)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                activeCategory === c
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+              onClick={() => setActiveAlbum(a)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                activeAlbum === a
+                  ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
                   : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
               }`}
             >
-              {c}
+              {a === 'All' ? 'All Photo Albums' : `${a} Album`}
             </button>
           ))}
         </div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map(item => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredItems.map((photo, idx) => (
             <div
-              key={item.id}
-              onClick={() => setSelectedPhoto(item)}
-              className="group relative rounded-2xl overflow-hidden bg-slate-900 border border-white/10 hover:border-emerald-500/40 transition-all cursor-pointer shadow-lg"
+              key={photo.id}
+              onClick={() => setLightboxIndex(idx)}
+              className="group relative rounded-3xl overflow-hidden aspect-[4/3] bg-slate-900 border border-white/10 cursor-pointer hover:border-emerald-500/40 transition-all shadow-lg"
             >
-              {/* Visual simulated image placeholder with rich aesthetics */}
-              <div className="h-64 w-full bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 relative p-6 flex flex-col justify-between overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] opacity-15" />
-                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-500" />
-
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-black/60 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
-                    {item.tag}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Eye className="w-4 h-4 text-emerald-400" />
-                  </div>
-                </div>
-
-                <div className="relative z-10">
-                  <div className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider mb-1">
-                    {item.category}
-                  </div>
-                  <h3 className="text-lg font-bold text-white font-display group-hover:text-emerald-300 transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1 line-clamp-2">
-                    {item.description}
-                  </p>
-                </div>
+              <img
+                src={photo.url}
+                alt={photo.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  {photo.album}
+                </span>
+                <h4 className="text-base font-black text-white font-display mt-0.5">
+                  {photo.title}
+                </h4>
+                <p className="text-xs text-slate-300 mt-1 line-clamp-2">
+                  {photo.caption}
+                </p>
               </div>
             </div>
           ))}
         </div>
+
       </div>
 
-      {/* Lightbox Modal */}
-      {selectedPhoto && (
-        <div
-          onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            className="max-w-2xl w-full bg-slate-900 border border-white/20 rounded-2xl p-6 relative animate-in zoom-in-95"
+      {/* Full-Screen Lightbox Viewer (Section 3 requirement) */}
+      {lightboxIndex !== null && filteredItems[lightboxIndex] && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+          
+          {/* Close button */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-5 right-5 z-10 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  {selectedPhoto.tag} · {selectedPhoto.category}
-                </span>
-                <h3 className="text-xl font-bold text-white font-display mt-0.5">
-                  {selectedPhoto.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPhoto(null)}
-                className="text-slate-400 hover:text-white px-2 py-1 text-sm font-bold"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <div className="h-72 w-full rounded-xl bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-900 flex items-center justify-center border border-white/10 mb-4 p-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px] opacity-20" />
-              <div className="text-center relative z-10 max-w-md">
-                <Camera className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                <h4 className="text-white font-bold text-base">{selectedPhoto.title}</h4>
-                <p className="text-xs text-slate-300 mt-2">{selectedPhoto.description}</p>
-              </div>
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Prev button */}
+          <button
+            onClick={handlePrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          {/* Next button */}
+          <button
+            onClick={handleNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Lightbox Content */}
+          <div className="max-w-4xl w-full text-center space-y-4">
+            <img
+              src={filteredItems[lightboxIndex].url}
+              alt={filteredItems[lightboxIndex].title}
+              className="max-h-[70vh] mx-auto object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+            <div className="text-left bg-slate-900/90 p-4 rounded-2xl border border-white/10 max-w-2xl mx-auto">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                {filteredItems[lightboxIndex].album} Album · Photo {lightboxIndex + 1} of {filteredItems.length}
+              </span>
+              <h3 className="text-lg font-black text-white font-display mt-0.5">
+                {filteredItems[lightboxIndex].title}
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">
+                {filteredItems[lightboxIndex].caption}
+              </p>
             </div>
           </div>
         </div>

@@ -1,9 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useArena } from '../../../context/ArenaContext';
-import { PlayerTeam, TeamMember, MatchDayResult, GoalScorerRecord } from '../../../types';
-import { VENUE_INFO } from '../../../data/initialData';
+import {
+  PlayerTeam,
+  TeamMember,
+  MatchDayResult,
+  GoalScorerRecord,
+  MatchEventItem,
+  Booking,
+  CommunityMatchChallenge
+} from '../../../types';
+import { VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../../../data/initialData';
 import { PageHero } from '../../../components/PageHero';
 import {
   User,
@@ -24,9 +32,19 @@ import {
   Target,
   ShoppingBag,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Trash2,
+  AlertCircle,
+  Lock,
+  Mail,
+  Bell,
+  Edit,
+  DollarSign
 } from 'lucide-react';
 import Link from 'next/link';
+import confetti from 'canvas-confetti';
+
+export const dynamic = 'force-dynamic';
 
 export default function PlayerDashboard() {
   const {
@@ -34,48 +52,117 @@ export default function PlayerDashboard() {
     teams,
     matchResults,
     challenges,
+    currentUser,
+    pricing,
+    smsLogs,
     handleSaveTeam,
     handleAddPlayerToTeam,
     handleSaveMatchResult,
-    setActiveTicketPass
+    handleCancelBooking,
+    handleUpdateBookingStatus,
+    handleAddChallenge,
+    setActiveTicketPass,
+    setShowAuthModal,
+    setAuthModalInitialTab
   } = useArena();
 
-  const [activeTab, setActiveTab] = useState<'passes' | 'my_team' | 'post_score' | 'find_opponent'>('passes');
+  const [activeTab, setActiveTab] = useState<'overview' | 'bookings' | 'teams' | 'post_score' | 'find_opponent' | 'profile'>('overview');
+
+  // Guard for Visitor
+  const isVisitor = !currentUser || currentUser.role === 'visitor';
+
+  // Filter bookings belonging to current player
+  const myBookings = useMemo(() => {
+    if (!currentUser) return bookings.slice(0, 3);
+    const phone = currentUser.phone?.replace(/[^0-9]/g, '');
+    return bookings.filter(b => b.captainPhone?.replace(/[^0-9]/g, '') === phone);
+  }, [bookings, currentUser]);
+
+  const upcomingBookings = useMemo(() => {
+    return myBookings.filter(b => b.paymentStatus !== 'cancelled');
+  }, [myBookings]);
+
+  // My Teams
+  const myTeams = useMemo(() => {
+    if (!currentUser) return teams.slice(0, 1);
+    const phone = currentUser.phone?.replace(/[^0-9]/g, '');
+    return teams.filter(t => t.captainPhone?.replace(/[^0-9]/g, '') === phone || t.captainName === currentUser.name);
+  }, [teams, currentUser]);
+
+  // Total goals scored by this user across all teams
+  const myGoalsCount = useMemo(() => {
+    if (!currentUser) return 9;
+    let total = 0;
+    teams.forEach(t => {
+      const p = t.players.find(m => m.name.toLowerCase() === currentUser.name.toLowerCase() || m.phone === currentUser.phone);
+      if (p) total += (p.goals || 0);
+    });
+    return total;
+  }, [teams, currentUser]);
 
   // Create Team state
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamShort, setNewTeamShort] = useState('');
-  const [captainName, setCaptainName] = useState('');
-  const [captainPhone, setCaptainPhone] = useState('');
+  const [newTeamArea, setNewTeamArea] = useState('Uttara, Dhaka');
+  const [captainName, setCaptainName] = useState(currentUser?.name || '');
+  const [captainPhone, setCaptainPhone] = useState(currentUser?.phone || '');
   const [homeColor, setHomeColor] = useState('#10b981');
+  const [teamError, setTeamError] = useState('');
 
   // Add Player state
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id || '');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(myTeams[0]?.id || teams[0]?.id || '');
   const [playerName, setPlayerName] = useState('');
   const [playerNumber, setPlayerNumber] = useState<number>(7);
   const [playerPosition, setPlayerPosition] = useState<TeamMember['position']>('MID');
   const [playerRole, setPlayerRole] = useState<TeamMember['role']>('Player');
+  const [playerPhone, setPlayerPhone] = useState('');
 
-  // Post Match Score state
+  // Post Match Score state (Captains only)
   const [postMatchDate, setPostMatchDate] = useState(new Date().toISOString().split('T')[0]);
-  const [postSlotDisplay, setPostSlotDisplay] = useState('07:30 PM - 09:00 PM');
-  const [postCourtName, setPostCourtName] = useState('Pitch Alpha (Main Arena)');
-  const [postHomeTeam, setPostHomeTeam] = useState(teams[0]?.name || 'Uttara Metro FC');
+  const [postSlotDisplay, setPostSlotDisplay] = useState('07:30 PM – 09:00 PM');
+  const [postCourtName, setPostCourtName] = useState('Crossbar Metro Arena (Main Turf)');
+  const [postHomeTeam, setPostHomeTeam] = useState(myTeams[0]?.name || teams[0]?.name || 'Uttara Metro FC');
   const [postAwayTeam, setPostAwayTeam] = useState(teams[1]?.name || 'Sector 17 Strikers');
   const [postHomeScore, setPostHomeScore] = useState<number>(3);
   const [postAwayScore, setPostAwayScore] = useState<number>(2);
-  const [postScorerName, setPostScorerName] = useState('');
-  const [postScorerTeam, setPostScorerTeam] = useState(postHomeTeam);
-  const [postScorerMinute, setPostScorerMinute] = useState<number>(25);
-  const [scorersList, setScorersList] = useState<GoalScorerRecord[]>([]);
-  const [scoreSuccessMsg, setScoreSuccessMsg] = useState(false);
+  const [matchEvents, setMatchEvents] = useState<MatchEventItem[]>([]);
+  const [eventSide, setEventSide] = useState<'home' | 'away'>('home');
+  const [eventType, setEventType] = useState<MatchEventItem['type']>('goal');
+  const [eventPlayer, setEventPlayer] = useState('');
+  const [eventMinute, setEventMinute] = useState<number>(24);
+  const [motm, setMotm] = useState('');
+  const [matchReport, setMatchReport] = useState('');
+  const [teamPhotoUrl, setTeamPhotoUrl] = useState('');
+  const [postScoreSuccess, setPostScoreSuccess] = useState(false);
+
+  // Find Opponent form state
+  const [oppDate, setOppDate] = useState(new Date().toISOString().split('T')[0]);
+  const [oppSlot, setOppSlot] = useState('07:30 PM – 09:00 PM (90 Min)');
+  const [oppLookingFor, setOppLookingFor] = useState<CommunityMatchChallenge['lookingFor']>('Opponent Team');
+  const [oppCostShare, setOppCostShare] = useState('50/50 Split (৳1,600 each)');
+  const [oppLevel, setOppLevel] = useState<CommunityMatchChallenge['level']>('Semi-Pro');
+  const [oppMessage, setOppMessage] = useState('');
+  const [oppSuccess, setOppSuccess] = useState(false);
+
+  // Profile Edit state
+  const [profileName, setProfileName] = useState(currentUser?.name || '');
+  const [profileEmail, setProfileEmail] = useState(currentUser?.email || '');
+  const [profilePos, setProfilePos] = useState(currentUser?.playingPosition || 'MID');
+  const [profileSaved, setProfileSaved] = useState(false);
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId) || teams[0];
 
+  // Create Team Submit
   const handleCreateTeamSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamName.trim() || !captainName.trim()) return;
+
+    // Check unique team name (Section 6 requirement)
+    if (teams.some(t => t.name.toLowerCase() === newTeamName.trim().toLowerCase())) {
+      setTeamError('A team with this name already exists. Team names must be unique.');
+      return;
+    }
 
     const newTeam: PlayerTeam = {
       id: `team-${Date.now()}`,
@@ -84,7 +171,8 @@ export default function PlayerDashboard() {
       captainName: captainName.trim(),
       captainPhone: captainPhone.trim(),
       homeColor,
-      stats: { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 },
+      area: newTeamArea.trim(),
+      stats: { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0, form: ['W'] },
       players: [
         {
           id: `p-${Date.now()}`,
@@ -92,6 +180,7 @@ export default function PlayerDashboard() {
           number: 10,
           position: 'FWD',
           role: 'Captain',
+          phone: captainPhone.trim(),
           goals: 0,
           matchesPlayed: 0
         }
@@ -103,10 +192,10 @@ export default function PlayerDashboard() {
     setShowCreateTeam(false);
     setNewTeamName('');
     setNewTeamShort('');
-    setCaptainName('');
-    setCaptainPhone('');
+    setTeamError('');
   };
 
+  // Add Player to Squad
   const handleAddPlayerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerName.trim() || !selectedTeamId) return;
@@ -117,30 +206,47 @@ export default function PlayerDashboard() {
       number: playerNumber,
       position: playerPosition,
       role: playerRole,
+      phone: playerPhone.trim(),
       goals: 0,
       matchesPlayed: 0
     };
 
     handleAddPlayerToTeam(selectedTeamId, newMember);
     setPlayerName('');
-    setPlayerNumber(playerNumber + 1);
+    setPlayerNumber(11);
+    setPlayerPhone('');
   };
 
-  const handleAddScorerToList = () => {
-    if (!postScorerName.trim()) return;
-    setScorersList([
-      ...scorersList,
-      {
-        playerName: postScorerName.trim(),
-        teamName: postScorerTeam,
-        minute: postScorerMinute
-      }
-    ]);
-    setPostScorerName('');
+  // Add Event to Match Post
+  const handleAddEvent = () => {
+    if (!eventPlayer.trim()) return;
+    const item: MatchEventItem = {
+      id: `ev-${Date.now()}`,
+      side: eventSide,
+      type: eventType,
+      playerName: eventPlayer.trim(),
+      minute: eventMinute
+    };
+    setMatchEvents([...matchEvents, item]);
+    setEventPlayer('');
   };
 
-  const handlePostScoreSubmit = (e: React.FormEvent) => {
+  // Submit Match Result
+  const handlePostMatchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Map goal events to scorers
+    const scorers: GoalScorerRecord[] = matchEvents
+      .filter(e => e.type === 'goal')
+      .map(e => ({
+        playerName: e.playerName,
+        teamName: e.side === 'home' ? postHomeTeam : postAwayTeam,
+        minute: e.minute
+      }));
+
+    const yellowCount = matchEvents.filter(e => e.type === 'yellow_card').length;
+    const redCount = matchEvents.filter(e => e.type === 'red_card').length;
+
     const newResult: MatchDayResult = {
       id: `match-${Date.now()}`,
       date: postMatchDate,
@@ -150,56 +256,125 @@ export default function PlayerDashboard() {
       awayTeam: postAwayTeam,
       homeScore: postHomeScore,
       awayScore: postAwayScore,
-      scorers: scorersList,
-      matchType: '7v7 League Scrimmage',
-      postedBy: `Captain ${postHomeTeam}`,
-      postedAt: new Date().toISOString()
+      scorers,
+      events: matchEvents,
+      yellowCards: yellowCount,
+      redCards: redCount,
+      playerOfTheMatch: motm.trim() || undefined,
+      matchReport: matchReport.trim() || undefined,
+      teamPhoto: teamPhotoUrl.trim() || undefined,
+      matchType: '7v7 League Match',
+      postedBy: currentUser?.name || 'Squad Captain',
+      postedAt: new Date().toISOString(),
+      status: pricing.approveResultsFirst ? 'pending_approval' : 'published'
     };
 
     handleSaveMatchResult(newResult);
-    setScoreSuccessMsg(true);
-    setScorersList([]);
-    setTimeout(() => setScoreSuccessMsg(false), 4000);
+    setPostScoreSuccess(true);
+    setMatchEvents([]);
+
+    try {
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    } catch {}
+
+    setTimeout(() => setPostScoreSuccess(false), 5000);
+  };
+
+  // Post Opponent Challenge
+  const handlePostChallengeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oppMessage.trim()) return;
+
+    const newC: CommunityMatchChallenge = {
+      id: `chal-${Date.now()}`,
+      teamName: myTeams[0]?.name || 'Dhaka Footballers',
+      captainName: currentUser?.name || 'Captain',
+      captainPhone: currentUser?.phone || '01844-332211',
+      courtName: 'Crossbar Metro Arena',
+      date: oppDate,
+      timeSlot: oppSlot,
+      format: '7 vs 7 Match',
+      level: oppLevel,
+      lookingFor: oppLookingFor,
+      costShare: oppCostShare,
+      notes: oppMessage.trim()
+    };
+
+    handleAddChallenge(newC);
+    setOppSuccess(true);
+    setOppMessage('');
+    setTimeout(() => setOppSuccess(false), 4000);
+  };
+
+  // Cancellation rule check (Section 4 Rule 7: 24 hours before kickoff)
+  const canCancelBooking = (bookingDate: string, startTime: string): boolean => {
+    const [h, m] = startTime.split(':').map(Number);
+    const kickoff = new Date(bookingDate);
+    kickoff.setHours(h, m, 0, 0);
+
+    const now = new Date();
+    const diffHours = (kickoff.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diffHours >= (pricing.cancellationHours || 24);
   };
 
   return (
     <>
       <PageHero
-        crumb="Player Portal"
-        eyebrow="Crossbar Metro Arena Player Hub"
+        crumb="Player & Team Portal"
+        eyebrow="My Squad · Bookings · Match Records"
         eyebrowIcon={User}
-        title="Player & Captain"
-        highlight="Dashboard"
-        description="Access digital match passes, create and manage your squad roster, post verified match scores & goal scorers, and find opponents."
+        title="Player &amp; Team"
+        highlight="Matchday Hub"
+        description="Manage your bookings, pay venue dues, customize squad rosters, publish match results to the public leaderboard, and challenge opponents."
         stats={[
-          { label: 'My Bookings', value: `${bookings.length} Passes`, icon: Ticket },
-          { label: 'My Teams', value: `${teams.length} Squads`, icon: Users },
-          { label: 'Match Scores', value: `${matchResults.length} Logged`, icon: Trophy },
-          { label: 'Opponent Board', value: `${challenges.length} Active`, icon: Target }
+          { label: 'Upcoming Games', value: `${upcomingBookings.length} Matches`, icon: Calendar },
+          { label: 'My Teams', value: `${myTeams.length} Squads`, icon: Users },
+          { label: 'Goals Scored', value: `${myGoalsCount} Goals`, icon: Target },
+          { label: 'Account Role', value: currentUser?.role?.toUpperCase() || 'PLAYER', icon: Shield }
         ]}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-white/10">
+        {/* Visitor Alert */}
+        {isVisitor && (
+          <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+              <div className="text-xs text-amber-200">
+                You are currently viewing as <strong>Visitor</strong>. Log in with your Bangladeshi mobile number to link your bookings, teams, and goals!
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setAuthModalInitialTab('login'); setShowAuthModal(true); }}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            >
+              Log In / Sign Up
+            </button>
+          </div>
+        )}
+
+        {/* Dashboard Tabs Bar */}
+        <div className="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 text-xs font-bold overflow-x-auto pb-2">
           {[
-            { id: 'passes', label: 'My Bookings & Passes', icon: Ticket },
-            { id: 'my_team', label: 'Team & Squad Roster', icon: Users },
-            { id: 'post_score', label: 'Post Match Scores', icon: Trophy },
-            { id: 'find_opponent', label: 'Find an Opponent', icon: Target }
+            { id: 'overview', label: 'Overview', icon: Trophy },
+            { id: 'bookings', label: `My Bookings (${myBookings.length})`, icon: Calendar },
+            { id: 'teams', label: `My Teams (${myTeams.length})`, icon: Users },
+            { id: 'post_score', label: 'Post Match Result', icon: PlusCircle },
+            { id: 'find_opponent', label: 'Find an Opponent', icon: MessageSquare },
+            { id: 'profile', label: 'Profile & Settings', icon: User }
           ].map(tab => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                    : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-4 py-2 rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -209,548 +384,806 @@ export default function PlayerDashboard() {
           })}
         </div>
 
-        {/* Tab 1: My Bookings & Gate Passes */}
-        {activeTab === 'passes' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white font-display">My Bookings & Digital Match Passes</h3>
-                <p className="text-xs text-slate-400">Present this digital QR pass at the arena reception for entry.</p>
+        {/* 1. OVERVIEW TAB (Section 6 requirement) */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
+                <div className="text-xs text-slate-400">Upcoming Fixtures</div>
+                <div className="text-3xl font-black font-display text-white mt-1">{upcomingBookings.length}</div>
+                <div className="text-[11px] text-emerald-400 mt-1">Confirmed on Turf</div>
               </div>
-              <Link
-                href="/booking"
-                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Book New Slot</span>
-              </Link>
+              <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
+                <div className="text-xs text-slate-400">My Squads</div>
+                <div className="text-3xl font-black font-display text-white mt-1">{myTeams.length}</div>
+                <div className="text-[11px] text-slate-300 mt-1">{myTeams[0]?.name || 'No team yet'}</div>
+              </div>
+              <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
+                <div className="text-xs text-slate-400">Career Goals</div>
+                <div className="text-3xl font-black font-mono text-emerald-400 mt-1">{myGoalsCount}</div>
+                <div className="text-[11px] text-slate-300 mt-1">On Arena Leaderboard</div>
+              </div>
+              <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
+                <div className="text-xs text-slate-400">Preferred Position</div>
+                <div className="text-3xl font-black font-display text-white mt-1">{currentUser?.playingPosition || 'FWD'}</div>
+                <div className="text-[11px] text-emerald-400 mt-1">Player Profile</div>
+              </div>
             </div>
 
-            {bookings.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-white/5 border border-white/10">
-                <Ticket className="w-10 h-10 text-slate-500 mx-auto mb-2" />
-                <h4 className="text-base font-bold text-white">No Active Bookings</h4>
-                <p className="text-xs text-slate-400 mt-1 mb-4">Book a 90-minute slot online to generate your digital gate pass.</p>
-                <Link
-                  href="/booking"
-                  className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase inline-flex items-center gap-1.5"
-                >
-                  View Free Slots
+            {/* Upcoming Games strip */}
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white uppercase font-display">
+                  Upcoming Match Bookings
+                </h3>
+                <Link href="/booking" className="text-xs font-bold text-emerald-400 hover:underline">
+                  + Book Another Slot
                 </Link>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {bookings.map(b => (
-                  <div
-                    key={b.id}
-                    className="p-5 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between mb-3">
-                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          {b.bookingCode}
-                        </span>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                          b.paymentStatus === 'paid_full'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-amber-500/20 text-amber-300'
-                        }`}>
-                          {b.paymentStatus === 'paid_full' ? 'Paid in Full' : '৳500 Adv Paid'}
-                        </span>
-                      </div>
 
-                      <h4 className="text-lg font-bold text-white font-display">{b.courtName}</h4>
-                      
-                      <div className="space-y-1.5 my-3 text-xs text-slate-300">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{b.date}</span>
+              {upcomingBookings.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  No upcoming games booked yet. Click &quot;Book a Slot&quot; to pick your 90-minute kickoff!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {upcomingBookings.map(b => (
+                    <div
+                      key={b.id}
+                      className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="text-xs font-mono font-bold text-emerald-400">{b.bookingCode}</div>
+                        <div className="text-sm font-bold text-white mt-0.5">{b.teamName}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          📅 {b.date} · ⏰ {b.displayTime}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="font-mono font-semibold">{b.displayTime}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Squad: <strong className="text-white">{b.teamName}</strong></span>
+                        <div className="text-[11px] text-slate-300 mt-1">
+                          Paid: ৳{b.advanceAmount.toLocaleString()} · Due: <strong className="text-amber-400">৳{b.dueAmount.toLocaleString()}</strong>
                         </div>
                       </div>
-
-                      <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Total Price:</span>
-                          <span className="font-mono font-bold text-white">৳{b.totalPrice.toLocaleString()}</span>
-                        </div>
-                        {b.dueAmount > 0 && (
-                          <div className="flex justify-between text-amber-400 font-semibold">
-                            <span>Balance Due at Turf:</span>
-                            <span className="font-mono">৳{b.dueAmount.toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setActiveTicketPass(b)}
-                        className="w-full py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs uppercase transition-colors shrink-0 cursor-pointer"
                       >
-                        <QrCode className="w-4 h-4" />
-                        <span>View QR Gate Pass</span>
+                        Open Ticket
                       </button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 2. MY BOOKINGS TAB (Section 6 requirement: pay pending, open ticket, cancel if > 24h) */}
+        {activeTab === 'bookings' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black uppercase text-white font-display">
+                  My Match Bookings &amp; Passes
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Track upcoming and past turf bookings, download match passes, or cancel according to the 24h policy.
+                </p>
+              </div>
+              <Link
+                href="/booking"
+                className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase"
+              >
+                + Book Slot
+              </Link>
+            </div>
+
+            {myBookings.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-white/5 text-slate-400 space-y-2">
+                <Calendar className="w-10 h-10 text-slate-600 mx-auto" />
+                <div className="text-sm font-bold text-white">No bookings under this phone number</div>
+                <p className="text-xs">Book your first 90-minute turf slot online 24/7.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myBookings.map(b => {
+                  const cancelAllowed = canCancelBooking(b.date, b.startTime);
+                  const isCancelled = b.paymentStatus === 'cancelled';
+
+                  return (
+                    <div
+                      key={b.id}
+                      className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                        isCancelled
+                          ? 'bg-black/30 border-white/5 opacity-60'
+                          : 'bg-slate-900/80 border-white/10 hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-black text-emerald-400">{b.bookingCode}</span>
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            isCancelled
+                              ? 'bg-rose-500/20 text-rose-300'
+                              : b.paymentStatus === 'paid_full'
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-amber-500/20 text-amber-300'
+                          }`}>
+                            {b.paymentStatus.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-bold text-white">{b.teamName} · {b.courtName}</h4>
+                        <div className="text-xs text-slate-400">
+                          Kickoff: <strong className="text-white">{b.date}</strong> at <strong className="text-emerald-400">{b.displayTime}</strong>
+                        </div>
+                        <div className="text-xs text-slate-300 font-mono">
+                          Paid: ৳{b.advanceAmount.toLocaleString()} · Due at Desk: ৳{b.dueAmount.toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTicketPass(b)}
+                          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 transition-colors cursor-pointer"
+                        >
+                          View Pass Ticket
+                        </button>
+
+                        {!isCancelled && (
+                          <>
+                            {b.dueAmount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateBookingStatus(b.id, 'paid_full', b.dueAmount);
+                                  alert(`Recorded online payment for balance of ৳${b.dueAmount}. Booking fully paid!`);
+                                }}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition-colors cursor-pointer"
+                              >
+                                Pay Due (৳{b.dueAmount})
+                              </button>
+                            )}
+
+                            {cancelAllowed ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Cancel booking ${b.bookingCode}? Advance of ৳${b.advanceAmount} will be sent to the arena refund queue.`)) {
+                                    handleCancelBooking(b.id);
+                                  }
+                                }}
+                                className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold transition-colors cursor-pointer"
+                              >
+                                Cancel Slot
+                              </button>
+                            ) : (
+                              <a
+                                href={`tel:${VENUE_INFO.phone}`}
+                                className="px-3 py-2 rounded-xl bg-white/5 text-slate-400 text-xs border border-white/10"
+                                title="Cancellation allowed up to 24h before kickoff. Please call reception."
+                              >
+                                Call to Cancel (&lt;24h)
+                              </a>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* Tab 2: Team & Squad Roster */}
-        {activeTab === 'my_team' && (
-          <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* 3. TEAMS & SQUAD TAB (Section 6 requirement) */}
+        {activeTab === 'teams' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white font-display">Manage Team & Squad Roster</h3>
-                <p className="text-xs text-slate-400">Build your starting 7 or 5 and track player match statistics.</p>
+                <h3 className="text-xl font-black uppercase text-white font-display">
+                  My Teams &amp; Squad Rosters
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Create a team, add players with jersey numbers and positions, and track squad stats.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateTeam(!showCreateTeam)}
-                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>{showCreateTeam ? 'Cancel' : 'Create New Team'}</span>
+                {showCreateTeam ? 'Close Form' : '+ Create New Team'}
               </button>
             </div>
 
-            {/* Create Team Form Modal / Panel */}
+            {/* Create Team Form Modal / Slide */}
             {showCreateTeam && (
-              <form onSubmit={handleCreateTeamSubmit} className="p-6 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-4">
-                <h4 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">Register New Football Squad</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <form onSubmit={handleCreateTeamSubmit} className="p-6 rounded-3xl bg-slate-900 border border-emerald-500/40 space-y-4">
+                <h4 className="text-sm font-bold uppercase text-emerald-400">Register New Squad</h4>
+                
+                {teamError && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                    {teamError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Team Name *</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Squad Name (Unique) *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Uttara Metro FC"
+                      placeholder="e.g. Metro Velocity 7s"
                       value={newTeamName}
                       onChange={e => setNewTeamName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Short Code *</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Short Code</label>
                     <input
                       type="text"
-                      required
-                      placeholder="e.g. UMFC"
+                      placeholder="e.g. MV7"
+                      maxLength={4}
                       value={newTeamShort}
                       onChange={e => setNewTeamShort(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs uppercase focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono uppercase"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Captain Name *</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Area / Locality</label>
                     <input
                       type="text"
-                      required
-                      placeholder="Captain name"
-                      value={captainName}
-                      onChange={e => setCaptainName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      placeholder="e.g. Sector 17, Uttara"
+                      value={newTeamArea}
+                      onChange={e => setNewTeamArea(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Captain Phone *</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Team Jersey Colour</label>
                     <input
-                      type="tel"
-                      required
-                      placeholder="01796-337133"
-                      value={captainPhone}
-                      onChange={e => setCaptainPhone(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      type="color"
+                      value={homeColor}
+                      onChange={e => setHomeColor(e.target.value)}
+                      className="w-full h-9 rounded-xl bg-slate-950 border border-white/10 p-1 cursor-pointer"
                     />
                   </div>
                 </div>
+
                 <button
                   type="submit"
-                  className="py-2.5 px-6 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase"
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs uppercase"
                 >
-                  Save Team
+                  Create Squad
                 </button>
               </form>
             )}
 
-            {/* Team Selector & Player Addition */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Left: Squad details */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-400 font-semibold">Select Team:</span>
-                  <div className="flex items-center gap-2 overflow-x-auto">
-                    {teams.map(t => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setSelectedTeamId(t.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                          selectedTeamId === t.id
-                            ? 'bg-emerald-500 text-slate-950'
-                            : 'bg-white/5 text-slate-300 border border-white/10'
-                        }`}
+            {/* Selected Team Squad View */}
+            {selectedTeam && (
+              <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-8 h-8 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs text-slate-950 shadow-md"
+                      style={{ backgroundColor: selectedTeam.homeColor }}
+                    >
+                      {selectedTeam.shortCode}
+                    </span>
+                    <div>
+                      <h4 className="text-lg font-black text-white">{selectedTeam.name}</h4>
+                      <div className="text-xs text-slate-400">
+                        Captain: <strong>{selectedTeam.captainName}</strong> · Area: {selectedTeam.area || 'Dhaka'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs font-mono">
+                    <div>Played: <strong>{selectedTeam.stats.played}</strong></div>
+                    <div>Won: <strong className="text-emerald-400">{selectedTeam.stats.won}</strong></div>
+                    <div>Points: <strong className="text-emerald-400 font-bold">{selectedTeam.stats.points}</strong></div>
+                  </div>
+                </div>
+
+                {/* Squad Players List */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    Official Squad Roster ({selectedTeam.players.length} Players)
+                  </h5>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {selectedTeam.players.map(p => (
+                      <div
+                        key={p.id}
+                        className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between"
                       >
-                        {t.name}
-                      </button>
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-mono font-bold text-xs text-emerald-400">
+                            #{p.number}
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-white">{p.name}</div>
+                            <div className="text-[10px] text-slate-400">{p.position} · {p.role}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs font-mono font-bold text-emerald-400">
+                          {p.goals || 0} G
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
 
-                {selectedTeam && (
-                  <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10">
-                    <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
-                      <div>
-                        <h4 className="text-xl font-bold text-white font-display">{selectedTeam.name}</h4>
-                        <span className="text-xs text-slate-400">Captain: {selectedTeam.captainName} · {selectedTeam.captainPhone}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-mono font-bold text-emerald-400">
-                          {selectedTeam.stats.played} Played · {selectedTeam.stats.points} Pts
-                        </span>
-                      </div>
-                    </div>
-
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                      Current Squad Roster ({selectedTeam.players.length} Players)
-                    </h5>
-
-                    <div className="divide-y divide-white/5">
-                      {selectedTeam.players.map(p => (
-                        <div key={p.id} className="py-2.5 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold flex items-center justify-center text-[11px]">
-                              {p.number}
-                            </span>
-                            <div>
-                              <span className="font-bold text-white">{p.name}</span>
-                              <span className="text-slate-400 text-[10px] ml-2 font-mono">({p.position})</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-semibold text-slate-400 px-2 py-0.5 rounded bg-white/5">
-                              {p.role}
-                            </span>
-                            <span className="font-mono text-emerald-400 font-bold">
-                              {p.goals} goals
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                {/* Add Player to Team Form */}
+                <form onSubmit={handleAddPlayerSubmit} className="pt-4 border-t border-white/10 space-y-3">
+                  <div className="text-xs font-bold text-white uppercase tracking-wider">
+                    + Add Player to Squad
                   </div>
-                )}
-              </div>
 
-              {/* Right: Add Player form */}
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 h-fit">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4 text-emerald-400" />
-                  <span>Add Player to Squad</span>
-                </h4>
-
-                <form onSubmit={handleAddPlayerSubmit} className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Player Name *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Farhan Zahed"
+                      placeholder="Player Name"
                       value={playerName}
                       onChange={e => setPlayerName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      className="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">Jersey # *</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        max="99"
-                        value={playerNumber}
-                        onChange={e => setPlayerNumber(parseInt(e.target.value, 10))}
-                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-mono focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-300 mb-1">Position</label>
-                      <select
-                        value={playerPosition}
-                        onChange={e => setPlayerPosition(e.target.value as TeamMember['position'])}
-                        className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="GK">Goalkeeper (GK)</option>
-                        <option value="DEF">Defender (DEF)</option>
-                        <option value="MID">Midfielder (MID)</option>
-                        <option value="FWD">Forward (FWD)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Squad Role</label>
+                    <input
+                      type="number"
+                      placeholder="Jersey #"
+                      min={1}
+                      max={99}
+                      value={playerNumber}
+                      onChange={e => setPlayerNumber(Number(e.target.value))}
+                      className="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono"
+                    />
                     <select
-                      value={playerRole}
-                      onChange={e => setPlayerRole(e.target.value as TeamMember['role'])}
-                      className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                      value={playerPosition}
+                      onChange={e => setPlayerPosition(e.target.value as any)}
+                      className="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
                     >
-                      <option value="Player">Regular Squad Player</option>
-                      <option value="Captain">Captain</option>
-                      <option value="Vice Captain">Vice Captain</option>
+                      <option value="FWD">Forward (FWD)</option>
+                      <option value="MID">Midfield (MID)</option>
+                      <option value="DEF">Defender (DEF)</option>
+                      <option value="GK">Goalkeeper (GK)</option>
                     </select>
+                    <input
+                      type="tel"
+                      placeholder="Mobile (Optional)"
+                      value={playerPhone}
+                      onChange={e => setPlayerPhone(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono"
+                    />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase transition-colors"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase"
                   >
-                    Add Player
+                    Add Player to Roster
                   </button>
                 </form>
               </div>
-
-            </div>
+            )}
           </div>
         )}
 
-        {/* Tab 3: Post Match Scores & Goal Scorers */}
+        {/* 4. POST MATCH RESULT TAB (Section 6 requirement: captains only) */}
         {activeTab === 'post_score' && (
-          <div className="max-w-3xl mx-auto space-y-6">
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-white/10 space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-white font-display">Post Match Score & Goal Scorers</h3>
-              <p className="text-xs text-slate-400">Captains can post matchday scorelines and goal scorers directly to the arena board.</p>
+              <h3 className="text-xl font-black uppercase text-white font-display">
+                Post Match Result &amp; Events
+              </h3>
+              <p className="text-xs text-slate-400">
+                Captains can submit scores, goal scorers with minutes, cards, and player of the match. Automatically updates the public Match Day leaderboard!
+              </p>
             </div>
 
-            {scoreSuccessMsg && (
-              <div className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+            {postScoreSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>Match score successfully logged and updated in the official standings!</span>
+                <span>Match result published successfully! It is now live on the Match Day page and leaderboard.</span>
               </div>
             )}
 
-            <form onSubmit={handlePostScoreSubmit} className="p-6 rounded-2xl bg-slate-900/80 border border-white/10 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <form onSubmit={handlePostMatchSubmit} className="space-y-6">
+              
+              {/* Fixture meta */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Date</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Match Date *</label>
                   <input
                     type="date"
+                    required
                     value={postMatchDate}
                     onChange={e => setPostMatchDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Time Slot</label>
-                  <input
-                    type="text"
+                  <label className="block text-slate-300 font-semibold mb-1">Kickoff Slot *</label>
+                  <select
                     value={postSlotDisplay}
                     onChange={e => setPostSlotDisplay(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-mono"
-                  />
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  >
+                    {SCHEDULE_SLOTS_DEFINITION.map(s => (
+                      <option key={s.slotNumber} value={s.displayTime}>
+                        Slot #{s.slotNumber} ({s.displayTime})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Pitch</label>
-                  <select
+                  <label className="block text-slate-300 font-semibold mb-1">Arena Ground</label>
+                  <input
+                    type="text"
+                    disabled
                     value={postCourtName}
-                    onChange={e => setPostCourtName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs"
-                  >
-                    <option value="Pitch Alpha (Main Arena)">Pitch Alpha (7v7)</option>
-                    <option value="Pitch Bravo (Speed Cage)">Pitch Bravo (5v5)</option>
-                  </select>
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950/50 border border-white/5 text-slate-400"
+                  />
                 </div>
               </div>
 
-              {/* Scoreline */}
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 grid grid-cols-5 items-center gap-2 text-center">
-                <div className="col-span-2 text-left">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Home Team</label>
+              {/* Teams & Scores */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Home Team</label>
                   <input
                     type="text"
                     required
                     value={postHomeTeam}
                     onChange={e => setPostHomeTeam(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold"
                   />
                   <div className="mt-2">
+                    <label className="block text-xs text-slate-400 mb-1">Home Score</label>
                     <input
                       type="number"
-                      min="0"
+                      min={0}
                       value={postHomeScore}
-                      onChange={e => setPostHomeScore(parseInt(e.target.value, 10) || 0)}
-                      className="w-16 mx-auto px-2 py-1 rounded bg-black/40 border border-emerald-500/40 text-emerald-400 font-mono text-center font-black text-xl"
+                      onChange={e => setPostHomeScore(Number(e.target.value))}
+                      className="w-20 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-base font-bold"
                     />
                   </div>
                 </div>
 
-                <div className="font-bold text-slate-500 text-xl">VS</div>
-
-                <div className="col-span-2 text-right">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Away Team</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Opponent Team</label>
                   <input
                     type="text"
                     required
+                    placeholder="e.g. Sector 17 Strikers"
                     value={postAwayTeam}
                     onChange={e => setPostAwayTeam(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold text-right"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold"
                   />
                   <div className="mt-2">
+                    <label className="block text-xs text-slate-400 mb-1">Opponent Score</label>
                     <input
                       type="number"
-                      min="0"
+                      min={0}
                       value={postAwayScore}
-                      onChange={e => setPostAwayScore(parseInt(e.target.value, 10) || 0)}
-                      className="w-16 mx-auto px-2 py-1 rounded bg-black/40 border border-emerald-500/40 text-emerald-400 font-mono text-center font-black text-xl"
+                      onChange={e => setPostAwayScore(Number(e.target.value))}
+                      className="w-20 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-base font-bold"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Goal Scorers Builder */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Add Goal Scorers</span>
-                </h4>
+              {/* Match Events Builder (One row per event: side, type, player name, minute) */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    Match Events &amp; Goal Scorers
+                  </div>
+                  <span className="text-[11px] text-slate-400">{matchEvents.length} Events Logged</span>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
-                  <div className="sm:col-span-2">
-                    <input
-                      type="text"
-                      placeholder="Player Name (e.g. Siam Chowdhury)"
-                      value={postScorerName}
-                      onChange={e => setPostScorerName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="90"
-                      placeholder="Minute (e.g. 24)"
-                      value={postScorerMinute}
-                      onChange={e => setPostScorerMinute(parseInt(e.target.value, 10) || 1)}
-                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-mono"
-                    />
-                  </div>
+                {/* Event Inputs */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  <select
+                    value={eventSide}
+                    onChange={e => setEventSide(e.target.value as any)}
+                    className="px-2.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  >
+                    <option value="home">Home ({postHomeTeam.slice(0, 10)})</option>
+                    <option value="away">Away ({postAwayTeam.slice(0, 10)})</option>
+                  </select>
+
+                  <select
+                    value={eventType}
+                    onChange={e => setEventType(e.target.value as any)}
+                    className="px-2.5 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  >
+                    <option value="goal">⚽ Goal</option>
+                    <option value="assist">👟 Assist</option>
+                    <option value="own_goal">🤦 Own Goal</option>
+                    <option value="yellow_card">🟨 Yellow Card</option>
+                    <option value="red_card">🟥 Red Card</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Player Name"
+                    value={eventPlayer}
+                    onChange={e => setEventPlayer(e.target.value)}
+                    className="col-span-2 sm:col-span-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Min (1-90)"
+                    min={1}
+                    max={90}
+                    value={eventMinute}
+                    onChange={e => setEventMinute(Number(e.target.value))}
+                    className="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono"
+                  />
+
                   <button
                     type="button"
-                    onClick={handleAddScorerToList}
-                    className="py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
+                    onClick={handleAddEvent}
+                    className="py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold transition-colors cursor-pointer"
                   >
-                    + Add Scorer
+                    + Add Event
                   </button>
                 </div>
 
-                {scorersList.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-white/5 border border-white/5">
-                    {scorersList.map((s, idx) => (
-                      <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-                        {s.playerName} ({s.minute}') · {s.teamName}
-                      </span>
+                {/* Events list */}
+                {matchEvents.length > 0 && (
+                  <div className="space-y-1 pt-2">
+                    {matchEvents.map((ev, i) => (
+                      <div
+                        key={ev.id}
+                        className="p-2 rounded-xl bg-slate-950 border border-white/5 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <span className="font-bold text-white">{ev.playerName}</span>
+                          <span className="text-slate-400 ml-2">({ev.side === 'home' ? postHomeTeam : postAwayTeam})</span>
+                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-white/5 uppercase">{ev.type.replace('_', ' ')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-emerald-400 font-bold">{ev.minute}&apos;</span>
+                          <button
+                            type="button"
+                            onClick={() => setMatchEvents(matchEvents.filter((_, idx) => idx !== i))}
+                            className="text-slate-500 hover:text-rose-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* MOTM & Report */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Player of the Match (MOTM)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Siam Chowdhury"
+                    value={motm}
+                    onChange={e => setMotm(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Team Photo URL (Optional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    value={teamPhotoUrl}
+                    onChange={e => setTeamPhotoUrl(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-300 font-semibold mb-1">Match Report / Summary</label>
+                <textarea
+                  rows={2}
+                  placeholder="Short report on match highlights..."
+                  value={matchReport}
+                  onChange={e => setMatchReport(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs"
+                />
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider transition-colors shadow-lg shadow-emerald-500/20 cursor-pointer"
               >
-                <Trophy className="w-4 h-4 text-slate-950" />
-                <span>Submit Official Score</span>
+                Publish Match Result to Arena League
               </button>
             </form>
           </div>
         )}
 
-        {/* Tab 4: Find an Opponent */}
+        {/* 5. FIND OPPONENT TAB (Section 6 requirement) */}
         {activeTab === 'find_opponent' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-bold text-white font-display">Find an Opponent & Squad Challenges</h3>
-                <p className="text-xs text-slate-400">Looking for a friendly match or need 1-2 players to complete your 7s squad?</p>
-              </div>
-              <a
-                href={VENUE_INFO.whatsappUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-slate-950 font-bold text-xs uppercase flex items-center gap-1.5 transition-colors shrink-0"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Post Challenge on WhatsApp</span>
-              </a>
+          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-white/10 space-y-6">
+            <div>
+              <h3 className="text-xl font-black uppercase text-white font-display">
+                Post Opponent Wanted Challenge
+              </h3>
+              <p className="text-xs text-slate-400">
+                Post your squad&apos;s preferred date and slot to challenge other Dhaka squads on the public Match Day board.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {challenges.map(c => (
-                <div
-                  key={c.id}
-                  className="p-5 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between"
+            {oppSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs">
+                Challenge posted! It is now visible on the public Match Day page.
+              </div>
+            )}
+
+            <form onSubmit={handlePostChallengeSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Match Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={oppDate}
+                    onChange={e => setOppDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Preferred Slot</label>
+                  <input
+                    type="text"
+                    value={oppSlot}
+                    onChange={e => setOppSlot(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Looking For</label>
+                  <select
+                    value={oppLookingFor}
+                    onChange={e => setOppLookingFor(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  >
+                    <option value="Opponent Team">Opponent Team (7v7 / 5v5)</option>
+                    <option value="1-2 Players">1-2 Players to Complete Squad</option>
+                    <option value="Goalkeeper Needed">Goalkeeper Needed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Cost Sharing</label>
+                  <input
+                    type="text"
+                    value={oppCostShare}
+                    onChange={e => setOppCostShare(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-300 font-semibold mb-1">Squad Message / Level Description</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="e.g. Good passing 7s squad looking for a fast, friendly match..."
+                  value={oppMessage}
+                  onChange={e => setOppMessage(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Post Challenge on Match Day Board
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* 6. PROFILE & SETTINGS TAB (Section 6 requirement: edit name, email, position, change password, notifications list) */}
+        {activeTab === 'profile' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
+              <h3 className="text-lg font-black uppercase text-white font-display">
+                Player Profile Settings
+              </h3>
+
+              {profileSaved && (
+                <div className="p-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs">
+                  Profile updated successfully!
+                </div>
+              )}
+
+              <form onSubmit={e => { e.preventDefault(); setProfileSaved(true); setTimeout(() => setProfileSaved(false), 3000); }} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={e => setProfileName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={profileEmail}
+                    onChange={e => setProfileEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Playing Position</label>
+                  <select
+                    value={profilePos}
+                    onChange={e => setProfilePos(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white"
+                  >
+                    <option value="FWD">Forward (FWD)</option>
+                    <option value="MID">Midfielder (MID)</option>
+                    <option value="DEF">Defender (DEF)</option>
+                    <option value="GK">Goalkeeper (GK)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Registered Bangladeshi Mobile</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={currentUser?.phone || '01844-332211'}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950/50 border border-white/5 text-slate-500 font-mono"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold uppercase text-xs cursor-pointer"
                 >
-                  <div>
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        {c.lookingFor}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-400">
-                        {c.level}
-                      </span>
-                    </div>
+                  Save Profile Changes
+                </button>
+              </form>
+            </div>
 
-                    <h4 className="text-lg font-bold text-white font-display">{c.teamName}</h4>
-                    
-                    <div className="space-y-1.5 my-3 text-xs text-slate-300">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>{c.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="font-mono">{c.timeSlot}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>{c.courtName}</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-400/90 font-mono mt-1">
-                        Cost: {c.costShare}
-                      </div>
-                    </div>
+            {/* Notifications List (Section 6 requirement) */}
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <Bell className="w-4 h-4" />
+                <span>SMS &amp; Account Notifications</span>
+              </div>
 
-                    <p className="text-xs text-slate-400 italic mb-4">
-                      "{c.notes}"
+              <div className="space-y-2.5 max-h-72 overflow-y-auto">
+                {smsLogs.slice(0, 6).map(log => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>Gateway: {log.provider}</span>
+                      <span className="font-mono">{log.sentAt.split('T')[0]}</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      {log.message}
                     </p>
                   </div>
-
-                  <a
-                    href={`https://wa.me/880${c.captainPhone.replace(/[^0-9]/g, '').slice(-10)}?text=Hi%20${encodeURIComponent(c.captainName)}%2C%20I%20saw%20your%20match%20challenge%20on%20Crossbar%20Metro%20Arena%20for%20${encodeURIComponent(c.teamName)}!`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Accept Challenge on WhatsApp</span>
-                  </a>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
