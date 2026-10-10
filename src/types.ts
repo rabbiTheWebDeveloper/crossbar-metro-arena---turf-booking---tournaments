@@ -369,3 +369,16 @@ export interface SiteSettings {
   openingHours: string;
   aboutText: string;
 }
+
+export interface GalleryPhoto {
+  id: string;
+  title: string;
+  album: 'Matches' | 'Tournaments' | 'Arena' | 'Facilities' | 'Community' | string;
+  caption: string;
+  url: string;
+  aspect?: 'wide' | 'square' | 'portrait';
+  featured?: boolean;
+  uploadedAt?: string;
+  photographer?: string;
+  tags?: string[];
+}

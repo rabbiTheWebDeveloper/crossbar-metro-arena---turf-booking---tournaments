@@ -16,7 +16,8 @@ import {
   RefundRecord,
   OtherIncomeRecord,
   SiteSettings,
-  SMSNotificationLog
+  SMSNotificationLog,
+  GalleryPhoto
 } from '../types';
 import {
   INITIAL_BOOKINGS,
@@ -34,7 +35,8 @@ import {
   INITIAL_SHOP_PRODUCTS,
   INITIAL_SMS_LOGS,
   SCHEDULE_SLOTS_DEFINITION,
-  VENUE_INFO
+  VENUE_INFO,
+  INITIAL_GALLERY_PHOTOS
 } from '../data/initialData';
 
 const STORAGE_KEYS = {
@@ -56,7 +58,8 @@ const STORAGE_KEYS = {
   REFUNDS: 'cma_refunds_v3',
   OTHER_INCOME: 'cma_other_income_v3',
   SITE_SETTINGS: 'cma_site_settings_v3',
-  SMS_LOGS: 'cma_sms_logs_v3'
+  SMS_LOGS: 'cma_sms_logs_v3',
+  GALLERY_PHOTOS: 'cma_gallery_photos_v3'
 };
 
 export interface ActiveSlotHold {
@@ -722,6 +725,46 @@ export const saveSiteSettings = (settings: SiteSettings): SiteSettings => {
   return settings;
 };
 
+// Gallery Photos Management
+export const getStoredGalleryPhotos = (): GalleryPhoto[] => {
+  if (typeof window === 'undefined') return INITIAL_GALLERY_PHOTOS;
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.GALLERY_PHOTOS);
+    return data ? JSON.parse(data) : INITIAL_GALLERY_PHOTOS;
+  } catch {
+    return INITIAL_GALLERY_PHOTOS;
+  }
+};
+
+export const saveGalleryPhoto = (photo: GalleryPhoto): GalleryPhoto[] => {
+  const current = getStoredGalleryPhotos();
+  const existingIndex = current.findIndex(p => p.id === photo.id);
+  const updated = existingIndex >= 0
+    ? current.map(p => p.id === photo.id ? photo : p)
+    : [photo, ...current];
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEYS.GALLERY_PHOTOS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save gallery photo', e);
+    }
+  }
+  return updated;
+};
+
+export const deleteStoredGalleryPhoto = (photoId: string): GalleryPhoto[] => {
+  const current = getStoredGalleryPhotos();
+  const updated = current.filter(p => p.id !== photoId);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEYS.GALLERY_PHOTOS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to delete gallery photo', e);
+    }
+  }
+  return updated;
+};
+
 // Database Restore
 export const restoreDatabaseBackup = (backupJson: any): boolean => {
   if (typeof window === 'undefined') return false;
@@ -741,6 +784,7 @@ export const restoreDatabaseBackup = (backupJson: any): boolean => {
     if (backupJson.refunds) localStorage.setItem(STORAGE_KEYS.REFUNDS, JSON.stringify(backupJson.refunds));
     if (backupJson.otherIncome) localStorage.setItem(STORAGE_KEYS.OTHER_INCOME, JSON.stringify(backupJson.otherIncome));
     if (backupJson.siteSettings) localStorage.setItem(STORAGE_KEYS.SITE_SETTINGS, JSON.stringify(backupJson.siteSettings));
+    if (backupJson.galleryPhotos) localStorage.setItem(STORAGE_KEYS.GALLERY_PHOTOS, JSON.stringify(backupJson.galleryPhotos));
     return true;
   } catch (e) {
     console.error('Failed to restore database', e);

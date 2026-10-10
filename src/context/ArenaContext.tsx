@@ -21,7 +21,8 @@ import {
   RefundRecord,
   OtherIncomeRecord,
   SiteSettings,
-  SMSNotificationLog
+  SMSNotificationLog,
+  GalleryPhoto
 } from '../types';
 import {
   getStoredBookings,
@@ -67,6 +68,9 @@ import {
   logSMSNotification,
   getStoredSiteSettings,
   saveSiteSettings,
+  getStoredGalleryPhotos,
+  saveGalleryPhoto,
+  deleteStoredGalleryPhoto,
   restoreDatabaseBackup,
   ActiveSlotHold
 } from '../utils/storage';
@@ -85,7 +89,8 @@ import {
   INITIAL_OTHER_INCOME,
   INITIAL_SHOP_PRODUCTS,
   INITIAL_SMS_LOGS,
-  VENUE_INFO
+  VENUE_INFO,
+  INITIAL_GALLERY_PHOTOS
 } from '../data/initialData';
 
 export interface MonthlyFinanceSummary {
@@ -150,6 +155,7 @@ interface ArenaContextType {
   tournaments: Tournament[];
   registrations: TournamentRegistration[];
   challenges: CommunityMatchChallenge[];
+  galleryPhotos: GalleryPhoto[];
   users: UserAccount[];
   currentUser: UserAccount | null;
   smsLogs: SMSNotificationLog[];
@@ -223,6 +229,9 @@ interface ArenaContextType {
   handleUpdateShopReservationStatus: (id: string, status: ShopReservation['status']) => void;
   handleRegistrationSuccess: (newReg: TournamentRegistration) => void;
   handleAddChallenge: (newChallenge: CommunityMatchChallenge) => void;
+  handleSavePhoto: (photo: GalleryPhoto) => void;
+  handleDeletePhoto: (id: string) => void;
+  handleToggleFeaturedPhoto: (id: string) => void;
   handleSaveSiteSettings: (settings: SiteSettings) => void;
   sendSMSNotification: (phone: string, message: string, event: SMSNotificationLog['event']) => void;
   exportDatabaseBackup: () => void;
@@ -247,6 +256,7 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tournaments, setTournaments] = useState<Tournament[]>(INITIAL_TOURNAMENTS);
   const [registrations, setRegistrations] = useState<TournamentRegistration[]>([]);
   const [challenges, setChallenges] = useState<CommunityMatchChallenge[]>(INITIAL_COMMUNITY_CHALLENGES);
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>(INITIAL_GALLERY_PHOTOS);
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(INITIAL_USERS[2]); // Default player Siam
   const [smsLogs, setSmsLogs] = useState<SMSNotificationLog[]>(INITIAL_SMS_LOGS);
@@ -284,6 +294,7 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTournaments(getStoredTournaments());
     setRegistrations(getStoredRegistrations());
     setChallenges(getStoredChallenges());
+    setGalleryPhotos(getStoredGalleryPhotos());
     setUsers(getStoredUsers());
     setCurrentUser(getStoredCurrentUser());
     setSmsLogs(getStoredSMSLogs());
@@ -807,6 +818,26 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setChallenges(updated);
   }, []);
 
+  const handleSavePhoto = useCallback((photo: GalleryPhoto) => {
+    const updated = saveGalleryPhoto(photo);
+    setGalleryPhotos(updated);
+  }, []);
+
+  const handleDeletePhoto = useCallback((id: string) => {
+    const updated = deleteStoredGalleryPhoto(id);
+    setGalleryPhotos(updated);
+  }, []);
+
+  const handleToggleFeaturedPhoto = useCallback((id: string) => {
+    const current = getStoredGalleryPhotos();
+    const target = current.find(p => p.id === id);
+    if (target) {
+      const updatedPhoto = { ...target, featured: !target.featured };
+      const updated = saveGalleryPhoto(updatedPhoto);
+      setGalleryPhotos(updated);
+    }
+  }, []);
+
   const handleSaveSiteSettings = useCallback((settings: SiteSettings) => {
     const updated = saveSiteSettings(settings);
     setSiteSettings(updated);
@@ -850,6 +881,8 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       shopReservations,
       tournaments,
       registrations,
+      challenges,
+      galleryPhotos,
       users,
       siteSettings,
       smsLogs
@@ -861,7 +894,7 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-  }, [bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, users, siteSettings, smsLogs]);
+  }, [bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings, smsLogs]);
 
   const handleRestoreDatabase = useCallback((backupJson: any): boolean => {
     const ok = restoreDatabaseBackup(backupJson);
@@ -879,6 +912,8 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setShopReservations(getStoredShopReservations());
       setTournaments(getStoredTournaments());
       setRegistrations(getStoredRegistrations());
+      setChallenges(getStoredChallenges());
+      setGalleryPhotos(getStoredGalleryPhotos());
       setUsers(getStoredUsers());
       setSiteSettings(getStoredSiteSettings());
     }
@@ -903,6 +938,7 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         tournaments,
         registrations,
         challenges,
+        galleryPhotos,
         users,
         currentUser,
         smsLogs,
@@ -966,6 +1002,9 @@ export const ArenaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         handleUpdateShopReservationStatus,
         handleRegistrationSuccess,
         handleAddChallenge,
+        handleSavePhoto,
+        handleDeletePhoto,
+        handleToggleFeaturedPhoto,
         handleSaveSiteSettings,
         sendSMSNotification,
         exportDatabaseBackup,

@@ -16,7 +16,8 @@ import {
   OtherIncomeRecord,
   SiteSettings,
   SMSNotificationLog,
-  SlotPriceItem
+  SlotPriceItem,
+  GalleryPhoto
 } from '../types';
 
 export const VENUE_INFO: SiteSettings = {
@@ -838,5 +839,104 @@ export const INITIAL_SMS_LOGS: SMSNotificationLog[] = [
     provider: 'SSLWireless',
     sentAt: '2026-10-09T16:00:22Z',
     status: 'delivered'
+  }
+];
+
+export const INITIAL_GALLERY_PHOTOS: GalleryPhoto[] = [
+  {
+    id: 'g1',
+    title: 'Floodlit Night Championship Final',
+    album: 'Matches',
+    caption: 'Pro 400-Lux stadium LED floodlights in action during Friday night 7v7 championship final.',
+    url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide',
+    featured: true,
+    uploadedAt: '2026-10-08',
+    photographer: 'Admin Media Desk',
+    tags: ['NightDerby', 'Floodlights400Lux', '7v7Final']
+  },
+  {
+    id: 'g2',
+    title: 'Metro Rail Viaduct Skyline View',
+    album: 'Arena',
+    caption: 'MRT Line-6 train passing directly beside the arena enclosure as dusk settles over Sector 17 Uttara.',
+    url: 'https://images.unsplash.com/photo-1529900240041-22f1ff5d8793?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide',
+    featured: true,
+    uploadedAt: '2026-10-07',
+    photographer: 'CMA Drone Unit',
+    tags: ['MRTLine6', 'UttaraSector17', 'Skyline']
+  },
+  {
+    id: 'g3',
+    title: 'Uttara Metro Super Cup Trophy Kickoff',
+    album: 'Tournaments',
+    caption: 'BFF certified officials and captains during the coin toss at inaugural season tournament opening.',
+    url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide',
+    featured: true,
+    uploadedAt: '2026-10-06',
+    photographer: 'Arena Media Team',
+    tags: ['SuperCup', 'BFFReferees', 'Kickoff']
+  },
+  {
+    id: 'g4',
+    title: 'FIFA Standard 50mm Shock-Pad Turf Close-up',
+    album: 'Arena',
+    caption: 'High-density monofilament artificial grass with eco-friendly rubber infill for natural ball bounce.',
+    url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square',
+    featured: false,
+    uploadedAt: '2026-10-05',
+    photographer: 'Technical Maintenance',
+    tags: ['FIFAStandard', 'ShockPad', 'GrassDetail']
+  },
+  {
+    id: 'g5',
+    title: 'Squad Warm-Up & Player Dugouts',
+    album: 'Facilities',
+    caption: 'Weather-protected player pavilion with covered dugout benches and digital electronic match clock.',
+    url: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square',
+    featured: false,
+    uploadedAt: '2026-10-04',
+    photographer: 'Staff Kabir',
+    tags: ['Dugout', 'Pavilion', 'Warmup']
+  },
+  {
+    id: 'g6',
+    title: 'Friday Night Turf Blitz Knockouts',
+    album: 'Tournaments',
+    caption: 'High-tempo tournament action under the floodlights with live commentary and spectators.',
+    url: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide',
+    featured: true,
+    uploadedAt: '2026-10-03',
+    photographer: 'Media Crew',
+    tags: ['FridayBlitz', 'Knockouts', 'Crowd']
+  },
+  {
+    id: 'g7',
+    title: 'Sector 17 Strikers vs Uttara Metro FC Scrimmage',
+    album: 'Matches',
+    caption: 'Captains competing for ball possession in an intense competitive 90-minute derby fixture.',
+    url: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'wide',
+    featured: true,
+    uploadedAt: '2026-10-02',
+    photographer: 'Sports Photographers BD',
+    tags: ['Derby', 'Sector17Strikers', 'MatchHighlights']
+  },
+  {
+    id: 'g8',
+    title: 'Crossbar Sports Shop & Reception Pavilion',
+    album: 'Facilities',
+    caption: 'In-house pro shop featuring official grip socks, FIFA balls, and chilled electrolyte hydration.',
+    url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80',
+    aspect: 'square',
+    featured: false,
+    uploadedAt: '2026-10-01',
+    photographer: 'Front Desk',
+    tags: ['ProShop', 'GripSocks', 'Hydration']
   }
 ];

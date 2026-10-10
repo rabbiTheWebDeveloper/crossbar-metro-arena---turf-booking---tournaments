@@ -1,86 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageHero } from '../../../components/PageHero';
+import { useArena } from '../../../context/ArenaContext';
+import { INITIAL_GALLERY_PHOTOS } from '../../../data/initialData';
 import { Camera, Image as ImageIcon, Sparkles, Eye, Zap, Layers, Sun, Moon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const GALLERY_ALBUMS = [
-  {
-    id: 'g1',
-    title: 'Floodlit Night Championship Final',
-    album: 'Matches',
-    caption: 'Pro 400-Lux stadium LED floodlights in action during Friday night 7v7 championship final.',
-    url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'wide'
-  },
-  {
-    id: 'g2',
-    title: 'Metro Rail Viaduct Skyline View',
-    album: 'Arena',
-    caption: 'MRT Line-6 train passing directly beside the arena enclosure as dusk settles over Sector 17 Uttara.',
-    url: 'https://images.unsplash.com/photo-1529900240041-22f1ff5d8793?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'wide'
-  },
-  {
-    id: 'g3',
-    title: 'Uttara Metro Super Cup Trophy Kickoff',
-    album: 'Tournaments',
-    caption: 'BFF certified officials and captains during the coin toss at inaugural season tournament opening.',
-    url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'wide'
-  },
-  {
-    id: 'g4',
-    title: 'FIFA Standard 50mm Shock-Pad Turf Close-up',
-    album: 'Arena',
-    caption: 'High-density monofilament artificial grass with eco-friendly rubber infill for natural ball bounce.',
-    url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'square'
-  },
-  {
-    id: 'g5',
-    title: 'Squad Warm-Up & Player Dugouts',
-    album: 'Arena',
-    caption: 'Weather-protected player pavilion with covered dugout benches and digital electronic match clock.',
-    url: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'square'
-  },
-  {
-    id: 'g6',
-    title: 'Friday Night Turf Blitz Knockouts',
-    album: 'Tournaments',
-    caption: 'High-tempo tournament action under the floodlights with live commentary and spectators.',
-    url: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'wide'
-  },
-  {
-    id: 'g7',
-    title: 'Sector 17 Strikers vs Uttara Metro FC Scrimmage',
-    album: 'Matches',
-    caption: 'Captains competing for ball possession in an intense competitive 90-minute derby fixture.',
-    url: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'wide'
-  },
-  {
-    id: 'g8',
-    title: 'Crossbar Sports Shop & Reception Pavilion',
-    album: 'Arena',
-    caption: 'In-house pro shop featuring official grip socks, FIFA balls, and chilled electrolyte hydration.',
-    url: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80',
-    aspect: 'square'
-  }
-];
-
 export default function GalleryPage() {
+  const { galleryPhotos } = useArena();
   const [activeAlbum, setActiveAlbum] = useState<string>('All');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const albums = ['All', 'Matches', 'Tournaments', 'Arena'];
+  const photosList = useMemo(() => {
+    return galleryPhotos && galleryPhotos.length > 0 ? galleryPhotos : INITIAL_GALLERY_PHOTOS;
+  }, [galleryPhotos]);
 
-  const filteredItems = GALLERY_ALBUMS.filter(item => {
-    if (activeAlbum === 'All') return true;
-    return item.album === activeAlbum;
-  });
+  const albums = useMemo(() => {
+    const list = Array.from(new Set(photosList.map(p => p.album)));
+    return ['All', ...list];
+  }, [photosList]);
+
+  const filteredItems = useMemo(() => {
+    return photosList.filter(item => {
+      if (activeAlbum === 'All') return true;
+      return item.album === activeAlbum;
+    });
+  }, [photosList, activeAlbum]);
 
   const handlePrev = () => {
     if (lightboxIndex === null) return;
