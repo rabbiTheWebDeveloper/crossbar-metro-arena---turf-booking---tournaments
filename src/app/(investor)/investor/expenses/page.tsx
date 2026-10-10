@@ -50,36 +50,36 @@ export default function InvestorExpensesPage() {
   ], []);
 
   return (
-    <div className="w-full max-w-2xl space-y-6">
+    <div className="w-full max-w-2xl space-y-5 sm:space-y-6">
       
-      {/* Month Selector Bar matching Screenshot */}
-      <div className="flex items-center justify-between py-2">
+      {/* Month Selector Bar with Main Site Colors */}
+      <div className="flex items-center justify-between py-1">
         <button
           onClick={handlePrevMonth}
           disabled={selectedMonthIndex === 0}
-          className="w-8 h-8 rounded-lg bg-[#0e160e] border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-xl bg-[#0c131a] border border-emerald-500/25 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
           aria-label="Previous month"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
 
-        <span className="text-sm font-black tracking-widest font-mono text-white select-none">
+        <span className="text-xs sm:text-sm font-black tracking-widest font-mono text-white select-none">
           {currentMonthObj.label}
         </span>
 
         <button
           onClick={handleNextMonth}
           disabled={selectedMonthIndex === months.length - 1}
-          className="w-8 h-8 rounded-lg bg-[#0e160e] border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-xl bg-[#0c131a] border border-emerald-500/25 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
           aria-label="Next month"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Card 1: BY CATEGORY with horizontal lime bars */}
-      <div className="bg-[#0b100b] border border-white/[0.07] rounded-2xl p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between pb-1">
+      {/* Card 1: BY CATEGORY with horizontal emerald bars */}
+      <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-2xl p-5 sm:p-7 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between pb-1 border-b border-emerald-500/10">
           <span className="text-xs font-black tracking-wider text-white uppercase font-sans">
             BY CATEGORY
           </span>
@@ -88,25 +88,25 @@ export default function InvestorExpensesPage() {
           </span>
         </div>
 
-        {/* 8 Category Progress Rows */}
+        {/* 8 Category Progress Rows with responsive layout */}
         <div className="space-y-3.5 pt-1">
           {expensesByCategory.map(cat => (
-            <div key={cat.name} className="flex items-center gap-4 text-xs font-sans">
+            <div key={cat.name} className="flex items-center gap-2.5 sm:gap-4 text-xs font-sans">
               {/* Category Label */}
-              <span className="w-24 shrink-0 text-zinc-300 font-medium">
+              <span className="w-20 sm:w-24 shrink-0 text-slate-300 font-medium truncate">
                 {cat.name}
               </span>
 
-              {/* Horizontal Lime Bar */}
-              <div className="flex-1 h-1.5 flex items-center">
+              {/* Horizontal Emerald Bar */}
+              <div className="flex-1 h-1.5 flex items-center bg-white/[0.02] rounded-full overflow-hidden">
                 <div
                   style={{ width: `${cat.barPercent}%` }}
-                  className="bg-[#bef264] h-1.5 rounded-full transition-all duration-300"
+                  className="bg-emerald-400 h-1.5 rounded-full transition-all duration-300 shadow-xs shadow-emerald-400/20"
                 />
               </div>
 
               {/* Category Amount */}
-              <span className="w-20 shrink-0 text-right font-mono font-medium text-white">
+              <span className="w-18 sm:w-20 shrink-0 text-right font-mono font-medium text-white">
                 {cat.amount}
               </span>
             </div>
@@ -115,14 +115,14 @@ export default function InvestorExpensesPage() {
       </div>
 
       {/* Card 2: Itemized Invoices List (Exact match to Screenshot 2) */}
-      <div className="bg-[#0b100b] border border-white/[0.07] rounded-2xl p-6 sm:p-7 divide-y divide-white/[0.04]">
+      <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-2xl p-5 sm:p-7 divide-y divide-white/[0.04] shadow-xl">
         {itemizedExpensesList.map(item => (
-          <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between text-xs">
-            <div>
-              <div className="font-bold text-white text-xs">{item.category}</div>
-              <div className="text-[11px] text-zinc-500 mt-0.5">{item.detail}</div>
+          <div key={item.id} className="py-3.5 sm:py-4 first:pt-0 last:pb-0 flex items-center justify-between text-xs gap-3">
+            <div className="min-w-0">
+              <div className="font-bold text-white text-xs truncate">{item.category}</div>
+              <div className="text-[11px] text-slate-400 mt-0.5 truncate">{item.detail}</div>
             </div>
-            <div className="font-mono text-white font-bold text-xs">
+            <div className="font-mono text-white font-bold text-xs shrink-0">
               {item.amount}
             </div>
           </div>

@@ -4,7 +4,13 @@ import React from 'react';
 import { VENUE_INFO } from '../data/initialData';
 import { MessageSquare } from 'lucide-react';
 
+import { usePathname } from 'next/navigation';
+
 export const FloatingWhatsApp: React.FC = () => {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/investor') || pathname?.startsWith('/admin')) {
+    return null;
+  }
   return (
     <aside aria-label="Support chat" className="fixed bottom-6 right-6 z-40">
       <a

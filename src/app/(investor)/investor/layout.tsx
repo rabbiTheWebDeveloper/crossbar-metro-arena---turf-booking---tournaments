@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useArena } from '@/context/ArenaContext';
+import { CrossbarLogo } from '@/components/CrossbarLogo';
 import {
   BarChart3,
   Calendar,
@@ -70,53 +71,63 @@ export default function InvestorDashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#060906] text-white flex flex-col md:flex-row antialiased font-sans">
+    <div className="min-h-screen bg-[#070b0e] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
       
-      {/* MOBILE TOP BAR (Hamburgers) */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-[#080d08] border-b border-white/10 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-[#bef264] rounded-lg flex items-center justify-center font-black text-black text-xs shadow-md shadow-[#bef264]/20">
-            C
-          </div>
-          <span className="font-bold tracking-wider text-sm font-display">CROSSBAR</span>
-          <span className="text-[10px] font-mono text-[#bef264] tracking-widest uppercase">INVESTOR</span>
-        </div>
+      {/* MOBILE TOP BAR */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#080d12]/95 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-40">
+        <Link href="/" className="flex items-center gap-2 group">
+          <CrossbarLogo size="sm" showSubtitle={false} />
+          <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+            INVESTOR
+          </span>
+        </Link>
         <button
           onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-          className="p-2 rounded-lg bg-white/5 text-zinc-300 hover:text-white cursor-pointer"
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white cursor-pointer transition-colors"
+          aria-label="Toggle navigation"
         >
-          {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileSidebarOpen ? <X className="w-5 h-5 text-emerald-400" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
-      {/* LEFT SIDEBAR (EXACT MATCH WITH REFERENCE IMAGES) */}
+      {/* MOBILE BACKDROP OVERLAY */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-xs z-40 md:hidden animate-fade-in"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* LEFT SIDEBAR WITH OFFICIAL CROSSBAR LOGO & MAIN THEME */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-[#080d08] border-r border-white/5 flex flex-col justify-between p-5 transition-transform duration-200
+        fixed inset-y-0 left-0 z-50 w-64 bg-[#080d12] border-r border-emerald-500/20 flex flex-col justify-between p-5 transition-transform duration-200 ease-out shadow-2xl md:shadow-none
         ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         md:static md:w-64 md:shrink-0
       `}>
-        {/* Top brand */}
+        {/* Top Logo & Brand */}
         <div>
-          <Link href="/" className="flex items-center gap-3 mb-8 group">
-            {/* Goal Crossbar Icon */}
-            <div className="w-8 h-8 rounded-lg bg-[#bef264] flex items-center justify-center shadow-lg shadow-[#bef264]/20 group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 20V5h16v15" />
-                <path d="M4 10h16" />
-                <circle cx="12" cy="15" r="2" />
-              </svg>
-            </div>
-            <div>
-              <div className="font-black tracking-wider text-sm text-white font-display uppercase leading-tight">
-                CROSSBAR
+          <div className="flex items-center justify-between mb-8">
+            <Link href="/" className="flex flex-col group">
+              <CrossbarLogo size="sm" showSubtitle={false} />
+              <div className="pl-10 -mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[9px] font-mono tracking-[0.22em] text-emerald-400 uppercase font-black">
+                  INVESTOR PORTAL
+                </span>
               </div>
-              <div className="text-[10px] font-mono tracking-widest text-[#bef264] uppercase font-bold">
-                INVESTOR PORTAL
-              </div>
-            </div>
-          </Link>
+            </Link>
 
-          {/* Navigation Items (Exact pill styling matching screenshots) */}
+            {/* Mobile close button */}
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Navigation Items (Main Website Emerald & Volt Color Tokens) */}
           <nav className="space-y-1.5 font-sans">
             {/* 1. Overview */}
             <Link
@@ -124,11 +135,11 @@ export default function InvestorDashboardLayout({
               onClick={() => setMobileSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left ${
                 isOverview
-                  ? 'bg-[#bef264] text-black shadow-md shadow-[#bef264]/10 font-bold'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <BarChart3 className={`w-4 h-4 ${isOverview ? 'text-black' : 'text-zinc-400'}`} />
+              <BarChart3 className={`w-4 h-4 ${isOverview ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
               <span>Overview</span>
             </Link>
 
@@ -138,11 +149,11 @@ export default function InvestorDashboardLayout({
               onClick={() => setMobileSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left ${
                 isBookings
-                  ? 'bg-[#bef264] text-black shadow-md shadow-[#bef264]/10 font-bold'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <Calendar className={`w-4 h-4 ${isBookings ? 'text-black' : 'text-zinc-400'}`} />
+              <Calendar className={`w-4 h-4 ${isBookings ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
               <span>Bookings</span>
             </Link>
 
@@ -152,11 +163,11 @@ export default function InvestorDashboardLayout({
               onClick={() => setMobileSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left ${
                 isExpenses
-                  ? 'bg-[#bef264] text-black shadow-md shadow-[#bef264]/10 font-bold'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <Receipt className={`w-4 h-4 ${isExpenses ? 'text-black' : 'text-zinc-400'}`} />
+              <Receipt className={`w-4 h-4 ${isExpenses ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
               <span>Expenses</span>
             </Link>
 
@@ -166,74 +177,74 @@ export default function InvestorDashboardLayout({
               onClick={() => setMobileSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left ${
                 isPayouts
-                  ? 'bg-[#bef264] text-black shadow-md shadow-[#bef264]/10 font-bold'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <CreditCard className={`w-4 h-4 ${isPayouts ? 'text-black' : 'text-zinc-400'}`} />
+              <CreditCard className={`w-4 h-4 ${isPayouts ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`} />
               <span>My payouts</span>
             </Link>
           </nav>
         </div>
 
-        {/* Bottom utility links (matching screenshots) */}
-        <div className="pt-6 border-t border-white/[0.08] space-y-1 text-xs">
+        {/* Bottom utility links with emerald hover transitions */}
+        <div className="pt-6 border-t border-emerald-500/15 space-y-1 text-xs">
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.03] transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors"
           >
-            <Globe className="w-4 h-4 text-zinc-500" />
+            <Globe className="w-4 h-4 text-emerald-400/70" />
             <span>View website</span>
           </Link>
 
           <button
             onClick={() => { switchDemoUser('player'); router.push('/player'); }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4 text-zinc-500" />
+            <RotateCcw className="w-4 h-4 text-emerald-400/70" />
             <span>Switch to Player demo</span>
           </button>
 
           <button
             onClick={() => { switchDemoUser('admin'); router.push('/admin'); }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
           >
-            <ShieldCheck className="w-4 h-4 text-zinc-500" />
+            <ShieldCheck className="w-4 h-4 text-emerald-400/70" />
             <span>Switch to Admin demo</span>
           </button>
 
           <button
             onClick={handleResetData}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4 text-zinc-500" />
+            <RotateCcw className="w-4 h-4 text-emerald-400/70" />
             <span>Reset demo data</span>
           </button>
 
           <button
             onClick={() => { logout(); router.push('/'); }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/[0.05] transition-colors text-left cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/[0.08] transition-colors text-left cursor-pointer"
           >
-            <LogOut className="w-4 h-4 text-zinc-500" />
+            <LogOut className="w-4 h-4 text-rose-400/80" />
             <span>Log out</span>
           </button>
         </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#060906] overflow-y-auto">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#070b0e] bg-[radial-gradient(900px_500px_at_15%_-5%,rgba(16,185,129,0.08),transparent_60%)] overflow-y-auto">
         
-        {/* TOP BAR (EXACT MATCH ACROSS ALL PAGES) */}
-        <header className="px-6 sm:px-10 py-5 flex items-center justify-between border-b border-white/[0.04]">
+        {/* TOP BAR WITH BRAND COLOR SYSTEM */}
+        <header className="px-4 sm:px-8 lg:px-10 py-4 sm:py-5 flex items-center justify-between border-b border-emerald-500/15 bg-[#080d12]/50 backdrop-blur-sm sticky top-0 z-30">
           {/* Left Title */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm sm:text-base font-bold text-white tracking-wide uppercase font-sans">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm sm:text-base font-bold text-white tracking-wide uppercase font-sans truncate">
               {headerTitle}
             </h1>
             
             {/* Quick dropdown for testing up to 10 investors when on Overview */}
             {isOverview && (
-              <div className="relative group">
+              <div className="relative group shrink-0">
                 <select
                   value={selectedInvestorId}
                   onChange={(e) => setSelectedInvestorId(e.target.value)}
@@ -246,27 +257,27 @@ export default function InvestorDashboardLayout({
                     </option>
                   ))}
                 </select>
-                <button className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 cursor-pointer">
+                <button className="flex items-center gap-1 text-[11px] text-emerald-300 hover:text-emerald-200 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 cursor-pointer">
                   <span>({activeInvestor.sharePercentage || 12}%)</span>
-                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  <ChevronDown className="w-3 h-3 text-emerald-400" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Right Role Badge & Avatar matching screenshots */}
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider text-amber-300 border border-amber-400/60 bg-amber-400/10">
+          {/* Right Role Badge & Avatar matching main site */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <span className="px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold tracking-wider text-emerald-300 border border-emerald-500/40 bg-emerald-500/10">
               INVESTOR
             </span>
-            <div className="w-8 h-8 rounded-full bg-[#bef264] text-black font-black flex items-center justify-center text-xs shadow-md">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-md shadow-emerald-400/25">
               I
             </div>
           </div>
         </header>
 
-        {/* BODY CONTAINER */}
-        <div className="p-6 sm:p-10 w-full">
+        {/* BODY CONTAINER WITH RESPONSIVE PADDING */}
+        <div className="p-4 sm:p-8 lg:p-10 w-full flex-1">
           {children}
         </div>
       </main>

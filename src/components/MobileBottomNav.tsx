@@ -10,6 +10,10 @@ export const MobileBottomNav: React.FC = () => {
   const pathname = usePathname();
   const { currentUser, setShowAuthModal, setAuthModalInitialTab } = useArena();
 
+  if (pathname?.startsWith('/investor')) {
+    return null;
+  }
+
   const isPlayerOrAdmin = currentUser && currentUser.role !== 'visitor';
 
   const navItems = [

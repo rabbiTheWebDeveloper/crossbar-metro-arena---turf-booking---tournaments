@@ -11,7 +11,7 @@ export default function InvestorRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#060906] text-slate-100 font-sans antialiased selection:bg-[#bef264] selection:text-black">
+    <div className="min-h-screen bg-[#070b0e] text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
       {children}
     </div>
   );
