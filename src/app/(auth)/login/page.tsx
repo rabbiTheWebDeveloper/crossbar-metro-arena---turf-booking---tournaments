@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena } from '@/context/ArenaContext';
@@ -20,7 +20,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
@@ -382,5 +382,17 @@ export default function LoginPage() {
       )}
 
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full min-h-[400px] flex items-center justify-center text-slate-400 font-mono text-xs">
+        Loading member portal...
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
