@@ -242,14 +242,13 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => { setAuthModalInitialTab('login'); setShowAuthModal(true); }}
-                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+              <Link
+                href="/login"
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <User className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Log In</span>
-              </button>
+              </Link>
             )}
 
             {/* Book Now Primary Button */}

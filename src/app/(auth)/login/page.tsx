@@ -263,40 +263,40 @@ export default function LoginPage() {
             {/* Player Demo */}
             <button
               type="button"
-              onClick={() => fillDemoCredentials('01711223344', 'password123')}
+              onClick={() => fillDemoCredentials('01844332211', 'password123')}
               className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-1 text-[11px] font-bold text-white group-hover:text-emerald-400 truncate">
                 <UserCheck className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Player</span>
               </div>
-              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Siam H.</div>
+              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Siam (FWD)</div>
             </button>
 
             {/* Admin Demo */}
             <button
               type="button"
-              onClick={() => fillDemoCredentials('01711000001', 'admin123')}
+              onClick={() => fillDemoCredentials('01711223344', 'password123')}
               className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-1 text-[11px] font-bold text-white group-hover:text-emerald-400 truncate">
                 <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Admin</span>
               </div>
-              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Desk Mgr</div>
+              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Kabir (Desk)</div>
             </button>
 
             {/* Investor Demo */}
             <button
               type="button"
-              onClick={() => fillDemoCredentials('01811223344', 'investor123')}
+              onClick={() => fillDemoCredentials('01819556677', 'password123')}
               className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-1 text-[11px] font-bold text-white group-hover:text-emerald-400 truncate">
                 <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
                 <span>Investor</span>
               </div>
-              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Abid H.</div>
+              <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">Rafiqul (20%)</div>
             </button>
           </div>
         </div>
