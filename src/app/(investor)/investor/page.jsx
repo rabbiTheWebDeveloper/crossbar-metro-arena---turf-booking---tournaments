@@ -1,87 +1,118 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { useInvestor } from './layout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 export default function InvestorOverviewPage() {
     const { investors, payouts, currentUser, calculateMonthlyFinance } = useArena();
+    const layoutInvestor = useInvestor()?.activeInvestor;
+
+    // Active investor partner account
+    const activeInvestor = useMemo(() => {
+        if (layoutInvestor) return layoutInvestor;
+        if (currentUser?.role === 'investor') {
+            const match = investors.find(i => 
+                i.name.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0]) ||
+                (currentUser.phone && i.phone.replace(/[^0-9]/g, '').includes(currentUser.phone.replace(/[^0-9]/g, '')))
+            );
+            if (match) return match;
+        }
+        return investors[0] || {
+            id: '',
+            name: 'Investor Partner',
+            sharePercentage: 0,
+            capitalInvested: 0,
+        };
+    }, [layoutInvestor, currentUser, investors]);
+
+    // Generate rolling months up to current date
+    const months = useMemo(() => {
+        const list = [];
+        const base = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+            const short = d.toLocaleDateString('en-US', { month: 'short' });
+            list.push({ key, label, short });
+        }
+        return list;
+    }, []);
+
+    // Default to the latest month
+    const [selectedMonthIndex, setSelectedMonthIndex] = useState(() => months.length - 1);
     const [activeBarIndex, setActiveBarIndex] = useState(null);
-    // Month navigation: past 6+ months
-    const months = useMemo(() => [
-        { key: '2026-04', label: 'APRIL 2026', short: 'Apr' },
-        { key: '2026-05', label: 'MAY 2026', short: 'May' },
-        { key: '2026-06', label: 'JUNE 2026', short: 'Jun' },
-        { key: '2026-07', label: 'JULY 2026', short: 'Jul' },
-        { key: '2026-08', label: 'AUGUST 2026', short: 'Aug' },
-        { key: '2026-09', label: 'SEPTEMBER 2026', short: 'Sep' },
-        { key: '2026-10', label: 'OCTOBER 2026', short: 'Oct' },
-    ], []);
-    // Default to September 2026 (index 5)
-    const [selectedMonthIndex, setSelectedMonthIndex] = useState(5);
-    const currentMonthObj = months[selectedMonthIndex] || months[5];
+
+    const currentMonthObj = months[selectedMonthIndex] || months[months.length - 1] || { key: '2026-10', label: 'OCTOBER 2026' };
     const selectedMonth = currentMonthObj.key;
+
     const handlePrevMonth = () => {
         if (selectedMonthIndex > 0)
             setSelectedMonthIndex(prev => prev - 1);
     };
+
     const handleNextMonth = () => {
         if (selectedMonthIndex < months.length - 1)
             setSelectedMonthIndex(prev => prev + 1);
     };
-    // Active investor partner account
-    const activeInvestor = useMemo(() => {
-        if (currentUser?.role === 'investor') {
-            const match = investors.find(i => i.name.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0]) ||
-                (currentUser.phone && i.phone.replace(/[^0-9]/g, '').includes(currentUser.phone.replace(/[^0-9]/g, ''))));
-            if (match)
-                return match;
-        }
-        return investors[0] || {
-            id: 'inv-01',
-            name: 'Investor One',
-            sharePercentage: 12,
-            capitalInvested: 1500000,
-        };
-    }, [currentUser, investors]);
-    // Compute live PRD finance numbers for selected month
+
+    // Compute live PRD finance numbers for selected month from MongoDB
     const finance = useMemo(() => {
         return calculateMonthlyFinance(selectedMonth);
     }, [calculateMonthlyFinance, selectedMonth]);
-    const bookingCollected = finance.bookingMoneyCollected > 0 ? finance.bookingMoneyCollected : 483300;
-    const shopSales = finance.incomeBySource.find(s => s.source.includes('Shop'))?.amount || 52932;
-    const sponsorship = finance.incomeBySource.find(s => s.source.includes('Sponsorship') || s.source.includes('Other'))?.amount || 15000;
-    const totalRevenue = bookingCollected + shopSales + sponsorship;
-    const totalExpenses = finance.totalExpenses > 0 ? finance.totalExpenses : 309497;
-    const netProfit = totalRevenue - totalExpenses;
-    const isLoss = netProfit <= 0;
-    const investorPercent = activeInvestor?.sharePercentage || 12;
+
+    const bookingCollected = finance.bookingMoneyCollected;
+    const otherTotal = finance.otherIncomeTotal;
+    const totalRevenue = finance.totalRevenue;
+    const totalExpenses = finance.totalExpenses;
+    const netProfit = finance.netProfit;
+    const isLoss = finance.isLossMonth;
+    const investorPercent = activeInvestor?.sharePercentage || 0;
     const myMonthlyShare = isLoss ? 0 : Math.round((netProfit * investorPercent) / 100);
-    // Payout records
+
+    // Payout records from live database
     const myPayouts = useMemo(() => {
-        if (!activeInvestor)
-            return [];
-        return payouts.filter(p => p.investorId === activeInvestor.id);
+        if (!activeInvestor) return [];
+        return payouts.filter(p => 
+            p.investorId === activeInvestor.id || 
+            p.investorName?.toLowerCase() === activeInvestor.name?.toLowerCase()
+        );
     }, [payouts, activeInvestor]);
+
     const paidThisMonth = useMemo(() => {
-        const fromData = myPayouts
+        return myPayouts
             .filter(p => p.month === selectedMonth)
             .reduce((sum, p) => sum + p.amount, 0);
-        return fromData > 0 ? fromData : 28142;
     }, [myPayouts, selectedMonth]);
+
     const totalReceivedToDate = useMemo(() => {
-        const fromData = myPayouts.reduce((sum, p) => sum + p.amount, 0);
-        return fromData > 0 ? fromData : 111981;
+        return myPayouts.reduce((sum, p) => sum + p.amount, 0);
     }, [myPayouts]);
-    const capitalInvested = activeInvestor.capitalInvested || 1500000;
-    // 6-Month Net Profit History for Overview Chart
-    const sixMonthsHistory = useMemo(() => [
-        { key: '2026-04', label: 'Apr', displayVal: '৳0', heightPercent: 4 },
-        { key: '2026-05', label: 'May', displayVal: '৳390k', heightPercent: 78 },
-        { key: '2026-06', label: 'Jun', displayVal: '৳334k', heightPercent: 67 },
-        { key: '2026-07', label: 'Jul', displayVal: '৳416k', heightPercent: 88 },
-        { key: '2026-08', label: 'Aug', displayVal: '৳267k', heightPercent: 54 },
-        { key: '2026-09', label: 'Sep', displayVal: '৳242k', heightPercent: 49 },
-    ], []);
-    const formatBDT = (num) => `৳${num.toLocaleString('en-IN')}`;
+
+    const capitalInvested = activeInvestor.capitalInvested || 0;
+
+    // Dynamic 6-Month Net Profit History calculated from database records
+    const sixMonthsHistory = useMemo(() => {
+        const historyMonths = months.slice(Math.max(0, months.length - 6));
+        const maxProfit = Math.max(1, ...historyMonths.map(m => Math.abs(calculateMonthlyFinance(m.key).netProfit)));
+        
+        return historyMonths.map(m => {
+            const fin = calculateMonthlyFinance(m.key);
+            const valK = Math.round(fin.netProfit / 1000);
+            const heightPercent = Math.min(100, Math.max(10, (Math.abs(fin.netProfit) / maxProfit) * 100));
+            return {
+                key: m.key,
+                label: m.short,
+                displayVal: `${fin.netProfit < 0 ? '-' : ''}৳${Math.abs(valK)}k`,
+                heightPercent,
+                isLoss: fin.isLossMonth
+            };
+        });
+    }, [months, calculateMonthlyFinance]);
+
+    const formatBDT = (num) => `৳${Number(num || 0).toLocaleString('en-IN')}`;
+
     return (<div className="w-full max-w-4xl space-y-6">
       
       {/* Month Selector Bar with Main Site Emerald Accents */}
@@ -116,7 +147,7 @@ export default function InvestorOverviewPage() {
           {isLoss ? (<span className="text-rose-400 font-semibold">Loss protection active · ৳0 payout</span>) : (<span>{investorPercent}% of net profit {formatBDT(netProfit)}</span>)}
         </div>
 
-        {/* 3 Metrics Row (Responsive: stacks on mobile, 3-cols on sm+) */}
+        {/* 3 Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-5 mt-5 border-t border-emerald-500/15">
           <div>
             <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
@@ -147,16 +178,16 @@ export default function InvestorOverviewPage() {
         </div>
       </div>
 
-      {/* 2. MIDDLE ROW: 4 METRIC CARDS (Responsive: 2 cols on mobile, 4 on desktop) */}
+      {/* 2. MIDDLE ROW: 4 METRIC CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Slots booked */}
         <div className="bg-[#0c131a]/90 border border-emerald-500/15 rounded-2xl p-4 sm:p-5 hover:border-emerald-500/30 transition-colors">
           <div className="text-xs text-slate-400 font-medium">Slots booked</div>
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
-            {finance.slotsBooked > 0 ? finance.slotsBooked : 188}
+            {finance.slotsBooked}
           </div>
           <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
-            {finance.occupancyRate > 0 ? `${finance.occupancyRate.toFixed(0)}% occupancy` : '52% occupancy'}
+            {finance.occupancyRate.toFixed(0)}% occupancy
           </div>
         </div>
 
@@ -164,18 +195,21 @@ export default function InvestorOverviewPage() {
         <div className="bg-[#0c131a]/90 border border-emerald-500/15 rounded-2xl p-4 sm:p-5 hover:border-emerald-500/30 transition-colors">
           <div className="text-xs text-slate-400 font-medium">Booking amount</div>
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
-            {finance.bookingMoneyCollected > 0 ? `৳${Math.round(finance.bookingMoneyCollected / 1000)}k` : '৳479k'}
+            ৳{Math.round(finance.bookingMoneyCollected / 1000)}k
+          </div>
+          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+            {formatBDT(finance.bookingMoneyCollected)}
           </div>
         </div>
 
         {/* Revenue */}
         <div className="bg-[#0c131a]/90 border border-emerald-500/15 rounded-2xl p-4 sm:p-5 hover:border-emerald-500/30 transition-colors">
-          <div className="text-xs text-slate-400 font-medium">Revenue</div>
+          <div className="text-xs text-slate-400 font-medium">Total Revenue</div>
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
-            {totalRevenue > 0 ? `৳${Math.round(totalRevenue / 1000)}k` : '৳551k'}
+            ৳{Math.round(totalRevenue / 1000)}k
           </div>
           <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
-            incl. other ৳{((shopSales + sponsorship) / 1000).toFixed(1)}k
+            incl. other {formatBDT(otherTotal)}
           </div>
         </div>
 
@@ -183,7 +217,10 @@ export default function InvestorOverviewPage() {
         <div className="bg-[#0c131a]/90 border border-emerald-500/15 rounded-2xl p-4 sm:p-5 hover:border-emerald-500/30 transition-colors">
           <div className="text-xs text-slate-400 font-medium">Expenses</div>
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
-            {totalExpenses > 0 ? `৳${Math.round(totalExpenses / 1000)}k` : '৳309k'}
+            ৳{Math.round(totalExpenses / 1000)}k
+          </div>
+          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+            {formatBDT(totalExpenses)}
           </div>
         </div>
       </div>
@@ -214,8 +251,8 @@ export default function InvestorOverviewPage() {
 
                     <div className="w-full max-w-[32px] h-32 flex items-end">
                       <div style={{ height: `${item.heightPercent}%` }} className={`w-full rounded-xs transition-all duration-300 ${isSelected
-                    ? 'bg-emerald-400 shadow-lg shadow-emerald-400/30'
-                    : 'bg-emerald-400/80 group-hover:bg-emerald-400'}`}/>
+                    ? (item.isLoss ? 'bg-rose-400 shadow-lg shadow-rose-400/30' : 'bg-emerald-400 shadow-lg shadow-emerald-400/30')
+                    : (item.isLoss ? 'bg-rose-500/80 group-hover:bg-rose-400' : 'bg-emerald-400/80 group-hover:bg-emerald-400')}`}/>
                     </div>
 
                     <span className={`text-xs font-mono mt-3 transition-colors ${isSelected ? 'text-white font-bold' : 'text-slate-400'}`}>
@@ -237,15 +274,12 @@ export default function InvestorOverviewPage() {
               <span className="font-mono font-medium text-slate-100">{formatBDT(bookingCollected)}</span>
             </div>
 
-            <div className="py-2.5 flex items-center justify-between">
-              <span className="text-slate-300">Shop Sales</span>
-              <span className="font-mono font-medium text-slate-100">{formatBDT(shopSales)}</span>
-            </div>
-
-            <div className="py-2.5 flex items-center justify-between">
-              <span className="text-slate-300">Sponsorship</span>
-              <span className="font-mono font-medium text-slate-100">{formatBDT(sponsorship)}</span>
-            </div>
+            {finance.incomeBySource && finance.incomeBySource.filter(s => !s.source.includes('Turf')).map(src => (
+              <div key={src.source} className="py-2.5 flex items-center justify-between">
+                <span className="text-slate-300">{src.source}</span>
+                <span className="font-mono font-medium text-slate-100">{formatBDT(src.amount)}</span>
+              </div>
+            ))}
 
             <div className="py-2.5 flex items-center justify-between font-bold">
               <span className="text-white">Total revenue</span>

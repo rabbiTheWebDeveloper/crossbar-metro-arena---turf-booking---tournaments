@@ -1,10 +1,19 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, createContext, useContext } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useArena } from '@/context/ArenaContext';
 import { CrossbarLogo } from '@/components/CrossbarLogo';
 import { BarChart3, Calendar, Receipt, CreditCard, Globe, RotateCcw, ShieldCheck, LogOut, Menu, X, ChevronDown } from 'lucide-react';
+
+export const InvestorContext = createContext({
+    activeInvestor: null,
+    selectedInvestorId: '',
+    setSelectedInvestorId: () => {}
+});
+
+export const useInvestor = () => useContext(InvestorContext);
+
 export default function InvestorDashboardLayout({ children, }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -13,21 +22,34 @@ export default function InvestorDashboardLayout({ children, }) {
     // Active investor partner account
     const defaultInvestorId = useMemo(() => {
         if (currentUser?.role === 'investor') {
-            const match = investors.find(i => i.name.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0]) ||
-                (currentUser.phone && i.phone.replace(/[^0-9]/g, '').includes(currentUser.phone.replace(/[^0-9]/g, ''))));
+            const match = investors.find(i => 
+                (currentUser.name && i.name.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0])) ||
+                (currentUser.phone && i.phone && i.phone.replace(/[^0-9]/g, '').includes(currentUser.phone.replace(/[^0-9]/g, '')))
+            );
             if (match)
                 return match.id;
         }
-        return investors[0]?.id || 'inv-02';
+        return investors[0]?.id || '';
     }, [currentUser, investors]);
+
     const [selectedInvestorId, setSelectedInvestorId] = useState(defaultInvestorId);
+
+    // Synchronize default investor when live MongoDB investors load
+    React.useEffect(() => {
+        if (defaultInvestorId && (!selectedInvestorId || !investors.some(i => i.id === selectedInvestorId))) {
+            setSelectedInvestorId(defaultInvestorId);
+        }
+    }, [defaultInvestorId, selectedInvestorId, investors]);
+
     const activeInvestor = useMemo(() => {
         return investors.find(i => i.id === selectedInvestorId) || investors[0] || {
-            id: 'inv-01',
-            name: 'Investor One',
-            sharePercentage: 12,
+            id: '',
+            name: 'Partner',
+            sharePercentage: 0,
+            capitalInvested: 0
         };
     }, [investors, selectedInvestorId]);
+
     // Dynamic header title matching exact screenshot titles
     const headerTitle = useMemo(() => {
         if (pathname.includes('/bookings'))
@@ -36,17 +58,14 @@ export default function InvestorDashboardLayout({ children, }) {
             return 'EXPENSES';
         if (pathname.includes('/payouts') || pathname.includes('/my-payouts'))
             return 'MY PAYOUTS';
-        return `INVESTOR OVERVIEW · ${activeInvestor.name || 'Investor One'}`;
+        return `INVESTOR OVERVIEW · ${activeInvestor.name || 'Partner'}`;
     }, [pathname, activeInvestor.name]);
+
     const isOverview = pathname === '/investor' || pathname === '/investor/';
     const isBookings = pathname.includes('/bookings');
     const isExpenses = pathname.includes('/expenses');
     const isPayouts = pathname.includes('/payouts') || pathname.includes('/my-payouts');
-    const handleResetData = () => {
-        if (typeof window !== 'undefined') {
-            window.location.reload();
-        }
-    };
+
     return (<div className="min-h-screen bg-[#070b0e] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
       
       {/* MOBILE TOP BAR */}
@@ -126,27 +145,19 @@ export default function InvestorDashboardLayout({ children, }) {
           </nav>
         </div>
 
-        {/* Bottom utility links with emerald hover transitions */}
+        {/* Bottom utility links */}
         <div className="pt-6 border-t border-emerald-500/15 space-y-1 text-xs">
           <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors">
             <Globe className="w-4 h-4 text-emerald-400/70"/>
             <span>View website</span>
           </Link>
 
-          <button onClick={() => { switchDemoUser('player'); router.push('/player'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer">
-            <RotateCcw className="w-4 h-4 text-emerald-400/70"/>
-            <span>Switch to Player demo</span>
-          </button>
-
-          <button onClick={() => { switchDemoUser('admin'); router.push('/admin'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer">
-            <ShieldCheck className="w-4 h-4 text-emerald-400/70"/>
-            <span>Switch to Admin demo</span>
-          </button>
-
-          <button onClick={handleResetData} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors text-left cursor-pointer">
-            <RotateCcw className="w-4 h-4 text-emerald-400/70"/>
-            <span>Reset demo data</span>
-          </button>
+          {currentUser?.role === 'admin' && (
+            <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.03] transition-colors">
+              <ShieldCheck className="w-4 h-4 text-emerald-400/70"/>
+              <span>Admin Console</span>
+            </Link>
+          )}
 
           <button onClick={() => { logout(); router.push('/'); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/[0.08] transition-colors text-left cursor-pointer">
             <LogOut className="w-4 h-4 text-rose-400/80"/>
@@ -166,15 +177,15 @@ export default function InvestorDashboardLayout({ children, }) {
               {headerTitle}
             </h1>
             
-            {/* Quick dropdown for testing up to 10 investors when on Overview */}
-            {isOverview && (<div className="relative group shrink-0">
+            {/* Quick dropdown for partner accounts */}
+            {investors.length > 0 && (<div className="relative group shrink-0">
                 <select value={selectedInvestorId} onChange={(e) => setSelectedInvestorId(e.target.value)} className="opacity-0 absolute inset-0 cursor-pointer w-full h-full" title="Select partner account">
                   {investors.map(inv => (<option key={inv.id} value={inv.id} className="bg-slate-900 text-white">
                       {inv.name} ({inv.sharePercentage}%)
                     </option>))}
                 </select>
                 <button className="flex items-center gap-1 text-[11px] text-emerald-300 hover:text-emerald-200 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 cursor-pointer">
-                  <span>({activeInvestor.sharePercentage || 12}%)</span>
+                  <span>({activeInvestor.sharePercentage || 0}%)</span>
                   <ChevronDown className="w-3 h-3 text-emerald-400"/>
                 </button>
               </div>)}
@@ -193,7 +204,9 @@ export default function InvestorDashboardLayout({ children, }) {
 
         {/* BODY CONTAINER WITH RESPONSIVE PADDING */}
         <div className="p-4 sm:p-8 lg:p-10 w-full flex-1">
-          {children}
+          <InvestorContext.Provider value={{ activeInvestor, selectedInvestorId, setSelectedInvestorId }}>
+            {children}
+          </InvestorContext.Provider>
         </div>
       </main>
 
