@@ -61,22 +61,34 @@ export default function AdminInvestorsPage() {
         });
         setPayoutInvestor(null);
     };
+    const handlePrevMonth = () => {
+        const [y, m] = selectedMonth.split('-').map(Number);
+        const prev = new Date(y, m - 2, 1);
+        setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);
+    };
+
+    const handleNextMonth = () => {
+        const [y, m] = selectedMonth.split('-').map(Number);
+        const next = new Date(y, m, 1);
+        setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+    };
+
     return (<div className="space-y-6 animate-fade-in font-sans">
       
-      {/* MONTH SELECTOR (MATCHING SCREENSHOT 5) */}
+      {/* MONTH SELECTOR */}
       <div className="flex items-center justify-center gap-4 py-2">
-        <button type="button" onClick={() => setSelectedMonth('2026-09')} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white">
+        <button type="button" onClick={handlePrevMonth} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white cursor-pointer">
           <ChevronLeft className="w-4 h-4"/>
         </button>
         <span className="font-mono font-bold text-sm text-white tracking-widest uppercase">
-          {selectedMonth === '2026-10' ? 'OCTOBER 2026' : selectedMonth.toUpperCase()}
+          {new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </span>
-        <button type="button" onClick={() => setSelectedMonth('2026-10')} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white">
+        <button type="button" onClick={handleNextMonth} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white cursor-pointer">
           <ChevronRight className="w-4 h-4"/>
         </button>
       </div>
 
-      {/* 2 KPI CARDS (MATCHING SCREENSHOT 5) */}
+      {/* 2 KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Investor Share */}
         <div className="p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
@@ -96,7 +108,7 @@ export default function AdminInvestorsPage() {
             {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit).toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500">
-            {selectedMonth === '2026-10' ? 'October 2026' : selectedMonth}
+            {new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </div>
         </div>
       </div>

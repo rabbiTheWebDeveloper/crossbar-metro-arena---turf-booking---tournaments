@@ -38,7 +38,113 @@ export const ArenaProvider = ({ children }) => {
     const [showSSLCommerzModal, setShowSSLCommerzModal] = useState(false);
     const [pendingBookingData, setPendingBookingData] = useState(null);
     const [showHandoverGuide, setShowHandoverGuide] = useState(false);
-    // Load client data on mount
+
+    // Fetch authoritative live data from MongoDB backend API routes
+    const loadRealBackendData = useCallback(async () => {
+        try {
+            const fetchJson = async (url) => {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return await res.json();
+                } catch (e) {
+                    console.warn(`Fetch ${url} failed:`, e);
+                }
+                return null;
+            };
+
+            const [
+                bookingsData,
+                settingsData,
+                expensesData,
+                investorsData,
+                payoutsData,
+                refundsData,
+                otherIncomeData,
+                teamsData,
+                matchResultsData,
+                productsData,
+                shopOrdersData,
+                eventsData,
+                registrationsData,
+                galleryData,
+                usersData
+            ] = await Promise.all([
+                fetchJson('/api/bookings'),
+                fetchJson('/api/settings'),
+                fetchJson('/api/expenses'),
+                fetchJson('/api/investors'),
+                fetchJson('/api/payouts'),
+                fetchJson('/api/refunds'),
+                fetchJson('/api/other-income'),
+                fetchJson('/api/teams'),
+                fetchJson('/api/match-results'),
+                fetchJson('/api/products'),
+                fetchJson('/api/shop-orders'),
+                fetchJson('/api/events'),
+                fetchJson('/api/registrations'),
+                fetchJson('/api/gallery'),
+                fetchJson('/api/users')
+            ]);
+
+            const unwrap = (data, key) => {
+                if (!data) return [];
+                if (Array.isArray(data)) return data;
+                if (key && Array.isArray(data[key])) return data[key];
+                return [];
+            };
+
+            const bList = unwrap(bookingsData, 'bookings');
+            if (bList.length > 0) setBookings(bList);
+
+            if (settingsData) {
+                if (settingsData.pricing) setPricing(settingsData.pricing);
+                if (settingsData.settings) setSiteSettings(settingsData.settings);
+            }
+
+            const expList = unwrap(expensesData, 'expenses');
+            if (expList.length > 0) setExpenses(expList);
+
+            const invList = unwrap(investorsData, 'investors');
+            if (invList.length > 0) setInvestors(invList);
+
+            const payList = unwrap(payoutsData, 'payouts');
+            if (payList.length > 0) setPayouts(payList);
+
+            const refList = unwrap(refundsData, 'refunds');
+            if (refList.length > 0) setRefunds(refList);
+
+            const incList = unwrap(otherIncomeData, 'otherIncome');
+            if (incList.length > 0) setOtherIncome(incList);
+
+            const teamList = unwrap(teamsData, 'teams');
+            if (teamList.length > 0) setTeams(teamList);
+
+            const matchResList = unwrap(matchResultsData, 'matchResults');
+            if (matchResList.length > 0) setMatchResults(matchResList);
+
+            const prodList = unwrap(productsData, 'products');
+            if (prodList.length > 0) setShopProducts(prodList);
+
+            const orderList = unwrap(shopOrdersData, 'reservations');
+            if (orderList.length > 0) setShopReservations(orderList);
+
+            const evList = unwrap(eventsData, 'tournaments');
+            if (evList.length > 0) setTournaments(evList);
+
+            const regList = unwrap(registrationsData, 'registrations');
+            if (regList.length > 0) setRegistrations(regList);
+
+            const galList = unwrap(galleryData, 'galleryPhotos');
+            if (galList.length > 0) setGalleryPhotos(galList);
+
+            const uList = unwrap(usersData, 'users');
+            if (uList.length > 0) setUsers(uList);
+        } catch (err) {
+            console.warn('loadRealBackendData caught error:', err);
+        }
+    }, []);
+
+    // Load initial data and trigger backend live data sync
     useEffect(() => {
         setBookings(getStoredBookings());
         setSlotHolds(getActiveSlotHolds());
@@ -61,6 +167,10 @@ export const ArenaProvider = ({ children }) => {
         setSmsLogs(getStoredSMSLogs());
         setSiteSettings(getStoredSiteSettings());
         setIsInitialized(true);
+
+        // Fetch live MongoDB records
+        loadRealBackendData();
+
         // Check if real database auth cookie exists
         fetch('/api/auth/me')
             .then(res => res.json())
@@ -81,7 +191,7 @@ export const ArenaProvider = ({ children }) => {
                 }
             })
             .catch(() => { });
-    }, []);
+    }, [loadRealBackendData]);
     // 10-minute hold ticker: check every 5 seconds to auto-release expired holds
     useEffect(() => {
         const timer = setInterval(() => {
@@ -427,38 +537,79 @@ export const ArenaProvider = ({ children }) => {
         setSmsLogs(updated);
     }, []);
     // Booking operations
-    const handleBookingSuccess = useCallback((newBooking) => {
+    const handleBookingSuccess = useCallback(async (newBooking) => {
         try {
+            // First save optimistically to state and local storage
             const updated = saveBooking(newBooking);
             setBookings(updated);
             setSlotHolds(getActiveSlotHolds());
             setActiveTicketPass(newBooking);
+
+            // Send to real MongoDB API
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBooking)
+            });
+            const data = await res.json();
+            if (res.ok && data.booking) {
+                setBookings(prev => {
+                    const exists = prev.some(b => b.id === data.booking.id || b.bookingCode === data.booking.bookingCode);
+                    return exists 
+                        ? prev.map(b => (b.id === data.booking.id || b.bookingCode === data.booking.bookingCode) ? data.booking : b)
+                        : [data.booking, ...prev];
+                });
+            }
+
             // Automated SMS confirmation
-            const smsText = `Crossbar Metro: Booking ${newBooking.bookingCode} confirmed for ${newBooking.date} (${newBooking.displayTime}). Paid: ৳${newBooking.advanceAmount.toLocaleString()}, Due: ৳${newBooking.dueAmount.toLocaleString()}. Uttara Metro Center.`;
+            const smsText = `Crossbar Metro: Booking ${newBooking.bookingCode} confirmed for ${newBooking.date} (${newBooking.displayTime}). Paid: ৳${(newBooking.advanceAmount || 0).toLocaleString()}, Due: ৳${(newBooking.dueAmount || 0).toLocaleString()}. Uttara Metro Center.`;
             sendSMSNotification(newBooking.captainPhone, smsText, 'booking_confirmed');
         }
         catch (err) {
+            console.error('handleBookingSuccess error:', err);
             alert(err.message || 'Error processing booking');
         }
     }, [sendSMSNotification]);
+
     const handlePlaceSlotHold = useCallback((courtId, date, slotNumber, teamName) => {
         const hold = placeSlotHold(courtId, date, slotNumber, teamName, pricing.holdMinutes || 10);
         setSlotHolds(getActiveSlotHolds());
         return hold;
     }, [pricing.holdMinutes]);
+
     const handleReleaseSlotHold = useCallback((courtId, date, slotNumber) => {
         releaseSlotHold(courtId, date, slotNumber);
         setSlotHolds(getActiveSlotHolds());
     }, []);
-    const handleUpdateBookingStatus = useCallback((id, status, collectedCash) => {
+
+    const handleUpdateBookingStatus = useCallback(async (id, status, collectedCash) => {
         const updated = updateBookingStatus(id, status, collectedCash);
         setBookings(updated);
+        try {
+            await fetch(`/api/bookings/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status, collectedCash })
+            });
+        } catch (e) {
+            console.warn('API updateBookingStatus error:', e);
+        }
     }, []);
-    const handleCancelBooking = useCallback((id) => {
+
+    const handleCancelBooking = useCallback(async (id) => {
         const result = cancelBooking(id, true);
         setBookings(result.bookings);
         if (result.refund) {
             setRefunds(getStoredRefunds());
+        }
+        try {
+            const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.refund) {
+                setRefunds(prev => [data.refund, ...prev.filter(r => r.id !== data.refund.id)]);
+            }
+        } catch (e) {
+            console.warn('API cancelBooking error:', e);
         }
         const target = bookings.find(b => b.id === id);
         if (target) {
@@ -466,7 +617,8 @@ export const ArenaProvider = ({ children }) => {
             sendSMSNotification(target.captainPhone, msg, 'booking_cancelled');
         }
     }, [bookings, sendSMSNotification]);
-    const handleRecordRefund = useCallback((refundId, amount, method, transactionRef) => {
+
+    const handleRecordRefund = useCallback(async (refundId, amount, method, transactionRef) => {
         const current = getStoredRefunds();
         const updated = current.map(r => {
             if (r.id === refundId) {
@@ -477,7 +629,7 @@ export const ArenaProvider = ({ children }) => {
                     status: 'completed',
                     refundedDate: new Date().toISOString().split('T')[0],
                     transactionRef: transactionRef || `REF-${Date.now().toString().slice(-6)}`,
-                    recordedBy: currentUser?.name || 'Admin Abid'
+                    recordedBy: currentUser?.name || 'Admin Desk'
                 };
             }
             return r;
@@ -486,86 +638,281 @@ export const ArenaProvider = ({ children }) => {
             localStorage.setItem('cma_refunds_v3', JSON.stringify(updated));
         }
         setRefunds(updated);
+
+        try {
+            await fetch(`/api/refunds/${refundId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount,
+                    refundMethod: method,
+                    transactionRef: transactionRef || `REF-${Date.now().toString().slice(-6)}`,
+                    status: 'completed',
+                    recordedBy: currentUser?.name || 'Admin Desk'
+                })
+            });
+        } catch (e) {
+            console.warn('API recordRefund error:', e);
+        }
     }, [currentUser]);
-    const handleRecordPayout = useCallback((payout) => {
+
+    const handleRecordPayout = useCallback(async (payout) => {
         const updated = savePayout(payout);
         setPayouts(updated);
+        try {
+            const res = await fetch('/api/payouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payout)
+            });
+            const data = await res.json();
+            if (data.investors) {
+                setInvestors(data.investors);
+            }
+        } catch (e) {
+            console.warn('API recordPayout error:', e);
+        }
     }, []);
-    const handleAddOtherIncome = useCallback((income) => {
+
+    const handleAddOtherIncome = useCallback(async (income) => {
         const updated = saveOtherIncome(income);
         setOtherIncome(updated);
+        try {
+            await fetch('/api/other-income', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(income)
+            });
+        } catch (e) {
+            console.warn('API addOtherIncome error:', e);
+        }
     }, []);
-    const handleSavePricing = useCallback((newConfig) => {
+
+    const handleSavePricing = useCallback(async (newConfig) => {
         const updated = savePricing(newConfig);
         setPricing(updated);
+        try {
+            await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pricing: newConfig })
+            });
+        } catch (e) {
+            console.warn('API savePricing error:', e);
+        }
     }, []);
-    const handleAddExpense = useCallback((expense) => {
+
+    const handleAddExpense = useCallback(async (expense) => {
         const updated = saveExpense(expense);
         setExpenses(updated);
+        try {
+            await fetch('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(expense)
+            });
+        } catch (e) {
+            console.warn('API addExpense error:', e);
+        }
     }, []);
-    const handleDeleteExpense = useCallback((id) => {
+
+    const handleDeleteExpense = useCallback(async (id) => {
         const updated = deleteExpense(id);
         setExpenses(updated);
+        try {
+            await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+        } catch (e) {
+            console.warn('API deleteExpense error:', e);
+        }
     }, []);
-    const handleSaveInvestors = useCallback((invs) => {
+
+    const handleSaveInvestors = useCallback(async (invs) => {
         const updated = saveInvestors(invs);
         setInvestors(updated);
+        try {
+            await fetch('/api/investors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(invs)
+            });
+        } catch (e) {
+            console.warn('API saveInvestors error:', e);
+        }
     }, []);
-    const handleSaveTeam = useCallback((team) => {
+
+    const handleSaveTeam = useCallback(async (team) => {
         const updated = saveTeam(team);
         setTeams(updated);
+        try {
+            await fetch('/api/teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(team)
+            });
+        } catch (e) {
+            console.warn('API saveTeam error:', e);
+        }
     }, []);
-    const handleAddPlayerToTeam = useCallback((teamId, player) => {
+
+    const handleAddPlayerToTeam = useCallback(async (teamId, player) => {
         const updated = addPlayerToTeam(teamId, player);
         setTeams(updated);
+        try {
+            await fetch(`/api/teams/${teamId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(player)
+            });
+        } catch (e) {
+            console.warn('API addPlayerToTeam error:', e);
+        }
     }, []);
-    const handleSaveMatchResult = useCallback((result) => {
+
+    const handleSaveMatchResult = useCallback(async (result) => {
         const updated = saveMatchResult(result);
         setMatchResults(updated);
+        try {
+            await fetch('/api/match-results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result)
+            });
+        } catch (e) {
+            console.warn('API saveMatchResult error:', e);
+        }
     }, []);
-    const handleSaveShopProduct = useCallback((product) => {
+
+    const handleSaveShopProduct = useCallback(async (product) => {
         const updated = saveShopProduct(product);
         setShopProducts(updated);
+        try {
+            await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(product)
+            });
+        } catch (e) {
+            console.warn('API saveShopProduct error:', e);
+        }
     }, []);
-    const handleSaveShopReservation = useCallback((reservation) => {
+
+    const handleSaveShopReservation = useCallback(async (reservation) => {
         const updated = saveShopReservation(reservation);
         setShopReservations(updated);
+        try {
+            await fetch('/api/shop-orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reservation)
+            });
+        } catch (e) {
+            console.warn('API saveShopReservation error:', e);
+        }
     }, []);
-    const handleUpdateShopReservationStatus = useCallback((id, status) => {
+
+    const handleUpdateShopReservationStatus = useCallback(async (id, status) => {
         const updated = updateShopReservationStatus(id, status);
         setShopReservations(updated);
         setOtherIncome(getStoredOtherIncome());
         setShopProducts(getStoredShopProducts());
+        try {
+            await fetch(`/api/shop-orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            // Refresh products & other income
+            const [prodsRes, incRes] = await Promise.all([
+                fetch('/api/products').then(r => r.json()).catch(() => null),
+                fetch('/api/other-income').then(r => r.json()).catch(() => null)
+            ]);
+            if (prodsRes && Array.isArray(prodsRes)) setShopProducts(prodsRes);
+            if (incRes && Array.isArray(incRes)) setOtherIncome(incRes);
+        } catch (e) {
+            console.warn('API updateShopReservationStatus error:', e);
+        }
     }, []);
-    const handleRegistrationSuccess = useCallback((newReg) => {
+
+    const handleRegistrationSuccess = useCallback(async (newReg) => {
         const updated = saveTournamentRegistration(newReg);
         setRegistrations(updated);
         setTournaments(getStoredTournaments());
+        try {
+            await fetch('/api/registrations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newReg)
+            });
+        } catch (e) {
+            console.warn('API registrationSuccess error:', e);
+        }
     }, []);
+
+    const handleSaveTournament = useCallback(async (tournament) => {
+        try {
+            const res = await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tournament)
+            });
+            const data = await res.json();
+            if (data.tournament) {
+                setTournaments(prev => [data.tournament, ...prev]);
+            }
+        } catch (e) {
+            console.warn('API saveTournament error:', e);
+        }
+    }, []);
+
     const handleAddChallenge = useCallback((newChallenge) => {
         const updated = saveChallenge(newChallenge);
         setChallenges(updated);
     }, []);
-    const handleSavePhoto = useCallback((photo) => {
+
+    const handleSavePhoto = useCallback(async (photo) => {
         const updated = saveGalleryPhoto(photo);
         setGalleryPhotos(updated);
-    }, []);
-    const handleDeletePhoto = useCallback((id) => {
-        const updated = deleteStoredGalleryPhoto(id);
-        setGalleryPhotos(updated);
-    }, []);
-    const handleToggleFeaturedPhoto = useCallback((id) => {
-        const current = getStoredGalleryPhotos();
-        const target = current.find(p => p.id === id);
-        if (target) {
-            const updatedPhoto = { ...target, featured: !target.featured };
-            const updated = saveGalleryPhoto(updatedPhoto);
-            setGalleryPhotos(updated);
+        try {
+            await fetch('/api/gallery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(photo)
+            });
+        } catch (e) {
+            console.warn('API savePhoto error:', e);
         }
     }, []);
-    const handleSaveSiteSettings = useCallback((settings) => {
+
+    const handleDeletePhoto = useCallback(async (id) => {
+        const updated = deleteStoredGalleryPhoto(id);
+        setGalleryPhotos(updated);
+        try {
+            await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
+        } catch (e) {
+            console.warn('API deletePhoto error:', e);
+        }
+    }, []);
+
+    const handleToggleFeaturedPhoto = useCallback(async (id) => {
+        const target = galleryPhotos.find(p => p.id === id);
+        if (target) {
+            const updatedPhoto = { ...target, featured: !target.featured };
+            await handleSavePhoto(updatedPhoto);
+        }
+    }, [galleryPhotos, handleSavePhoto]);
+
+    const handleSaveSiteSettings = useCallback(async (settings) => {
         const updated = saveSiteSettings(settings);
         setSiteSettings(updated);
+        try {
+            await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings })
+            });
+        } catch (e) {
+            console.warn('API saveSiteSettings error:', e);
+        }
     }, []);
     // Cart operations
     const addToCart = useCallback((product, selectedSize, qty = 1) => {
@@ -718,6 +1065,7 @@ export const ArenaProvider = ({ children }) => {
             handleSaveShopReservation,
             handleUpdateShopReservationStatus,
             handleRegistrationSuccess,
+            handleSaveTournament,
             handleAddChallenge,
             handleSavePhoto,
             handleDeletePhoto,
@@ -725,7 +1073,8 @@ export const ArenaProvider = ({ children }) => {
             handleSaveSiteSettings,
             sendSMSNotification,
             exportDatabaseBackup,
-            handleRestoreDatabase
+            handleRestoreDatabase,
+            refreshData: loadRealBackendData
         }}>
       {children}
     </ArenaContext.Provider>);

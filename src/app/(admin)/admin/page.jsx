@@ -11,13 +11,16 @@ export default function AdminTodayPage() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }, []);
+    const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
     const financeReport = useMemo(() => {
-        return calculateMonthlyFinance('2026-10');
-    }, [calculateMonthlyFinance]);
+        return calculateMonthlyFinance(currentMonthStr);
+    }, [calculateMonthlyFinance, currentMonthStr]);
+
     // Today's Bookings
     const todayBookings = useMemo(() => {
         return bookings.filter(b => b.date === todayStr && b.paymentStatus !== 'cancelled');
     }, [bookings, todayStr]);
+
     const todayCollected = useMemo(() => {
         return todayBookings.reduce((sum, b) => {
             if (b.paymentStatus === 'paid_full')
@@ -25,15 +28,17 @@ export default function AdminTodayPage() {
             return sum + (b.advanceAmount || 500);
         }, 0);
     }, [todayBookings]);
-    // Pending counts
-    const pendingOrdersCount = shopReservations.filter(r => r.status === 'reserved_pickup').length || 1;
-    const pendingRegistrationsCount = registrations.filter(r => r.status === 'pending').length || 4;
+
+    // Pending counts from live state
+    const pendingOrdersCount = shopReservations.filter(r => r.status === 'reserved_pickup').length;
+    const pendingRegistrationsCount = registrations.filter(r => r.status === 'pending').length;
+
     // 12 Slots for Today
     const todaySlots = useMemo(() => {
         const isWeekend = new Date(todayStr).getDay() === 5 || new Date(todayStr).getDay() === 6;
         return SCHEDULE_SLOTS_DEFINITION.map(def => {
             const b = bookings.find(item => item.date === todayStr && item.slotNumber === def.slotNumber && item.paymentStatus !== 'cancelled');
-            const adminSlot = pricing.slotPrices.find(s => s.slotNumber === def.slotNumber);
+            const adminSlot = pricing?.slotPrices?.find(s => s.slotNumber === def.slotNumber);
             const price = adminSlot ? (isWeekend ? adminSlot.weekendPrice : adminSlot.weekdayPrice) : def.weekdayPrice;
             return {
                 ...def,
@@ -41,16 +46,29 @@ export default function AdminTodayPage() {
                 price
             };
         });
-    }, [bookings, todayStr, pricing.slotPrices]);
-    // 6 Months Net Profit data (matching screenshot 1)
-    const sixMonthsProfit = [
-        { month: 'May', val: 85.0, height: 60, isLoss: false },
-        { month: 'Jun', val: 133.4, height: 75, isLoss: false },
-        { month: 'Jul', val: 141.9, height: 95, isLoss: false },
-        { month: 'Aug', val: 128.7, height: 72, isLoss: false },
-        { month: 'Sep', val: 124.2, height: 68, isLoss: false },
-        { month: 'Oct', val: -59.6, height: 40, isLoss: true }
-    ];
+    }, [bookings, todayStr, pricing?.slotPrices]);
+
+    // Dynamic 6 Months Net Profit data calculated from real bookings & expenses
+    const sixMonthsProfit = useMemo(() => {
+        const result = [];
+        const [currY, currM] = currentMonthStr.split('-').map(Number);
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(currY, currM - 1 - i, 1);
+            const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const mName = d.toLocaleDateString('en-US', { month: 'short' });
+            const fin = calculateMonthlyFinance(mStr);
+            const valK = Math.round((fin.netProfit / 1000) * 10) / 10;
+            const isLoss = fin.netProfit <= 0;
+            result.push({
+                month: mName,
+                val: valK,
+                height: Math.min(100, Math.max(20, Math.min(100, Math.abs(valK) * 0.75))),
+                isLoss
+            });
+        }
+        return result;
+    }, [calculateMonthlyFinance, currentMonthStr]);
+
     const handleFileUpload = (e) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -69,9 +87,10 @@ export default function AdminTodayPage() {
             reader.readAsText(file);
         }
     };
+
     return (<div className="space-y-6 animate-fade-in font-sans">
       
-      {/* 4 TOP KPI METRIC CARDS (EXACT MATCH TO SCREENSHOT 1) */}
+      {/* 4 TOP KPI METRIC CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         
         {/* Today's slots */}
@@ -96,9 +115,9 @@ export default function AdminTodayPage() {
           </div>
         </div>
 
-        {/* Bookings - Oct */}
+        {/* Bookings - Current Month */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Bookings · Oct</div>
+          <div className="text-[11px] text-slate-400">Bookings · {new Date().toLocaleDateString('en-US', { month: 'short' })}</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             {financeReport.slotsBooked}
           </div>
@@ -110,34 +129,40 @@ export default function AdminTodayPage() {
         {/* Net profit - month */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
           <div className="text-[11px] text-slate-400">Net profit · month</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-rose-400 mt-1">
-            -৳59.6k
+          <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit / 1000).toFixed(1)}k
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            Rev ৳195k · Exp ৳255k
+            Rev ৳{(financeReport.totalRevenue / 1000).toFixed(0)}k · Exp ৳{(financeReport.totalExpenses / 1000).toFixed(0)}k
           </div>
         </div>
 
       </div>
 
-      {/* 2 ALERT BANNERS (EXACT MATCH TO SCREENSHOT 1) */}
-      <div className="space-y-2">
-        <Link href="/admin/shop-orders" className="p-3.5 rounded-2xl bg-amber-400/[0.04] border border-amber-400/20 hover:border-amber-400/40 flex items-center justify-between text-xs text-amber-300 transition-colors cursor-pointer group">
-          <div className="flex items-center gap-2.5">
-            <ShoppingBag className="w-4 h-4 text-amber-400"/>
-            <span className="font-medium">{pendingOrdersCount} new shop reservation(s)</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform"/>
-        </Link>
+      {/* ALERT BANNERS */}
+      {(pendingOrdersCount > 0 || pendingRegistrationsCount > 0) && (
+        <div className="space-y-2">
+          {pendingOrdersCount > 0 && (
+            <Link href="/admin/shop-orders" className="p-3.5 rounded-2xl bg-amber-400/[0.04] border border-amber-400/20 hover:border-amber-400/40 flex items-center justify-between text-xs text-amber-300 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-2.5">
+                <ShoppingBag className="w-4 h-4 text-amber-400"/>
+                <span className="font-medium">{pendingOrdersCount} new shop reservation(s)</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform"/>
+            </Link>
+          )}
 
-        <Link href="/admin/registrations" className="p-3.5 rounded-2xl bg-amber-400/[0.04] border border-amber-400/20 hover:border-amber-400/40 flex items-center justify-between text-xs text-amber-300 transition-colors cursor-pointer group">
-          <div className="flex items-center gap-2.5">
-            <Star className="w-4 h-4 text-amber-400"/>
-            <span className="font-medium">{pendingRegistrationsCount} event registration(s) to review</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform"/>
-        </Link>
-      </div>
+          {pendingRegistrationsCount > 0 && (
+            <Link href="/admin/registrations" className="p-3.5 rounded-2xl bg-amber-400/[0.04] border border-amber-400/20 hover:border-amber-400/40 flex items-center justify-between text-xs text-amber-300 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-2.5">
+                <Star className="w-4 h-4 text-amber-400"/>
+                <span className="font-medium">{pendingRegistrationsCount} event registration(s) to review</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform"/>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* TWO COLUMNS LAYOUT (MATCHING SCREENSHOT 1) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -236,11 +261,11 @@ export default function AdminTodayPage() {
             </div>
           </div>
 
-          {/* Chart 2: Bookings per day · October 2026 (Screenshot 1) */}
+          {/* Chart 2: Bookings per day · Current Month */}
           <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-3">
             <div>
               <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                Bookings per day · October 2026
+                Bookings per day · {new Date(`${currentMonthStr}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h3>
               <p className="text-[10px] text-slate-500">Tap a bar to see the value</p>
             </div>
@@ -251,7 +276,7 @@ export default function AdminTodayPage() {
             return (<div key={d.date} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                     <div style={{ height: `${heightPct}%` }} className="w-full bg-lime-400 hover:brightness-125 rounded-t-xs transition-all cursor-pointer"/>
                     <div className="opacity-0 group-hover:opacity-100 absolute -top-6 bg-slate-900 border border-white/10 text-white text-[8px] font-mono py-0.5 px-1 rounded pointer-events-none z-10 whitespace-nowrap shadow">
-                      {d.date.slice(8)} Oct: {d.slotsBooked} booked
+                      Day {d.date.slice(8)}: {d.slotsBooked} booked
                     </div>
                   </div>);
         })}

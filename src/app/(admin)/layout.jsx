@@ -59,7 +59,7 @@ export default function AdminLayout({ children, }) {
         if (pathname.includes('/all-bookings') || pathname.includes('/bookings'))
             return 'All bookings';
         if (pathname.includes('/financial-report'))
-            return 'Financial report · October 2026';
+            return `Financial report · ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
         if (pathname.includes('/investors'))
             return 'Investors';
         if (pathname.includes('/slot-pricing'))

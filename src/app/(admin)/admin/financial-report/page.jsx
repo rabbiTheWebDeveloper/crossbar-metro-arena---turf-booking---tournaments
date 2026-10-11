@@ -54,21 +54,16 @@ export default function AdminFinancialReportPage() {
         setIncTitle('');
         setIncAmount(0);
     };
-    // 6 Popular Slots Bar calculation
-    const popularSlots = [
-        { time: '6AM', count: 4 },
-        { time: '7:30AM', count: 8 },
-        { time: '9AM', count: 5 },
-        { time: '10:30AM', count: 3 },
-        { time: '12PM', count: 6 },
-        { time: '1:30PM', count: 7 },
-        { time: '3PM', count: 12 },
-        { time: '4:30PM', count: 18 },
-        { time: '6PM', count: 24 },
-        { time: '7:30PM', count: 28 },
-        { time: '9PM', count: 26 },
-        { time: '10:30PM', count: 22 }
-    ];
+    // Dynamic Popular Slots Ranking from live bookings data
+    const popularSlots = useMemo(() => {
+        if (!financeReport.popularSlotsRanking || financeReport.popularSlotsRanking.length === 0) {
+            return [];
+        }
+        return financeReport.popularSlotsRanking.slice(0, 12).map(s => ({
+            time: s.displayTime ? s.displayTime.split('–')[0].trim() : `S${s.slotNumber}`,
+            count: s.count
+        }));
+    }, [financeReport.popularSlotsRanking]);
     return (<div className="space-y-6 animate-fade-in font-sans">
       
       {/* 4 TOP KPI METRIC CARDS (MATCHING SCREENSHOT 4) */}
@@ -201,19 +196,21 @@ export default function AdminFinancialReportPage() {
           </div>
 
           <div className="space-y-3">
-            {[
-            { label: 'Rent', amount: 120000, pct: 47 },
-            { label: 'Staff Salary', amount: 96000, pct: 37 },
-            { label: 'Electricity', amount: 38618, pct: 15 }
-        ].map(cat => (<div key={cat.label} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">{cat.label}</span>
-                  <span className="font-mono text-white font-bold">৳{cat.amount.toLocaleString()}</span>
+            {financeReport.expensesByCategory && financeReport.expensesByCategory.length > 0 ? (
+              financeReport.expensesByCategory.map(cat => (
+                <div key={cat.category} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-medium capitalize">{cat.category.replace(/_/g, ' ')}</span>
+                    <span className="font-mono text-white font-bold">৳{cat.amount.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div style={{ width: `${Math.min(100, Math.max(4, cat.percentage))}%` }} className="h-full bg-lime-400 rounded-full"/>
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div style={{ width: `${cat.pct}%` }} className="h-full bg-lime-400 rounded-full"/>
-                </div>
-              </div>))}
+              ))
+            ) : (
+              <div className="text-slate-500 text-xs py-2">No expenses logged for this month.</div>
+            )}
           </div>
         </div>
 
@@ -230,27 +227,27 @@ export default function AdminFinancialReportPage() {
           </div>
 
           <div className="space-y-2.5">
-            {[
-            { label: 'Bookings · Cash', amount: 139400, pct: 71 },
-            { label: 'Bookings · bkash', amount: 23000, pct: 12 },
-            { label: 'Shop Sales', amount: 15651, pct: 8 },
-            { label: 'Bookings · Nagad', amount: 9500, pct: 5 },
-            { label: 'Bookings · Card', amount: 7500, pct: 4 }
-        ].map(source => (<div key={source.label} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">{source.label}</span>
-                  <span className="font-mono text-white font-bold">৳{source.amount.toLocaleString()}</span>
+            {financeReport.incomeBySource && financeReport.incomeBySource.length > 0 ? (
+              financeReport.incomeBySource.map(source => (
+                <div key={source.source} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-medium">{source.source}</span>
+                    <span className="font-mono text-white font-bold">৳{source.amount.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div style={{ width: `${Math.min(100, Math.max(source.amount > 0 ? 4 : 0, source.percentage))}%` }} className="h-full bg-lime-400 rounded-full"/>
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div style={{ width: `${source.pct}%` }} className="h-full bg-lime-400 rounded-full"/>
-                </div>
-              </div>))}
+              ))
+            ) : (
+              <div className="text-slate-500 text-xs py-2">No revenue logged yet for this month.</div>
+            )}
           </div>
         </div>
 
       </div>
 
-      {/* PROFIT DISTRIBUTION & EXPENSE ENTRIES (MATCHING SCREENSHOT 4) */}
+      {/* PROFIT DISTRIBUTION & EXPENSE ENTRIES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Profit Distribution */}
@@ -276,31 +273,21 @@ export default function AdminFinancialReportPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 font-mono text-[11px]">
-                <tr>
-                  <td className="py-2.5 font-sans font-medium text-slate-300">Investor One</td>
-                  <td className="py-2.5 text-slate-400">12%</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-sans font-medium text-slate-300">Investor Two</td>
-                  <td className="py-2.5 text-slate-400">8%</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-sans font-medium text-slate-300">Investor Three</td>
-                  <td className="py-2.5 text-slate-400">5%</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                  <td className="py-2.5 text-slate-400">৳0</td>
-                </tr>
+                {financeReport.investorShares && financeReport.investorShares.map(item => (
+                  <tr key={item.investor.id}>
+                    <td className="py-2.5 font-sans font-medium text-slate-300">{item.investor.name}</td>
+                    <td className="py-2.5 text-slate-400">{item.percentage}%</td>
+                    <td className="py-2.5 text-slate-300 font-bold">৳{item.shareAmount.toLocaleString()}</td>
+                    <td className="py-2.5 text-emerald-400">{item.isPaid ? 'Paid' : '৳0'}</td>
+                    <td className="py-2.5 text-amber-300">{item.isPaid ? '৳0' : `৳${item.shareAmount.toLocaleString()}`}</td>
+                  </tr>
+                ))}
                 <tr className="font-bold text-white">
                   <td className="py-2.5 font-sans">Owners / retained</td>
-                  <td className="py-2.5">75%</td>
-                  <td className="py-2.5">৳0</td>
+                  <td className="py-2.5">
+                    {Math.max(0, 100 - (financeReport.investorShares?.reduce((sum, i) => sum + i.percentage, 0) || 0))}%
+                  </td>
+                  <td className="py-2.5 text-lime-400">৳{financeReport.ownersShare.toLocaleString()}</td>
                   <td className="py-2.5"></td>
                   <td className="py-2.5"></td>
                 </tr>
@@ -309,7 +296,9 @@ export default function AdminFinancialReportPage() {
           </div>
 
           <div className="text-[11px] text-amber-400">
-            This month shows a loss so far, so there is no profit to share yet.
+            {financeReport.isLossMonth 
+              ? 'This month shows a loss or breakeven so far, so there is no net dividend to distribute.'
+              : 'Net dividends distributed according to registered equity ownership percentages.'}
           </div>
         </div>
 

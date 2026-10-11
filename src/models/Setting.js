@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { SCHEDULE_SLOTS_DEFINITION, VENUE_INFO } from '../data/initialData';
+import { SCHEDULE_SLOTS_DEFINITION, VENUE_INFO } from '../data/initialData.js';
 const SlotPriceSchema = new Schema({
     slotNumber: { type: Number, required: true },
     startTime: { type: String, required: true },
