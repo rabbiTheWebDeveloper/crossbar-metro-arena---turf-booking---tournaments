@@ -1,11 +1,14 @@
 'use client';
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena } from '@/context/ArenaContext';
 import { User, Phone, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle, Trophy } from 'lucide-react';
-export default function RegisterPage() {
+
+function RegisterForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get('callbackUrl');
     const { signup } = useArena();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
@@ -55,11 +58,13 @@ export default function RegisterPage() {
             });
             if (res.success) {
                 setSuccess('Player profile created successfully! Welcome to Crossbar Metro Arena.');
+                const dest = callbackUrl || '/player';
                 setTimeout(() => {
                     startTransition(() => {
-                        router.push('/player');
+                        router.push(dest);
+                        router.refresh();
                     });
-                }, 800);
+                }, 600);
             }
             else {
                 setError(res.message || 'Registration failed. Please try again.');
@@ -233,4 +238,12 @@ export default function RegisterPage() {
       </div>
 
     </div>);
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={<div className="w-full min-h-[400px] flex items-center justify-center text-slate-400 font-mono text-xs">Loading registration...</div>}>
+            <RegisterForm />
+        </Suspense>
+    );
 }

@@ -9,13 +9,15 @@ function LoginForm() {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl');
     const { login, currentUser } = useArena();
+    const queryError = searchParams.get('error');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(queryError || '');
     const [success, setSuccess] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPending, startTransition] = useTransition();
+
     // Forgot password OTP simulation modal state
     const [showForgotModal, setShowForgotModal] = useState(false);
     const [forgotPhone, setForgotPhone] = useState('');
@@ -23,6 +25,7 @@ function LoginForm() {
     const [simulatedOtp, setSimulatedOtp] = useState('');
     const [enteredOtp, setEnteredOtp] = useState('');
     const [otpSuccess, setOtpSuccess] = useState('');
+
     // Handle Login submission
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -42,15 +45,19 @@ function LoginForm() {
             const res = await login(cleanPhone, password);
             if (res.success) {
                 setSuccess('Authentication successful! Welcome to the arena.');
-                // Determine redirect destination
-                const dest = callbackUrl || (cleanPhone === '01711000001' ? '/admin' :
-                    cleanPhone === '01811223344' ? '/investor' :
-                        '/player');
+                // Determine redirect destination based on actual user role
+                const userRole = res.user?.role;
+                const dest = callbackUrl || (
+                    userRole === 'admin' ? '/admin' :
+                    userRole === 'investor' ? '/investor' :
+                    '/player'
+                );
                 setTimeout(() => {
                     startTransition(() => {
                         router.push(dest);
+                        router.refresh();
                     });
-                }, 600);
+                }, 400);
             }
             else {
                 setError(res.message || 'Login failed. Please verify your credentials.');

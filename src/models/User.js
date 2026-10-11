@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+
 const UserSchema = new Schema({
     name: {
         type: String,
@@ -56,6 +57,18 @@ const UserSchema = new Schema({
         }
     }
 });
+
+// Normalize phone number before validation
+UserSchema.pre('validate', function () {
+    if (this.phone) {
+        let clean = this.phone.replace(/[^0-9]/g, '');
+        if (clean.startsWith('8801')) {
+            clean = clean.substring(2);
+        }
+        this.phone = clean;
+    }
+});
+
 // Hash password before saving
 UserSchema.pre('save', async function () {
     if (!this.isModified('password'))
@@ -63,10 +76,23 @@ UserSchema.pre('save', async function () {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
+
 // Compare password method
 UserSchema.methods.comparePassword = async function (candidatePassword) {
+    if (!this.password || !candidatePassword) return false;
     return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Static helper to find by phone
+UserSchema.statics.findByPhone = function (rawPhone) {
+    if (!rawPhone) return null;
+    let clean = rawPhone.replace(/[^0-9]/g, '');
+    if (clean.startsWith('8801')) {
+        clean = clean.substring(2);
+    }
+    return this.findOne({ phone: clean });
+};
+
 // Export model (prevent recompilation in hot reload)
 export const User = mongoose.models.User || mongoose.model('User', UserSchema);
 export default User;

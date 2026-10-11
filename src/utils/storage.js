@@ -204,25 +204,43 @@ export const saveUser = (user) => {
 };
 export const getStoredCurrentUser = () => {
     if (typeof window === 'undefined')
-        return INITIAL_USERS[2]; // Default to Player Siam Chowdhury for friendly DX
+        return { id: 'usr-visitor', name: 'Visitor', phone: '', role: 'visitor' };
     try {
+        // 1. Check document cookie for fast SSR/hydration sync
+        if (document.cookie) {
+            const cookies = document.cookie.split(';');
+            for (const c of cookies) {
+                const [k, v] = c.trim().split('=');
+                if (k === 'cma_user' && v) {
+                    try {
+                        const parsed = JSON.parse(decodeURIComponent(v));
+                        if (parsed && parsed.role) return parsed;
+                    } catch {}
+                }
+            }
+        }
+        // 2. Check localStorage
         const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        if (!data)
-            return INITIAL_USERS[2];
-        return JSON.parse(data);
+        if (data) {
+            const parsed = JSON.parse(data);
+            if (parsed) return parsed;
+        }
     }
     catch {
-        return INITIAL_USERS[2];
+        // Fallback
     }
+    return { id: 'usr-visitor', name: 'Visitor', phone: '', role: 'visitor' };
 };
 export const saveCurrentUser = (user) => {
     if (typeof window !== 'undefined') {
         try {
-            if (user) {
+            if (user && user.role !== 'visitor') {
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+                document.cookie = `cma_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`;
             }
             else {
                 localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+                document.cookie = 'cma_user=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
             }
         }
         catch (e) {

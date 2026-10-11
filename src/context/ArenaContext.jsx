@@ -21,7 +21,7 @@ export const ArenaProvider = ({ children }) => {
     const [challenges, setChallenges] = useState(INITIAL_COMMUNITY_CHALLENGES);
     const [galleryPhotos, setGalleryPhotos] = useState(INITIAL_GALLERY_PHOTOS);
     const [users, setUsers] = useState(INITIAL_USERS);
-    const [currentUser, setCurrentUser] = useState(INITIAL_USERS[2]); // Default player Siam
+    const [currentUser, setCurrentUser] = useState(() => getStoredCurrentUser());
     const [smsLogs, setSmsLogs] = useState(INITIAL_SMS_LOGS);
     const [siteSettings, setSiteSettings] = useState(VENUE_INFO);
     const [cartItems, setCartItems] = useState([]);
@@ -65,11 +65,21 @@ export const ArenaProvider = ({ children }) => {
         fetch('/api/auth/me')
             .then(res => res.json())
             .then(data => {
-            if (data.authenticated && data.user) {
-                setCurrentUser(data.user);
-                saveCurrentUser(data.user);
-            }
-        })
+                if (data.authenticated && data.user) {
+                    setCurrentUser(data.user);
+                    saveCurrentUser(data.user);
+                } else if (data.authenticated === false) {
+                    const visitor = {
+                        id: 'usr-visitor',
+                        name: 'Visitor',
+                        phone: '',
+                        role: 'visitor',
+                        createdAt: new Date().toISOString()
+                    };
+                    setCurrentUser(visitor);
+                    saveCurrentUser(visitor);
+                }
+            })
             .catch(() => { });
     }, []);
     // 10-minute hold ticker: check every 5 seconds to auto-release expired holds
@@ -238,7 +248,7 @@ export const ArenaProvider = ({ children }) => {
             if (res.ok && data.success && data.user) {
                 setCurrentUser(data.user);
                 saveCurrentUser(data.user);
-                return { success: true, message: data.message };
+                return { success: true, message: data.message, user: data.user, token: data.token };
             }
             if (!res.ok && data.error) {
                 return { success: false, message: data.error };
@@ -261,7 +271,7 @@ export const ArenaProvider = ({ children }) => {
         }
         setCurrentUser(user);
         saveCurrentUser(user);
-        return { success: true };
+        return { success: true, user };
     }, [users]);
     const signup = useCallback(async (data) => {
         try {
@@ -278,7 +288,7 @@ export const ArenaProvider = ({ children }) => {
                     const exists = prev.some(u => u.id === resData.user.id || u.phone === resData.user.phone);
                     return exists ? prev : [...prev, resData.user];
                 });
-                return { success: true, message: resData.message };
+                return { success: true, message: resData.message, user: resData.user, token: resData.token };
             }
             if (!res.ok && resData.error) {
                 return { success: false, message: resData.error };
@@ -313,11 +323,16 @@ export const ArenaProvider = ({ children }) => {
         setUsers(updated);
         setCurrentUser(newUser);
         saveCurrentUser(newUser);
-        return { success: true };
+        return { success: true, user: newUser };
     }, [users]);
-    const logout = useCallback(() => {
-        fetch('/api/auth/logout', { method: 'POST' }).catch(() => { });
-        // When logged out, become a Visitor
+    const logout = useCallback(async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch {}
+        if (typeof document !== 'undefined') {
+            document.cookie = 'cma_auth_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+            document.cookie = 'cma_user=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+        }
         const visitor = {
             id: 'usr-visitor',
             name: 'Visitor',
@@ -328,30 +343,36 @@ export const ArenaProvider = ({ children }) => {
         setCurrentUser(visitor);
         saveCurrentUser(visitor);
     }, []);
-    const switchDemoUser = useCallback((role, specificId) => {
+    const switchDemoUser = useCallback(async (role, specificId) => {
+        if (role === 'visitor') {
+            await logout();
+            return;
+        }
         let target = users.find(u => u.role === role);
         if (specificId) {
             const found = users.find(u => u.id === specificId);
-            if (found)
-                target = found;
+            if (found) target = found;
         }
-        if (role === 'visitor') {
-            const visitor = {
-                id: 'usr-visitor',
-                name: 'Visitor (Public)',
-                phone: '',
-                role: 'visitor',
-                createdAt: new Date().toISOString()
-            };
-            setCurrentUser(visitor);
-            saveCurrentUser(visitor);
-            return;
+        if (!target) {
+            target = INITIAL_USERS.find(u => u.role === role);
         }
         if (target) {
             setCurrentUser(target);
             saveCurrentUser(target);
+            try {
+                await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: target.phone,
+                        password: target.password || 'password123'
+                    })
+                });
+            } catch (err) {
+                console.warn('switchDemoUser login API sync error:', err);
+            }
         }
-    }, [users]);
+    }, [users, logout]);
     const resetPasswordSMS = useCallback(async (phone) => {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const user = users.find(u => u.phone.replace(/[^0-9]/g, '') === cleanPhone);

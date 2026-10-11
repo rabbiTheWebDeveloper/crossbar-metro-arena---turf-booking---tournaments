@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
-import { TOKEN_COOKIE_NAME } from '@/lib/serverAuth';
+import { clearAuthCookies } from '@/lib/serverAuth';
+
 export async function POST() {
     const response = NextResponse.json({
         success: true,
         message: 'Logged out successfully.'
     });
-    // Clear auth cookie
-    response.cookies.set({
-        name: TOKEN_COOKIE_NAME,
-        value: '',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 0
-    });
+
+    // Clear all auth cookies (token and user info)
+    clearAuthCookies(response);
+
     return response;
+}
+
+export async function GET() {
+    return POST();
 }
