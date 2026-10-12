@@ -16,7 +16,7 @@ export const SSLCommerzModal = () => {
     const payableAmount = pendingBookingData.paymentType === 'advance_500'
         ? (pendingBookingData.advanceAmount || 500)
         : (pendingBookingData.totalPrice || 2500);
-    const tranId = `SSLCZ-TRX-${Math.floor(100000 + Math.random() * 900000)}`;
+    const [tranId] = useState(() => `SSLCZ-TRX-${Math.floor(100000 + Math.random() * 900000)}`);
     const handleClose = () => {
         setShowSSLCommerzModal(false);
         setPendingBookingData(null);
