@@ -81,7 +81,7 @@ export default function ResultsPage() {
       <PageHero crumb="Match Day Center" eyebrow="Certified Dhaka Turf Scores & Standings" eyebrowIcon={Trophy} title="Official Scores &" highlight="Arena Standings" description="Results filtered by date, certified goal scorers, cards, match reports, the Golden Boot leaderboard, and live opponent matchmaking." stats={[
             { label: 'Matches Recorded', value: `${matchResults.length} Games`, icon: Calendar },
             { label: 'Registered Teams', value: `${teams.length} Squads`, icon: Users },
-            { label: 'Top Scorer', value: topScorers[0]?.name || 'Siam Chowdhury', icon: Award },
+            { label: 'Top Scorer', value: topScorers[0] ? `${topScorers[0].name}` : 'No stats yet', icon: Award },
             { label: 'Schedule', value: '12 Slots Daily', icon: Clock }
         ]}/>
 
@@ -250,42 +250,56 @@ export default function ResultsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {sortedTeams.map((team, idx) => {
-                const gd = team.stats.gf - team.stats.ga;
-                const form = team.stats.form || ['W', 'D', 'W', 'W', 'L'];
-                return (<tr key={team.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3.5 px-4 font-mono font-bold text-white">
-                            {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `${idx + 1}`}
-                          </td>
-                          <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.homeColor }}></span>
-                            <span>{team.name}</span>
-                          </td>
-                          <td className="py-3.5 px-3 text-center font-mono">{team.stats.played}</td>
-                          <td className="py-3.5 px-3 text-center font-mono text-emerald-400">{team.stats.won}</td>
-                          <td className="py-3.5 px-3 text-center font-mono text-amber-300">{team.stats.drawn}</td>
-                          <td className="py-3.5 px-3 text-center font-mono text-rose-400">{team.stats.lost}</td>
-                          <td className="py-3.5 px-3 text-center font-mono">{team.stats.gf}</td>
-                          <td className="py-3.5 px-3 text-center font-mono">{team.stats.ga}</td>
-                          <td className="py-3.5 px-3 text-center font-mono font-bold text-white">
-                            {gd > 0 ? `+${gd}` : gd}
-                          </td>
-                          <td className="py-3.5 px-4 text-center font-mono font-black text-sm text-emerald-400">
-                            {team.stats.points}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center justify-center gap-1">
-                              {form.slice(0, 5).map((f, i) => (<span key={i} className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${f === 'W'
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                            : f === 'D'
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
-                                  {f}
-                                </span>))}
-                            </div>
-                          </td>
-                        </tr>);
-            })}
+                    {sortedTeams.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="py-12 text-center text-xs text-slate-500">
+                          No registered squad standings recorded yet. Standings are generated from certified matches.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedTeams.map((team, idx) => {
+                        const gd = team.stats.gf - team.stats.ga;
+                        const form = team.stats.form || ['W', 'D', 'W', 'W', 'L'];
+                        return (
+                          <tr key={team.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-bold text-white">
+                              {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `${idx + 1}`}
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: team.homeColor }}></span>
+                              <span>{team.name}</span>
+                            </td>
+                            <td className="py-3.5 px-3 text-center font-mono">{team.stats.played}</td>
+                            <td className="py-3.5 px-3 text-center font-mono text-emerald-400">{team.stats.won}</td>
+                            <td className="py-3.5 px-3 text-center font-mono text-amber-300">{team.stats.drawn}</td>
+                            <td className="py-3.5 px-3 text-center font-mono text-rose-400">{team.stats.lost}</td>
+                            <td className="py-3.5 px-3 text-center font-mono">{team.stats.gf}</td>
+                            <td className="py-3.5 px-3 text-center font-mono">{team.stats.ga}</td>
+                            <td className="py-3.5 px-3 text-center font-mono font-bold text-white">
+                              {gd > 0 ? `+${gd}` : gd}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-mono font-black text-sm text-emerald-400">
+                              {team.stats.points}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center justify-center gap-1">
+                                {form.slice(0, 5).map((f, i) => (
+                                  <span key={i} className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${
+                                    f === 'W'
+                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                      : f === 'D'
+                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                                  }`}>
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -315,30 +329,40 @@ export default function ResultsPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {topScorers.slice(0, 9).map((scorer, idx) => {
-                const goalsCount = scorerPeriod === 'this_month' ? scorer.monthGoals : scorer.goals;
-                return (<div key={scorer.id} className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-between hover:border-emerald-500/30 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${idx === 0
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-400/20'
-                        : idx === 1
-                            ? 'bg-slate-300 text-slate-950 font-black'
-                            : idx === 2
-                                ? 'bg-amber-700 text-white font-black'
-                                : 'bg-white/5 text-slate-300'}`}>
-                          {idx + 1}
+                {topScorers.length === 0 ? (
+                  <div className="col-span-full py-12 text-center bg-slate-900/40 rounded-2xl border border-white/5 text-xs text-slate-500">
+                    No goal scorers recorded for this period yet.
+                  </div>
+                ) : (
+                  topScorers.slice(0, 9).map((scorer, idx) => {
+                    const goalsCount = scorerPeriod === 'this_month' ? scorer.monthGoals : scorer.goals;
+                    return (
+                      <div key={scorer.id || idx} className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-between hover:border-emerald-500/30 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${
+                            idx === 0
+                              ? 'bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-400/20'
+                              : idx === 1
+                                ? 'bg-slate-300 text-slate-950 font-black'
+                                : idx === 2
+                                  ? 'bg-amber-700 text-white font-black'
+                                  : 'bg-white/5 text-slate-300'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white">{scorer.name}</div>
+                            <div className="text-xs text-slate-400">{scorer.teamName} · #{scorer.number}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-bold text-white">{scorer.name}</div>
-                          <div className="text-xs text-slate-400">{scorer.teamName} · #{scorer.number}</div>
+                        <div className="text-right">
+                          <div className="text-lg font-black font-mono text-emerald-400">{goalsCount}</div>
+                          <div className="text-[10px] text-slate-400 uppercase font-medium">Goals</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-lg font-black font-mono text-emerald-400">{goalsCount}</div>
-                        <div className="text-[10px] text-slate-400 uppercase font-medium">Goals</div>
-                      </div>
-                    </div>);
-            })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -355,45 +379,59 @@ export default function ResultsPage() {
                   Connect with squads looking for competitive friendly matches, 50/50 turf slot cost share, or guest players.
                 </p>
               </div>
-              <Link href="/player" className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20 shrink-0">
+              <Link href="/matches" className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20 shrink-0">
                 Post Your Challenge
               </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {challenges.map(c => (<div key={c.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 flex flex-col justify-between space-y-4 hover:border-emerald-500/40 transition-all">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                        {c.lookingFor}
-                      </span>
-                      <span className="text-xs font-bold text-slate-400">{c.level}</span>
+              {challenges.length === 0 ? (
+                <div className="col-span-full py-16 text-center bg-slate-900/40 rounded-3xl border border-white/5 space-y-2">
+                  <div className="text-white font-bold text-sm">No Active Challenges Open Right Now</div>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Post a squad challenge to find an opponent team or invite guest players to your game.
+                  </p>
+                  <Link href="/matches" className="inline-block mt-2 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase">
+                    Post a Match Challenge
+                  </Link>
+                </div>
+              ) : (
+                challenges.map(c => (
+                  <div key={c.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 flex flex-col justify-between space-y-4 hover:border-emerald-500/40 transition-all">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                          {c.lookingFor}
+                        </span>
+                        <span className="text-xs font-bold text-slate-400">{c.level}</span>
+                      </div>
+
+                      <h4 className="text-base font-black text-white">{c.teamName}</h4>
+                      <div className="text-xs text-slate-400 mt-1 space-y-0.5">
+                        <div>📅 Date: <strong className="text-white">{c.date}</strong></div>
+                        <div>⏰ Slot: <strong className="text-emerald-400">{c.timeSlot}</strong></div>
+                        <div>💰 Cost: <strong className="text-white">{c.costShare}</strong></div>
+                      </div>
+
+                      <p className="text-xs text-slate-300 italic mt-3 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                        &quot;{c.notes}&quot;
+                      </p>
                     </div>
 
-                    <h4 className="text-base font-black text-white">{c.teamName}</h4>
-                    <div className="text-xs text-slate-400 mt-1 space-y-0.5">
-                      <div>📅 Date: <strong className="text-white">{c.date}</strong></div>
-                      <div>⏰ Slot: <strong className="text-emerald-400">{c.timeSlot}</strong></div>
-                      <div>💰 Cost: <strong className="text-white">{c.costShare}</strong></div>
-                    </div>
+                    <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                      <div className="text-xs">
+                        <div className="text-[10px] text-slate-400">Captain:</div>
+                        <div className="font-bold text-white">{c.captainName}</div>
+                      </div>
 
-                    <p className="text-xs text-slate-300 italic mt-3 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                      &quot;{c.notes}&quot;
-                    </p>
+                      <a href={`https://wa.me/88${(c.captainPhone || '').replace(/[^0-9]/g, '')}?text=Hi%20Captain%20${encodeURIComponent(c.captainName)}%2C%20we%20want%20to%20play%20against%20${encodeURIComponent(c.teamName)}%20at%20Crossbar%20Metro%20Arena!`} target="_blank" rel="noopener noreferrer" className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs transition-colors flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5"/>
+                        <span>WhatsApp Squad</span>
+                      </a>
+                    </div>
                   </div>
-
-                  <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                    <div className="text-xs">
-                      <div className="text-[10px] text-slate-400">Captain:</div>
-                      <div className="font-bold text-white">{c.captainName}</div>
-                    </div>
-
-                    <a href={`https://wa.me/88${c.captainPhone.replace(/[^0-9]/g, '')}?text=Hi%20Captain%20${encodeURIComponent(c.captainName)}%2C%20we%20want%20to%20play%20against%20${encodeURIComponent(c.teamName)}%20at%20Crossbar%20Metro%20Arena!`} target="_blank" rel="noopener noreferrer" className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs transition-colors flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5"/>
-                      <span>WhatsApp Squad</span>
-                    </a>
-                  </div>
-                </div>))}
+                ))
+              )}
             </div>
           </div>)}
 

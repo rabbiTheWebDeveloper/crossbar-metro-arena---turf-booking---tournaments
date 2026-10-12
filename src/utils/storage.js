@@ -21,6 +21,56 @@ const STORAGE_KEYS = {
     SMS_LOGS: 'cma_sms_logs_v3',
     GALLERY_PHOTOS: 'cma_gallery_photos_v3'
 };
+
+// Purge any legacy sample/demo mock records cached in local storage
+export const purgeLegacyDemoData = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const demoCodes = ['CMA-7KQ2PX', 'CMA-4NW89M', 'CMA-9PZ31A', 'b-001', 'b-002', 'b-003'];
+        const bRaw = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
+        if (bRaw) {
+            const list = JSON.parse(bRaw);
+            const cleaned = list.filter(b => !demoCodes.includes(b.bookingCode) && !demoCodes.includes(b.id));
+            if (cleaned.length !== list.length) {
+                localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(cleaned));
+            }
+        }
+        const demoTournaments = ['uttara-metro-cup-2026', 'friday-night-blitz', 'corporate-arena-clash'];
+        const tRaw = localStorage.getItem(STORAGE_KEYS.TOURNAMENTS);
+        if (tRaw) {
+            const list = JSON.parse(tRaw);
+            const cleaned = list.filter(t => !demoTournaments.includes(t.id));
+            if (cleaned.length !== list.length) {
+                localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(cleaned));
+            }
+        }
+        const demoMatches = ['match-101', 'match-102'];
+        const mRaw = localStorage.getItem(STORAGE_KEYS.MATCH_RESULTS);
+        if (mRaw) {
+            const list = JSON.parse(mRaw);
+            const cleaned = list.filter(m => !demoMatches.includes(m.id));
+            if (cleaned.length !== list.length) {
+                localStorage.setItem(STORAGE_KEYS.MATCH_RESULTS, JSON.stringify(cleaned));
+            }
+        }
+        const demoChallenges = ['challenge-1', 'challenge-2', 'challenge-3'];
+        const cRaw = localStorage.getItem(STORAGE_KEYS.CHALLENGES);
+        if (cRaw) {
+            const list = JSON.parse(cRaw);
+            const cleaned = list.filter(c => !demoChallenges.includes(c.id));
+            if (cleaned.length !== list.length) {
+                localStorage.setItem(STORAGE_KEYS.CHALLENGES, JSON.stringify(cleaned));
+            }
+        }
+    } catch {
+        // ignore storage errors
+    }
+};
+
+if (typeof window !== 'undefined') {
+    purgeLegacyDemoData();
+}
+
 // Slot Hold Manager (Hold while paying)
 export const getActiveSlotHolds = () => {
     if (typeof window === 'undefined')

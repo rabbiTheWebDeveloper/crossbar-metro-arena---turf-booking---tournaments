@@ -13,3 +13,4 @@ export { TournamentRegistration } from './TournamentRegistration.js';
 export { MatchResult } from './MatchResult.js';
 export { GalleryPhoto } from './GalleryPhoto.js';
 export { Team } from './Team.js';
+export { Challenge } from './Challenge.js';

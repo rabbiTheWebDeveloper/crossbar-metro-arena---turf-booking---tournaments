@@ -12,7 +12,7 @@ import { SCHEDULE_SLOTS_DEFINITION } from '../../data/initialData';
 import { Trophy, Award, ShoppingBag, Camera, ArrowRight } from 'lucide-react';
 export default function ArenaHomePage() {
     const router = useRouter();
-    const { bookings, tournaments, challenges, teams, matchResults, shopProducts, pricing, slotHolds, handleBookingSuccess, handleRegistrationSuccess, handleAddChallenge, setShowSquadModal, addToCart } = useArena();
+    const { bookings, tournaments, challenges, teams, matchResults, shopProducts, galleryPhotos, pricing, slotHolds, handleBookingSuccess, handleRegistrationSuccess, handleAddChallenge, setShowSquadModal, addToCart } = useArena();
     // Today's date string YYYY-MM-DD
     const todayStr = useMemo(() => {
         const d = new Date();
@@ -188,20 +188,28 @@ export default function ArenaHomePage() {
             </div>
 
             <div className="space-y-2.5">
-              {top5Scorers.map((scorer, idx) => (<div key={scorer.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${idx === 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-white/10 text-slate-300'}`}>
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <div className="font-bold text-white">{scorer.name}</div>
-                      <div className="text-[10px] text-slate-400">{scorer.teamName}</div>
+              {top5Scorers.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-500 bg-white/[0.02] rounded-2xl border border-white/5">
+                  No goal scorers registered yet. Match statistics update after certified fixtures.
+                </div>
+              ) : (
+                top5Scorers.map((scorer, idx) => (
+                  <div key={scorer.id || idx} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${idx === 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-white/10 text-slate-300'}`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <div className="font-bold text-white">{scorer.name}</div>
+                        <div className="text-[10px] text-slate-400">{scorer.teamName}</div>
+                      </div>
+                    </div>
+                    <div className="font-mono font-black text-emerald-400 text-sm">
+                      {scorer.goals} Goals
                     </div>
                   </div>
-                  <div className="font-mono font-black text-emerald-400 text-sm">
-                    {scorer.goals} Goals
-                  </div>
-                </div>))}
+                ))
+              )}
             </div>
           </div>
 
@@ -230,31 +238,44 @@ export default function ArenaHomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {featuredShopItems.map(prod => (<div key={prod.id} className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3">
-              <div>
-                {prod.badge && (<span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 mb-2">
-                    {prod.badge}
-                  </span>)}
-                <h4 className="text-sm font-bold text-white line-clamp-2">{prod.name}</h4>
-                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{prod.description}</p>
-              </div>
-
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+          {featuredShopItems.length === 0 ? (
+            <div className="col-span-full p-8 text-center bg-slate-900/40 rounded-3xl border border-white/5 space-y-2">
+              <p className="text-xs text-slate-400">Match balls, anti-slip socks, and hydration drinks available at the arena counter.</p>
+              <Link href="/shop" className="inline-block text-xs font-bold text-emerald-400 hover:underline">
+                Explore Shop Gear
+              </Link>
+            </div>
+          ) : (
+            featuredShopItems.map(prod => (
+              <div key={prod.id} className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3">
                 <div>
-                  <div className="text-[10px] text-slate-400">Counter Price</div>
-                  <div className="text-base font-black text-emerald-400 font-mono">
-                    ৳{(prod.salePrice || prod.price).toLocaleString()}
-                  </div>
+                  {prod.badge && (
+                    <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 mb-2">
+                      {prod.badge}
+                    </span>
+                  )}
+                  <h4 className="text-sm font-bold text-white line-clamp-2">{prod.name}</h4>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{prod.description}</p>
                 </div>
-                <button type="button" onClick={() => addToCart(prod, prod.sizes?.[0])} className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer">
-                  Reserve
-                </button>
+
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] text-slate-400">Counter Price</div>
+                    <div className="text-base font-black text-emerald-400 font-mono">
+                      ৳{(prod.salePrice || prod.price).toLocaleString()}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => addToCart(prod, prod.sizes?.[0])} className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer">
+                    Reserve
+                  </button>
+                </div>
               </div>
-            </div>))}
+            ))
+          )}
         </div>
       </section>
 
-      {/* 7. GALLERY PREVIEW (Section 3 requirement) */}
+      {/* 7. GALLERY PREVIEW */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
         <div className="flex items-end justify-between">
           <div>
@@ -273,18 +294,21 @@ export default function ArenaHomePage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { title: 'Championship Turf', tag: '7v7 Ground', url: 'https://images.unsplash.com/photo-1529900240041-22f1ff5d8793?auto=format&fit=crop&w=600&q=80' },
-            { title: '400-Lux Stadium Lights', tag: 'Night Arena', url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=600&q=80' },
-            { title: 'MRT Line-6 Viaduct', tag: 'Metro Skyline', url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80' },
-            { title: 'Player Dugouts', tag: 'Facilities', url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=600&q=80' },
-        ].map((item, idx) => (<Link key={idx} href="/gallery" className="group relative rounded-2xl overflow-hidden aspect-[4/3] border border-white/10">
-              <img src={item.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
-                <span className="text-[10px] text-emerald-400 font-bold uppercase">{item.tag}</span>
-                <span className="text-xs font-bold text-white">{item.title}</span>
-              </div>
-            </Link>))}
+          {galleryPhotos && galleryPhotos.length > 0 ? (
+            galleryPhotos.slice(0, 4).map((item, idx) => (
+              <Link key={item.id || idx} href="/gallery" className="group relative rounded-2xl overflow-hidden aspect-[4/3] border border-white/10">
+                <img src={item.url} alt={item.title || 'Crossbar Arena'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase">{item.album || 'Arena'}</span>
+                  <span className="text-xs font-bold text-white truncate">{item.title}</span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full p-8 text-center bg-slate-900/40 rounded-3xl border border-white/5 text-xs text-slate-400">
+              Live photography is taken from the arena media deck during matches. <Link href="/gallery" className="text-emerald-400 font-bold hover:underline ml-1">View photo albums</Link>
+            </div>
+          )}
         </div>
       </section>
 

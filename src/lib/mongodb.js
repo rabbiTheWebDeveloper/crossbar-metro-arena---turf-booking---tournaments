@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+    // ignore if restricted
+}
+
 const MONGODB_URI = process.env.MONGODB_CONNECTION_STRING || process.env.MONGODB_URI;
 if (!MONGODB_URI) {
     console.warn('⚠️ MONGODB_CONNECTION_STRING is not set in environment variables.');

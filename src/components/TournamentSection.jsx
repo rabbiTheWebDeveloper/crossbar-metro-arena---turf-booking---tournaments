@@ -39,92 +39,110 @@ export const TournamentSection = ({ tournaments, onRegistrationSuccess, hideHead
           </div>)}
 
         {/* Tournaments Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {tournaments.map((t) => {
-            const fillPercentage = Math.round((t.registeredCount / t.maxTeams) * 100);
-            const spotsLeft = t.maxTeams - t.registeredCount;
-            return (<div key={t.id} className="bg-gradient-to-b from-slate-900/90 to-[#0b1117] border border-white/10 hover:border-amber-500/40 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5 group">
-                <div>
-                  {/* Category & Status */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono">
-                      {t.category}
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${t.status === 'fast_filling'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}>
-                      {t.status === 'fast_filling' ? 'Filling Fast!' : 'Registration Open'}
-                    </span>
+        {tournaments.length === 0 ? (
+          <div className="text-center py-16 px-4 rounded-2xl bg-white/[0.02] border border-white/5 max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4 text-amber-400">
+              <Trophy className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 font-display uppercase">No Active Tournaments</h3>
+            <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
+              There are currently no open tournament registrations. Check back soon for the next championship or contact us to host a private cup.
+            </p>
+            <a
+              href="tel:01796-337133"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-colors"
+            >
+              Contact Event Manager
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {tournaments.map((t) => {
+              const fillPercentage = Math.round((t.registeredCount / t.maxTeams) * 100);
+              const spotsLeft = t.maxTeams - t.registeredCount;
+              return (<div key={t.id} className="bg-gradient-to-b from-slate-900/90 to-[#0b1117] border border-white/10 hover:border-amber-500/40 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5 group">
+                  <div>
+                    {/* Category & Status */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono">
+                        {t.category}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${t.status === 'fast_filling'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}>
+                        {t.status === 'fast_filling' ? 'Filling Fast!' : 'Registration Open'}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-2xl font-black text-white font-display mb-1 group-hover:text-amber-300 transition-colors uppercase">
+                      {t.title}
+                    </h3>
+                    <div className="text-xs text-slate-400 mb-4">{t.edition}</div>
+
+                    {/* Prize Pool Display */}
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-300 uppercase tracking-wider text-[11px] font-medium">Total Prize Pool</span>
+                        <span className="text-lg font-black font-mono text-amber-400">৳{t.prizePool.toLocaleString()}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-300 pt-1 border-t border-amber-500/20 flex flex-col gap-0.5">
+                        <span><strong>1st Place:</strong> {t.firstPrize}</span>
+                        <span><strong>Runners Up:</strong> {t.runnerUpPrize}</span>
+                      </div>
+                    </div>
+
+                    {/* Format & Dates */}
+                    <div className="space-y-2 text-xs text-slate-300 mb-5">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-emerald-400 shrink-0"/>
+                        <span>{t.dates}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-emerald-400 shrink-0"/>
+                        <span>{t.format}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-emerald-400 shrink-0"/>
+                        <span>Entry Fee: <strong className="text-white font-mono">৳{t.entryFee.toLocaleString()}</strong> per team</span>
+                      </div>
+                    </div>
+
+                    {/* Registered squads progress */}
+                    <div className="mb-5">
+                      <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                        <span>Roster: <strong>{t.registeredCount} / {t.maxTeams} Teams</strong></span>
+                        <span className="text-amber-400 font-bold">{spotsLeft} spots remaining</span>
+                      </div>
+                      <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                        <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style={{ width: `${fillPercentage}%` }}></div>
+                      </div>
+                    </div>
+
+                    {/* Highlights */}
+                    <div className="pt-3 border-t border-white/10 mb-6">
+                      <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
+                        Tournament Highlights:
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-300">
+                        {t.highlights?.map((h, i) => (<li key={i} className="flex items-start gap-1.5">
+                            <span className="text-emerald-400 text-xs mt-0.5">✓</span>
+                            <span>{h}</span>
+                          </li>))}
+                      </ul>
+                    </div>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-2xl font-black text-white font-display mb-1 group-hover:text-amber-300 transition-colors uppercase">
-                    {t.title}
-                  </h3>
-                  <div className="text-xs text-slate-400 mb-4">{t.edition}</div>
-
-                  {/* Prize Pool Display */}
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-300 uppercase tracking-wider text-[11px] font-medium">Total Prize Pool</span>
-                      <span className="text-lg font-black font-mono text-amber-400">৳{t.prizePool.toLocaleString()}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-300 pt-1 border-t border-amber-500/20 flex flex-col gap-0.5">
-                      <span><strong>1st Place:</strong> {t.firstPrize}</span>
-                      <span><strong>Runners Up:</strong> {t.runnerUpPrize}</span>
-                    </div>
-                  </div>
-
-                  {/* Format & Dates */}
-                  <div className="space-y-2 text-xs text-slate-300 mb-5">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-emerald-400 shrink-0"/>
-                      <span>{t.dates}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-400 shrink-0"/>
-                      <span>{t.format}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-emerald-400 shrink-0"/>
-                      <span>Entry Fee: <strong className="text-white font-mono">৳{t.entryFee.toLocaleString()}</strong> per team</span>
-                    </div>
-                  </div>
-
-                  {/* Registered squads progress */}
-                  <div className="mb-5">
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Roster: <strong>{t.registeredCount} / {t.maxTeams} Teams</strong></span>
-                      <span className="text-amber-400 font-bold">{spotsLeft} spots remaining</span>
-                    </div>
-                    <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/5">
-                      <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style={{ width: `${fillPercentage}%` }}></div>
-                    </div>
-                  </div>
-
-                  {/* Highlights */}
-                  <div className="pt-3 border-t border-white/10 mb-6">
-                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
-                      Tournament Highlights:
-                    </div>
-                    <ul className="space-y-1.5 text-xs text-slate-300">
-                      {t.highlights.map((h, i) => (<li key={i} className="flex items-start gap-1.5">
-                          <span className="text-emerald-400 text-xs mt-0.5">✓</span>
-                          <span>{h}</span>
-                        </li>))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Register CTA */}
-                <button onClick={() => setSelectedTournament(t)} className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-amber-500/15 flex items-center justify-center gap-2 transition-all cursor-pointer group-hover:scale-[1.02]">
-                  <Trophy className="w-4 h-4 text-slate-950"/>
-                  <span>Register Team Squad</span>
-                  <ChevronRight className="w-4 h-4"/>
-                </button>
-              </div>);
-        })}
-        </div>
+                  {/* Register CTA */}
+                  <button onClick={() => setSelectedTournament(t)} className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-amber-500/15 flex items-center justify-center gap-2 transition-all cursor-pointer group-hover:scale-[1.02]">
+                    <Trophy className="w-4 h-4 text-slate-950"/>
+                    <span>Register Team Squad</span>
+                    <ChevronRight className="w-4 h-4"/>
+                  </button>
+                </div>);
+          })}
+          </div>
+        )}
 
         {/* Corporate Tournament Banner */}
         <div className="mt-12 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-[#0e1620] border border-emerald-500/30 flex flex-col md:flex-row items-center justify-between gap-6">

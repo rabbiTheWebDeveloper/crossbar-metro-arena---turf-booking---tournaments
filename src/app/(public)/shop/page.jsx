@@ -90,49 +90,72 @@ export default function ShopPage() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map(p => {
-            const hasSale = p.salePrice && p.salePrice < p.price;
-            return (<div key={p.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
-                      {p.category.toUpperCase()}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.stock > 0
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
-                      {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}
-                    </span>
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-16 px-4 rounded-3xl bg-white/[0.02] border border-white/5">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3 text-emerald-400">
+              <ShoppingBag className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-white mb-1">No products found</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+              {searchQuery || selectedCategory !== 'all'
+                ? "No gear matches your current search or category filter. Try clearing filters."
+                : "No products currently listed in the shop catalog. Check back soon!"}
+            </p>
+            {(searchQuery || selectedCategory !== 'all') && (
+              <button
+                type="button"
+                onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map(p => {
+              const hasSale = p.salePrice && p.salePrice < p.price;
+              return (<div key={p.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                        {p.category?.toUpperCase()}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.stock > 0
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                        {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-white font-display">{p.name}</h3>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{p.description}</p>
+
+                    {/* Price */}
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-xl font-black font-mono text-emerald-400">
+                        ৳{(p.salePrice || p.price).toLocaleString()}
+                      </span>
+                      {hasSale && (<span className="text-xs text-slate-500 line-through font-mono">
+                          ৳{p.price.toLocaleString()}
+                        </span>)}
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-white font-display">{p.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{p.description}</p>
+                  {/* Actions */}
+                  <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                    <button type="button" onClick={() => handleOpenProduct(p)} className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20 cursor-pointer">
+                      Select &amp; Reserve
+                    </button>
 
-                  {/* Price */}
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-xl font-black font-mono text-emerald-400">
-                      ৳{(p.salePrice || p.price).toLocaleString()}
-                    </span>
-                    {hasSale && (<span className="text-xs text-slate-500 line-through font-mono">
-                        ৳{p.price.toLocaleString()}
-                      </span>)}
+                    <a href={`https://wa.me/8801796337133?text=Hi%20Crossbar%20Shop%2C%20is%20${encodeURIComponent(p.name)}%20available%20for%20pickup%20today%3F`} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 transition-colors cursor-pointer" title="Ask on WhatsApp">
+                      <MessageSquare className="w-4 h-4 text-emerald-400"/>
+                    </a>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-3 border-t border-white/10 flex items-center gap-2">
-                  <button type="button" onClick={() => handleOpenProduct(p)} className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20 cursor-pointer">
-                    Select &amp; Reserve
-                  </button>
-
-                  <a href={`https://wa.me/8801796337133?text=Hi%20Crossbar%20Shop%2C%20is%20${encodeURIComponent(p.name)}%20available%20for%20pickup%20today%3F`} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 transition-colors cursor-pointer" title="Ask on WhatsApp">
-                    <MessageSquare className="w-4 h-4 text-emerald-400"/>
-                  </a>
-                </div>
-              </div>);
-        })}
-        </div>
+                </div>);
+          })}
+          </div>
+        )}
 
       </div>
 

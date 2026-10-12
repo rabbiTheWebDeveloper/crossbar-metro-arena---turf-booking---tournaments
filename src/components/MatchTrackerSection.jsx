@@ -8,9 +8,9 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
     const [teamName, setTeamName] = useState('');
     const [captainName, setCaptainName] = useState('');
     const [captainPhone, setCaptainPhone] = useState('');
-    const [courtName, setCourtName] = useState('Pitch Alpha (7v7)');
-    const [matchDate, setMatchDate] = useState('Tomorrow');
-    const [timeSlot, setTimeSlot] = useState('08:00 PM - 09:00 PM');
+    const [courtName, setCourtName] = useState('Crossbar Metro Arena (Main Turf)');
+    const [matchDate, setMatchDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const [timeSlot, setTimeSlot] = useState('07:30 PM – 09:00 PM');
     const [level, setLevel] = useState('Semi-Pro');
     const [lookingFor, setLookingFor] = useState('Opponent Team');
     const [costShare, setCostShare] = useState('50/50 Split (৳1,500 each)');
@@ -136,56 +136,73 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
           </div>)}
 
         {/* Tab 2: Community Challenges */}
-        {activeTab === 'challenges' && (<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {challenges.map((c) => (<div key={c.id} className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-[#0c141d] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                      {c.lookingFor}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-400">{c.level} Level</span>
+        {activeTab === 'challenges' && (
+          challenges.length === 0 ? (
+            <div className="p-12 text-center bg-white/[0.02] border border-white/10 rounded-2xl max-w-lg mx-auto space-y-2">
+              <Users className="w-8 h-8 text-slate-500 mx-auto mb-2"/>
+              <div className="text-white font-bold text-sm">No Open Challenges Right Now</div>
+              <p className="text-slate-400 text-xs">
+                Post your squad match challenge or recruit guest players to connect with local Dhaka squads.
+              </p>
+              <button onClick={() => setShowPostChallengeModal(true)} className="mt-3 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                Post A Match Challenge
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {challenges.map((c) => (
+                <div key={c.id} className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-[#0c141d] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        {c.lookingFor}
+                      </span>
+                      <span className="text-[11px] font-medium text-slate-400">{c.level} Level</span>
+                    </div>
+
+                    <h4 className="text-lg font-bold text-white font-display uppercase mb-1">
+                      {c.teamName}
+                    </h4>
+                    <div className="text-xs text-emerald-400 font-semibold mb-3 flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5"/>
+                      <span>{c.courtName}</span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-300 mb-4 bg-white/[0.03] p-3 rounded-lg border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400"/>
+                        <span>{c.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-slate-400"/>
+                        <span className="text-white font-mono font-medium">{c.timeSlot}</span>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                        <span className="text-slate-400">Turf Fee Split:</span>
+                        <strong className="text-emerald-300">{c.costShare}</strong>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 italic mb-4">
+                      &quot;{c.notes}&quot;
+                    </p>
                   </div>
 
-                  <h4 className="text-lg font-bold text-white font-display uppercase mb-1">
-                    {c.teamName}
-                  </h4>
-                  <div className="text-xs text-emerald-400 font-semibold mb-3 flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5"/>
-                    <span>{c.courtName}</span>
-                  </div>
+                  <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                    <a href={`https://wa.me/88${(c.captainPhone || '').replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(c.captainName)}%2C%20we%20saw%20your%20challenge%20for%20${encodeURIComponent(c.timeSlot)}%20at%20Crossbar%20Metro%20Arena%20and%20want%20to%20play!`} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 px-3 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                      <MessageSquare className="w-3.5 h-3.5"/>
+                      <span>Accept on WhatsApp</span>
+                    </a>
 
-                  <div className="space-y-1.5 text-xs text-slate-300 mb-4 bg-white/[0.03] p-3 rounded-lg border border-white/5">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400"/>
-                      <span>{c.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-slate-400"/>
-                      <span className="text-white font-mono font-medium">{c.timeSlot}</span>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-white/5">
-                      <span className="text-slate-400">Turf Fee Split:</span>
-                      <strong className="text-emerald-300">{c.costShare}</strong>
-                    </div>
+                    <a href={`tel:${c.captainPhone}`} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10" title={`Call ${c.captainName}`}>
+                      <Phone className="w-3.5 h-3.5"/>
+                    </a>
                   </div>
-
-                  <p className="text-xs text-slate-400 italic mb-4">
-                    "{c.notes}"
-                  </p>
                 </div>
-
-                <div className="pt-3 border-t border-white/10 flex items-center gap-2">
-                  <a href={`https://wa.me/88${c.captainPhone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(c.captainName)}%2C%20we%20saw%20your%20challenge%20for%20${encodeURIComponent(c.timeSlot)}%20at%20Crossbar%20Metro%20Arena%20and%20want%20to%20play!`} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 px-3 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
-                    <MessageSquare className="w-3.5 h-3.5"/>
-                    <span>Accept on WhatsApp</span>
-                  </a>
-
-                  <a href={`tel:${c.captainPhone}`} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10" title={`Call ${c.captainName}`}>
-                    <Phone className="w-3.5 h-3.5"/>
-                  </a>
-                </div>
-              </div>))}
-          </div>)}
+              ))}
+            </div>
+          )
+        )}
       </div>
 
       {/* Post Challenge Modal */}
@@ -224,8 +241,7 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Pitch</label>
                   <select value={courtName} onChange={(e) => setCourtName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
-                    <option value="Pitch Alpha (7v7)">Pitch Alpha (7v7)</option>
-                    <option value="Pitch Bravo (5v5)">Pitch Bravo (5v5)</option>
+                    <option value="Crossbar Metro Arena (Main Turf)">Crossbar Metro Arena (Main Turf)</option>
                   </select>
                 </div>
                 <div>

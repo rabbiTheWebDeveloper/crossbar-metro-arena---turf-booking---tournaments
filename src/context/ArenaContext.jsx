@@ -27,6 +27,7 @@ export const ArenaProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
     const [showCartDrawer, setShowCartDrawer] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isLoadingData, setIsLoadingData] = useState(true);
     // Modals state
     const [activeTicketPass, setActiveTicketPass] = useState(null);
     const [showSquadModal, setShowSquadModal] = useState(false);
@@ -67,6 +68,7 @@ export const ArenaProvider = ({ children }) => {
                 eventsData,
                 registrationsData,
                 galleryData,
+                challengesData,
                 usersData
             ] = await Promise.all([
                 fetchJson('/api/bookings'),
@@ -83,6 +85,7 @@ export const ArenaProvider = ({ children }) => {
                 fetchJson('/api/events'),
                 fetchJson('/api/registrations'),
                 fetchJson('/api/gallery'),
+                fetchJson('/api/challenges'),
                 fetchJson('/api/users')
             ]);
 
@@ -93,54 +96,31 @@ export const ArenaProvider = ({ children }) => {
                 return [];
             };
 
-            const bList = unwrap(bookingsData, 'bookings');
-            if (bList.length > 0) setBookings(bList);
+            if (bookingsData) setBookings(unwrap(bookingsData, 'bookings'));
 
             if (settingsData) {
                 if (settingsData.pricing) setPricing(settingsData.pricing);
                 if (settingsData.settings) setSiteSettings(settingsData.settings);
             }
 
-            const expList = unwrap(expensesData, 'expenses');
-            if (expList.length > 0) setExpenses(expList);
-
-            const invList = unwrap(investorsData, 'investors');
-            if (invList.length > 0) setInvestors(invList);
-
-            const payList = unwrap(payoutsData, 'payouts');
-            if (payList.length > 0) setPayouts(payList);
-
-            const refList = unwrap(refundsData, 'refunds');
-            if (refList.length > 0) setRefunds(refList);
-
-            const incList = unwrap(otherIncomeData, 'otherIncome');
-            if (incList.length > 0) setOtherIncome(incList);
-
-            const teamList = unwrap(teamsData, 'teams');
-            if (teamList.length > 0) setTeams(teamList);
-
-            const matchResList = unwrap(matchResultsData, 'matchResults');
-            if (matchResList.length > 0) setMatchResults(matchResList);
-
-            const prodList = unwrap(productsData, 'products');
-            if (prodList.length > 0) setShopProducts(prodList);
-
-            const orderList = unwrap(shopOrdersData, 'reservations');
-            if (orderList.length > 0) setShopReservations(orderList);
-
-            const evList = unwrap(eventsData, 'tournaments');
-            if (evList.length > 0) setTournaments(evList);
-
-            const regList = unwrap(registrationsData, 'registrations');
-            if (regList.length > 0) setRegistrations(regList);
-
-            const galList = unwrap(galleryData, 'galleryPhotos');
-            if (galList.length > 0) setGalleryPhotos(galList);
-
-            const uList = unwrap(usersData, 'users');
-            if (uList.length > 0) setUsers(uList);
+            if (expensesData) setExpenses(unwrap(expensesData, 'expenses'));
+            if (investorsData) setInvestors(unwrap(investorsData, 'investors'));
+            if (payoutsData) setPayouts(unwrap(payoutsData, 'payouts'));
+            if (refundsData) setRefunds(unwrap(refundsData, 'refunds'));
+            if (otherIncomeData) setOtherIncome(unwrap(otherIncomeData, 'otherIncome'));
+            if (teamsData) setTeams(unwrap(teamsData, 'teams'));
+            if (matchResultsData) setMatchResults(unwrap(matchResultsData, 'matchResults'));
+            if (productsData) setShopProducts(unwrap(productsData, 'products'));
+            if (shopOrdersData) setShopReservations(unwrap(shopOrdersData, 'reservations'));
+            if (eventsData) setTournaments(unwrap(eventsData, 'tournaments'));
+            if (registrationsData) setRegistrations(unwrap(registrationsData, 'registrations'));
+            if (galleryData) setGalleryPhotos(unwrap(galleryData, 'galleryPhotos'));
+            if (challengesData) setChallenges(unwrap(challengesData, 'challenges'));
+            if (usersData) setUsers(unwrap(usersData, 'users'));
         } catch (err) {
             console.warn('loadRealBackendData caught error:', err);
+        } finally {
+            setIsLoadingData(false);
         }
     }, []);
 
@@ -800,11 +780,31 @@ export const ArenaProvider = ({ children }) => {
         const updated = saveShopReservation(reservation);
         setShopReservations(updated);
         try {
-            await fetch('/api/shop-orders', {
+            const payload = {
+                reservationCode: reservation.reservationCode,
+                customerName: reservation.customerName,
+                customerPhone: reservation.customerPhone,
+                totalAmount: reservation.price,
+                items: reservation.items || [
+                    {
+                        productId: reservation.productId,
+                        name: reservation.productName,
+                        size: reservation.size || '',
+                        quantity: reservation.quantity || 1,
+                        price: reservation.price
+                    }
+                ],
+                notes: reservation.notes || ''
+            };
+            const res = await fetch('/api/shop-orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reservation)
+                body: JSON.stringify(payload)
             });
+            const data = await res.json();
+            if (res.ok && data.reservation) {
+                setShopReservations(prev => [data.reservation, ...prev.filter(r => r.id !== reservation.id)]);
+            }
         } catch (e) {
             console.warn('API saveShopReservation error:', e);
         }
@@ -838,11 +838,15 @@ export const ArenaProvider = ({ children }) => {
         setRegistrations(updated);
         setTournaments(getStoredTournaments());
         try {
-            await fetch('/api/registrations', {
+            const res = await fetch('/api/registrations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newReg)
             });
+            const data = await res.json();
+            if (res.ok && data.registration) {
+                setRegistrations(prev => [data.registration, ...prev.filter(r => r.id !== newReg.id)]);
+            }
         } catch (e) {
             console.warn('API registrationSuccess error:', e);
         }
@@ -864,9 +868,22 @@ export const ArenaProvider = ({ children }) => {
         }
     }, []);
 
-    const handleAddChallenge = useCallback((newChallenge) => {
+    const handleAddChallenge = useCallback(async (newChallenge) => {
         const updated = saveChallenge(newChallenge);
         setChallenges(updated);
+        try {
+            const res = await fetch('/api/challenges', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newChallenge)
+            });
+            const data = await res.json();
+            if (res.ok && data.challenge) {
+                setChallenges(prev => [data.challenge, ...prev.filter(c => c.id !== newChallenge.id)]);
+            }
+        } catch (e) {
+            console.warn('API addChallenge error:', e);
+        }
     }, []);
 
     const handleSavePhoto = useCallback(async (photo) => {
@@ -1074,6 +1091,7 @@ export const ArenaProvider = ({ children }) => {
             sendSMSNotification,
             exportDatabaseBackup,
             handleRestoreDatabase,
+            isLoadingData,
             refreshData: loadRealBackendData
         }}>
       {children}
