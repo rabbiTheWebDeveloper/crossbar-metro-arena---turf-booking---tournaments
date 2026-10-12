@@ -67,6 +67,12 @@ export const DEFAULT_PRICING = {
     weekendDays: ['Friday', 'Saturday'],
     approveResultsFirst: false
 };
+export const BOOKING_ADDONS = [
+    { id: 'referee', name: 'Certified Match Referee', price: 500, description: 'Official referee for 90 minutes match' },
+    { id: 'bibs', name: 'Numbered Team Bibs (Set of 14)', price: 200, description: 'Two colored sets of match bibs' },
+    { id: 'ball', name: 'Extra FIFA Match Ball', price: 150, description: 'Official tournament spec match ball' },
+    { id: 'water', name: 'Chilled Water & Electrolyte Pack', price: 400, description: 'Cold mineral water bottles for both squads' }
+];
 export const INITIAL_USERS = [];
 export const INITIAL_BOOKINGS = [];
 export const INITIAL_TOURNAMENTS = [];
