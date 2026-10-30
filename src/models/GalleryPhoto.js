@@ -24,7 +24,7 @@ const GalleryPhotoSchema = new Schema({
     },
     aspect: {
         type: String,
-        enum: ['wide', 'square'],
+        enum: ['wide', 'square', 'portrait', 'tall'],
         default: 'wide'
     },
     featured: {

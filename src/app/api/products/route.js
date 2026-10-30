@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 
@@ -27,6 +28,8 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const body = await request.json();
         const targetId = body.id || body._id;

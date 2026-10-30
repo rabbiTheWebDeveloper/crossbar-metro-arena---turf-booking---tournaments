@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'crossbar_metro_jwt_secret_key_2026';
+// Must match src/lib/serverAuth.js. In production JWT_SECRET is mandatory; with no secret every token is rejected.
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'crossbar_metro_dev_only_secret_do_not_use_in_production');
 const TOKEN_COOKIE_NAME = 'cma_auth_token';
 
 /**
  * Edge-compatible JWT verification using Web Crypto API
  */
 async function verifyToken(token) {
-    if (!token || typeof token !== 'string') return null;
+    if (!token || typeof token !== 'string' || !JWT_SECRET) return null;
     try {
         const parts = token.split('.');
         if (parts.length !== 3) return null;
@@ -62,7 +63,7 @@ export async function middleware(request) {
 
         if (user) {
             const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
-            if (callbackUrl && callbackUrl.startsWith('/')) {
+            if (callbackUrl && /^\/(?![\/\\])/.test(callbackUrl)) {
                 return NextResponse.redirect(new URL(callbackUrl, request.url));
             }
 

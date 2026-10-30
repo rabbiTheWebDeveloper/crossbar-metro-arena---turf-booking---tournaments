@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin, requireRole } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/Refund';
 
 export async function GET(request) {
     try {
+        const { denied } = await requireRole(request, ['admin', 'investor']);
+        if (denied) return denied;
         await connectToDatabase();
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
@@ -25,6 +28,8 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const body = await request.json();
         const { bookingId, bookingCode, customerName, customerPhone, amount, reason, refundMethod } = body;

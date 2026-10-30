@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { signJwtToken, setAuthCookies } from '@/lib/serverAuth';
+import { rateLimit } from '@/lib/apiAuth';
 
 export async function POST(request) {
     try {
-        const body = await request.json();
-        const { name, phone, password, playingPosition, email, role } = body;
+        const limited = rateLimit(request, 'register', 10, 60 * 60 * 1000);
+        if (limited) return limited;
+        const body = await request.json().catch(() => ({}));
+        const { name, phone, password, playingPosition, email } = body;
 
         // Validate name
         if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -50,9 +53,9 @@ export async function POST(request) {
             );
         }
 
-        // Create new account (default role 'player')
-        const validRoles = ['player', 'investor', 'admin', 'visitor'];
-        const assignedRole = validRoles.includes(role) ? role : 'player';
+        // Public sign-up always creates a player. Admin / investor roles are only granted by an admin
+        // from the Players page (PATCH /api/users/:id), never from the client body.
+        const assignedRole = 'player';
 
         const newUser = new User({
             name: name.trim(),
@@ -82,8 +85,7 @@ export async function POST(request) {
         const response = NextResponse.json({
             success: true,
             message: 'Account registered successfully. Welcome to Crossbar Metro Arena!',
-            user: userJson,
-            token
+            user: userJson
         }, { status: 201 });
 
         // Set secure HTTP-only cookie + client user info cookie
@@ -94,7 +96,7 @@ export async function POST(request) {
     catch (err) {
         console.error('Registration API error:', err);
         return NextResponse.json(
-            { error: err.message || 'An error occurred during registration. Please try again.' },
+            { error: 'An error occurred during registration. Please try again.' },
             { status: 500 }
         );
     }

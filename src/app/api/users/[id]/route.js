@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { getAuthUserFromRequest } from '@/lib/serverAuth';
+import { requireAdmin as requireAdminGuard } from '@/lib/apiAuth';
 
 const VALID_ROLES = ['visitor', 'player', 'admin', 'investor'];
 const VALID_POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 
 async function requireAdmin(request) {
-    const user = await getAuthUserFromRequest(request);
-    if (!user || user.role !== 'admin') {
-        return { denied: NextResponse.json({ error: 'Admin login required.' }, { status: 401 }) };
-    }
-    return { admin: user };
+    const { user, denied } = await requireAdminGuard(request);
+    return denied ? { denied } : { admin: user };
 }
 
 /** GET /api/users/:id  (admin) */

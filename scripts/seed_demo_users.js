@@ -49,7 +49,7 @@ const INITIAL_USERS = [
 ];
 
 async function main() {
-  const uri = 'mongodb+srv://bd:WWwRIYr61UPNP42K@cluster0.c6bc0x0.mongodb.net/crossbar';
+  const uri = '';
   await mongoose.connect(uri);
   const usersCollection = mongoose.connection.collection('users');
 

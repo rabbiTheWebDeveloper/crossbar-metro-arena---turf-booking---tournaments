@@ -12,6 +12,10 @@ const ChallengeSchema = new mongoose.Schema({
     lookingFor: { type: String, default: 'Opponent Team' },
     costShare: { type: String, default: '50/50 Split' },
     notes: { type: String, default: '' },
+    userId: { type: String, default: '', index: true },
+    matchedTeamName: { type: String, default: '' },
+    matchedCaptainName: { type: String, default: '' },
+    matchedPhone: { type: String, default: '' },
     status: { type: String, enum: ['open', 'matched', 'closed'], default: 'open' },
     createdAt: { type: Date, default: Date.now }
 }, {

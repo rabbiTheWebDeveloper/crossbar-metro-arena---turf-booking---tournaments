@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
 import { Setting } from '@/models/Setting';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
-import { getAuthUserFromRequest } from '@/lib/serverAuth';
+import { requireAdmin as requireAdminGuard } from '@/lib/apiAuth';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -33,11 +33,8 @@ function expandDates({ startDate, endDate, weekdays }) {
 }
 
 async function requireAdmin(request) {
-    const user = await getAuthUserFromRequest(request);
-    if (!user || user.role !== 'admin') {
-        return NextResponse.json({ error: 'Admin login required.' }, { status: 401 });
-    }
-    return null;
+    const { denied } = await requireAdminGuard(request);
+    return denied;
 }
 
 /**
@@ -214,8 +211,10 @@ export async function POST(request) {
 /**
  * GET /api/bookings/bulk  -> list recurring series (grouped)
  */
-export async function GET() {
+export async function GET(request) {
     try {
+        const denied = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const today = toIso(new Date());
         const series = await Booking.aggregate([

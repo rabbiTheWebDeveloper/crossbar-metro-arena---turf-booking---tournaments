@@ -32,7 +32,7 @@ const RefundSchema = new Schema({
     },
     refundMethod: {
         type: String,
-        enum: ['bkash', 'nagad', 'rocket', 'bank', 'cash'],
+        enum: ['bkash', 'nagad', 'rocket', 'bank', 'bank_transfer', 'card', 'cash'],
         default: 'bkash'
     },
     status: {

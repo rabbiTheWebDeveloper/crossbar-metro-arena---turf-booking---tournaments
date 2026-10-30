@@ -1,7 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'crossbar_metro_jwt_secret_key_2026';
+const DEV_FALLBACK_SECRET = 'crossbar_metro_dev_only_secret_do_not_use_in_production';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    // Refuse to run with a guessable secret: anyone could forge an admin token.
+    throw new Error('JWT_SECRET environment variable is required in production.');
+}
+export const JWT_SECRET = process.env.JWT_SECRET || DEV_FALLBACK_SECRET;
 export const TOKEN_COOKIE_NAME = 'cma_auth_token';
 export const USER_COOKIE_NAME = 'cma_user';
 export const TOKEN_EXPIRY = '30d';

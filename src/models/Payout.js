@@ -28,7 +28,7 @@ const PayoutSchema = new Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['bank_transfer', 'bkash', 'cheque', 'cash'],
+        enum: ['bank_transfer', 'bkash', 'nagad', 'rocket', 'cheque', 'cash'],
         default: 'bank_transfer'
     },
     transactionNote: {

@@ -15,8 +15,11 @@ const ShopReservationSchema = new Schema({
         required: true,
         uppercase: true,
         trim: true,
+        unique: true,
         index: true
     },
+    userId: { type: String, default: '', index: true },
+    collectedAt: { type: Date },
     customerName: {
         type: String,
         required: true,

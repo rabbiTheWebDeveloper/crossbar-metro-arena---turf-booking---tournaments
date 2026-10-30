@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tournament } from '@/models/Tournament';
 
-export async function GET() {
+export async function GET(request) {
     try {
         await connectToDatabase();
         const tournaments = await Tournament.find().sort({ createdAt: -1 });
@@ -19,6 +20,8 @@ export async function GET() {
 
 export async function POST(request) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const body = await request.json();
         const { title, edition, category, format, dates, registrationDeadline, entryFee, prizePool, maxTeams, highlights, rules } = body;

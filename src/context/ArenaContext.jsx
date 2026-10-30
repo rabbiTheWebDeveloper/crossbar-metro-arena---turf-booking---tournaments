@@ -1,34 +1,91 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { getStoredBookings, saveBooking, updateBookingStatus, cancelBooking, getStoredTournaments, getStoredRegistrations, saveTournamentRegistration, getStoredChallenges, saveChallenge, getStoredPricing, savePricing, getStoredExpenses, saveExpense, deleteExpense, getStoredInvestors, saveInvestors, getStoredTeams, saveTeam, addPlayerToTeam, getStoredMatchResults, saveMatchResult, getStoredShopProducts, saveShopProduct, getStoredShopReservations, saveShopReservation, updateShopReservationStatus, getActiveSlotHolds, placeSlotHold, releaseSlotHold, getStoredUsers, saveUser, getStoredCurrentUser, saveCurrentUser, getStoredPayouts, savePayout, getStoredRefunds, getStoredOtherIncome, saveOtherIncome, getStoredSMSLogs, logSMSNotification, getStoredSiteSettings, saveSiteSettings, getStoredGalleryPhotos, saveGalleryPhoto, deleteStoredGalleryPhoto, restoreDatabaseBackup } from '../utils/storage';
-import { INITIAL_BOOKINGS, INITIAL_TOURNAMENTS, INITIAL_COMMUNITY_CHALLENGES, DEFAULT_PRICING, INITIAL_EXPENSES, INITIAL_INVESTORS, INITIAL_TEAMS, INITIAL_MATCH_RESULTS, INITIAL_USERS, INITIAL_PAYOUTS, INITIAL_REFUNDS, INITIAL_OTHER_INCOME, INITIAL_SHOP_PRODUCTS, INITIAL_SMS_LOGS, VENUE_INFO, INITIAL_GALLERY_PHOTOS } from '../data/initialData';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, getStoredSMSLogs, logSMSNotification } from '../utils/storage';
+import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+
 const ArenaContext = createContext(undefined);
+
+const VISITOR = { id: 'usr-visitor', name: 'Visitor', phone: '', role: 'visitor' };
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(String(id || ''));
+export const cleanPhone = (raw) => { let p = String(raw || '').replace(/[^0-9]/g, ''); if (p.startsWith('8801')) p = p.substring(2); return p; };
+
+/** Dhaka calendar date (YYYY-MM-DD) for an ISO timestamp. */
+const dhakaDate = (iso) => {
+    if (!iso) return '';
+    try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso)); } catch { return String(iso).slice(0, 10); }
+};
+export const todayDhaka = () => dhakaDate(new Date().toISOString());
+
+/** Money actually collected for a booking (only paid statuses count; nothing is invented). */
+export const collectedAmount = (b) => {
+    if (!b) return 0;
+    if (b.paymentStatus === 'paid_full') return Number(b.totalPrice) || 0;
+    if (b.paymentStatus === 'paid_advance' || b.paymentStatus === 'needs_refund') return Number(b.advanceAmount) || 0;
+    return 0;
+};
+
+/** JSON fetch helper: never throws, always returns { ok, status, data } */
+async function api(url, options = {}) {
+    try {
+        const res = await fetch(url, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+            body: options.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : options.body
+        });
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, data, error: res.ok ? null : (data.error || `Request failed (${res.status})`) };
+    } catch (e) {
+        return { ok: false, status: 0, data: {}, error: 'Network error. Please check your connection and try again.' };
+    }
+}
+
+const unwrap = (data, key) => {
+    if (!data) return null;
+    if (Array.isArray(data)) return data;
+    if (key && Array.isArray(data[key])) return data[key];
+    return null;
+};
+const upsert = (list, item, key = 'id') => {
+    if (!item) return list;
+    const exists = list.some(x => x[key] === item[key]);
+    return exists ? list.map(x => (x[key] === item[key] ? item : x)) : [item, ...list];
+};
+
 export const ArenaProvider = ({ children }) => {
-    const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
+    // ---- Data (MongoDB is the single source of truth) ----
+    const [bookings, setBookings] = useState([]);
     const [slotHolds, setSlotHolds] = useState([]);
     const [pricing, setPricing] = useState(DEFAULT_PRICING);
-    const [expenses, setExpenses] = useState(INITIAL_EXPENSES);
-    const [investors, setInvestors] = useState(INITIAL_INVESTORS);
-    const [payouts, setPayouts] = useState(INITIAL_PAYOUTS);
-    const [refunds, setRefunds] = useState(INITIAL_REFUNDS);
-    const [otherIncome, setOtherIncome] = useState(INITIAL_OTHER_INCOME);
-    const [teams, setTeams] = useState(INITIAL_TEAMS);
-    const [matchResults, setMatchResults] = useState(INITIAL_MATCH_RESULTS);
-    const [shopProducts, setShopProducts] = useState(INITIAL_SHOP_PRODUCTS);
+    const [expenses, setExpenses] = useState([]);
+    const [investors, setInvestors] = useState([]);
+    const [myInvestorId, setMyInvestorId] = useState(null);
+    const [payouts, setPayouts] = useState([]);
+    const [refunds, setRefunds] = useState([]);
+    const [otherIncome, setOtherIncome] = useState([]);
+    const [teams, setTeams] = useState([]);
+    const [matchResults, setMatchResults] = useState([]);
+    const [myMatchResults, setMyMatchResults] = useState([]);
+    const [shopProducts, setShopProducts] = useState([]);
     const [shopReservations, setShopReservations] = useState([]);
-    const [tournaments, setTournaments] = useState(INITIAL_TOURNAMENTS);
+    const [tournaments, setTournaments] = useState([]);
     const [registrations, setRegistrations] = useState([]);
-    const [challenges, setChallenges] = useState(INITIAL_COMMUNITY_CHALLENGES);
-    const [galleryPhotos, setGalleryPhotos] = useState(INITIAL_GALLERY_PHOTOS);
-    const [users, setUsers] = useState(INITIAL_USERS);
-    const [currentUser, setCurrentUser] = useState(() => getStoredCurrentUser());
-    const [smsLogs, setSmsLogs] = useState(INITIAL_SMS_LOGS);
+    const [challenges, setChallenges] = useState([]);
+    const [myChallenges, setMyChallenges] = useState([]);
+    const [galleryPhotos, setGalleryPhotos] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [currentUser, setCurrentUser] = useState(VISITOR);
+    const [authChecked, setAuthChecked] = useState(false);
+    const [smsLogs, setSmsLogs] = useState([]);
     const [siteSettings, setSiteSettings] = useState(VENUE_INFO);
     const [cartItems, setCartItems] = useState([]);
     const [showCartDrawer, setShowCartDrawer] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
-    // Modals state
+    const [loadError, setLoadError] = useState('');
+    const [notice, setNotice] = useState(null); // { type: 'success'|'error'|'info', message }
+
+    // ---- UI / modal state ----
     const [activeTicketPass, setActiveTicketPass] = useState(null);
     const [showSquadModal, setShowSquadModal] = useState(false);
     const [showAdminModal, setShowAdminModal] = useState(false);
@@ -40,1169 +97,699 @@ export const ArenaProvider = ({ children }) => {
     const [pendingBookingData, setPendingBookingData] = useState(null);
     const [showHandoverGuide, setShowHandoverGuide] = useState(false);
 
-    // Fetch authoritative live data from MongoDB backend API routes
-    const loadRealBackendData = useCallback(async () => {
-        try {
-            const fetchJson = async (url) => {
-                try {
-                    const res = await fetch(url);
-                    if (res.ok) return await res.json();
-                } catch (e) {
-                    console.warn(`Fetch ${url} failed:`, e);
-                }
-                return null;
-            };
+    const role = currentUser?.role || 'visitor';
+    const isVisitor = role === 'visitor';
+    const isAdmin = role === 'admin';
+    const isInvestor = role === 'investor';
+    const noticeTimer = useRef(null);
 
-            const [
-                bookingsData,
-                settingsData,
-                expensesData,
-                investorsData,
-                payoutsData,
-                refundsData,
-                otherIncomeData,
-                teamsData,
-                matchResultsData,
-                productsData,
-                shopOrdersData,
-                eventsData,
-                registrationsData,
-                galleryData,
-                challengesData,
-                usersData
-            ] = await Promise.all([
-                fetchJson('/api/bookings'),
-                fetchJson('/api/settings'),
-                fetchJson('/api/expenses'),
-                fetchJson('/api/investors'),
-                fetchJson('/api/payouts'),
-                fetchJson('/api/refunds'),
-                fetchJson('/api/other-income'),
-                fetchJson('/api/teams'),
-                fetchJson('/api/match-results'),
-                fetchJson('/api/products'),
-                fetchJson('/api/shop-orders'),
-                fetchJson('/api/events'),
-                fetchJson('/api/registrations'),
-                fetchJson('/api/gallery'),
-                fetchJson('/api/challenges'),
-                fetchJson('/api/users')
-            ]);
+    const showNotice = useCallback((type, message, ms = 4500) => {
+        if (!message) return;
+        setNotice({ type, message, id: Date.now() });
+        if (noticeTimer.current) clearTimeout(noticeTimer.current);
+        noticeTimer.current = setTimeout(() => setNotice(null), ms);
+    }, []);
 
-            const unwrap = (data, key) => {
-                if (!data) return [];
-                if (Array.isArray(data)) return data;
-                if (key && Array.isArray(data[key])) return data[key];
-                return [];
-            };
-
-            if (bookingsData) setBookings(unwrap(bookingsData, 'bookings'));
-
-            if (settingsData) {
-                if (settingsData.pricing) setPricing(settingsData.pricing);
-                if (settingsData.settings) setSiteSettings(settingsData.settings);
-            }
-
-            if (expensesData) setExpenses(unwrap(expensesData, 'expenses'));
-            if (investorsData) setInvestors(unwrap(investorsData, 'investors'));
-            if (payoutsData) setPayouts(unwrap(payoutsData, 'payouts'));
-            if (refundsData) setRefunds(unwrap(refundsData, 'refunds'));
-            if (otherIncomeData) setOtherIncome(unwrap(otherIncomeData, 'otherIncome'));
-            if (teamsData) setTeams(unwrap(teamsData, 'teams'));
-            if (matchResultsData) setMatchResults(unwrap(matchResultsData, 'matchResults'));
-            if (productsData) setShopProducts(unwrap(productsData, 'products'));
-            if (shopOrdersData) setShopReservations(unwrap(shopOrdersData, 'reservations'));
-            if (eventsData) setTournaments(unwrap(eventsData, 'tournaments'));
-            if (registrationsData) setRegistrations(unwrap(registrationsData, 'registrations'));
-            if (galleryData) setGalleryPhotos(unwrap(galleryData, 'galleryPhotos'));
-            if (challengesData) setChallenges(unwrap(challengesData, 'challenges'));
-            if (usersData) setUsers(unwrap(usersData, 'users'));
-        } catch (err) {
-            console.warn('loadRealBackendData caught error:', err);
-        } finally {
-            setIsLoadingData(false);
+    // ---- Settings shape helpers ----
+    const applySettings = useCallback((data) => {
+        if (!data) return;
+        if (data.settings) setSiteSettings(prev => ({ ...prev, ...data.settings }));
+        const p = data.pricing || data.settings;
+        if (p) {
+            setPricing(prev => ({
+                ...prev,
+                ...p,
+                slotPrices: Array.isArray(p.slotPrices) && p.slotPrices.length === 12 ? p.slotPrices : (prev.slotPrices || SCHEDULE_SLOTS_DEFINITION),
+                weekendDays: Array.isArray(p.weekendDays) && p.weekendDays.length ? p.weekendDays : (prev.weekendDays || ['Friday', 'Saturday'])
+            }));
         }
     }, []);
 
-    // Load initial data and trigger backend live data sync
-    useEffect(() => {
-        setBookings(getStoredBookings());
-        setSlotHolds(getActiveSlotHolds());
-        setPricing(getStoredPricing());
-        setExpenses(getStoredExpenses());
-        setInvestors(getStoredInvestors());
-        setPayouts(getStoredPayouts());
-        setRefunds(getStoredRefunds());
-        setOtherIncome(getStoredOtherIncome());
-        setTeams(getStoredTeams());
-        setMatchResults(getStoredMatchResults());
-        setShopProducts(getStoredShopProducts());
-        setShopReservations(getStoredShopReservations());
-        setTournaments(getStoredTournaments());
-        setRegistrations(getStoredRegistrations());
-        setChallenges(getStoredChallenges());
-        setGalleryPhotos(getStoredGalleryPhotos());
-        setUsers(getStoredUsers());
-        setCurrentUser(getStoredCurrentUser());
-        setSmsLogs(getStoredSMSLogs());
-        setSiteSettings(getStoredSiteSettings());
-        setIsInitialized(true);
+    // ---- Load data for the current role ----
+    const loadRealBackendData = useCallback(async (userRole = role) => {
+        setIsLoadingData(true);
+        setLoadError('');
+        const get = (url) => api(url);
+        try {
+            const publicCalls = {
+                settings: get('/api/settings'),
+                bookings: get('/api/bookings'),
+                events: get('/api/events'),
+                products: get('/api/products'),
+                gallery: get('/api/gallery'),
+                results: get('/api/match-results'),
+                teams: get('/api/teams'),
+                challenges: get('/api/challenges')
+            };
+            const roleCalls = {};
+            if (userRole === 'admin') {
+                Object.assign(roleCalls, {
+                    expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
+                    refunds: get('/api/refunds'), otherIncome: get('/api/other-income'), shopOrders: get('/api/shop-orders'),
+                    registrations: get('/api/registrations'), users: get('/api/users?includeDisabled=1'),
+                    allResults: get('/api/match-results?status=all'), allChallenges: get('/api/challenges?status=all')
+                });
+            } else if (userRole === 'investor') {
+                Object.assign(roleCalls, {
+                    expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
+                    refunds: get('/api/refunds'), otherIncome: get('/api/other-income')
+                });
+            } else if (userRole === 'player') {
+                Object.assign(roleCalls, {
+                    myBookings: get('/api/bookings?mine=1'), myResults: get('/api/match-results?mine=1'),
+                    myChallenges: get('/api/challenges?mine=1'), myRegistrations: get('/api/registrations?mine=1'),
+                    myOrders: get('/api/shop-orders?mine=1')
+                });
+            }
+            const keys = [...Object.keys(publicCalls), ...Object.keys(roleCalls)];
+            const results = await Promise.all([...Object.values(publicCalls), ...Object.values(roleCalls)]);
+            const r = Object.fromEntries(keys.map((k, i) => [k, results[i]]));
+            const failed = keys.filter(k => !r[k].ok && r[k].status !== 401 && r[k].status !== 403);
+            if (failed.length === keys.length) setLoadError('Could not reach the arena server. Showing limited data.');
 
-        // Fetch live MongoDB records
-        loadRealBackendData();
+            if (r.settings.ok) applySettings(r.settings.data);
+            const pub = unwrap(r.bookings.data, 'bookings') || [];
+            const mine = r.myBookings && r.myBookings.ok ? (unwrap(r.myBookings.data, 'bookings') || []) : [];
+            if (r.bookings.ok || mine.length) {
+                const map = new Map(pub.map(b => [b.id, b]));
+                mine.forEach(b => map.set(b.id, b));
+                setBookings([...map.values()]);
+            }
+            if (r.events.ok) setTournaments(unwrap(r.events.data, 'tournaments') || []);
+            if (r.products.ok) setShopProducts(unwrap(r.products.data, 'products') || []);
+            if (r.gallery.ok) setGalleryPhotos(unwrap(r.gallery.data, 'galleryPhotos') || []);
+            if (r.allResults && r.allResults.ok) setMatchResults(unwrap(r.allResults.data, 'matchResults') || []);
+            else if (r.results.ok) setMatchResults(unwrap(r.results.data, 'matchResults') || []);
+            if (r.myResults && r.myResults.ok) setMyMatchResults(unwrap(r.myResults.data, 'matchResults') || []);
+            if (r.teams.ok) setTeams(unwrap(r.teams.data, 'teams') || []);
+            if (r.allChallenges && r.allChallenges.ok) setChallenges(unwrap(r.allChallenges.data, 'challenges') || []);
+            else if (r.challenges.ok) setChallenges(unwrap(r.challenges.data, 'challenges') || []);
+            if (r.myChallenges && r.myChallenges.ok) setMyChallenges(unwrap(r.myChallenges.data, 'challenges') || []);
+            if (r.expenses && r.expenses.ok) setExpenses(unwrap(r.expenses.data, 'expenses') || []);
+            if (r.investors && r.investors.ok) { setInvestors(unwrap(r.investors.data, 'investors') || []); setMyInvestorId(r.investors.data.myInvestorId || null); }
+            if (r.payouts && r.payouts.ok) setPayouts(unwrap(r.payouts.data, 'payouts') || []);
+            if (r.refunds && r.refunds.ok) setRefunds(unwrap(r.refunds.data, 'refunds') || []);
+            if (r.otherIncome && r.otherIncome.ok) setOtherIncome(unwrap(r.otherIncome.data, 'otherIncome') || []);
+            if (r.shopOrders && r.shopOrders.ok) setShopReservations(unwrap(r.shopOrders.data, 'reservations') || []);
+            if (r.myOrders && r.myOrders.ok) setShopReservations(unwrap(r.myOrders.data, 'reservations') || []);
+            if (r.registrations && r.registrations.ok) setRegistrations(unwrap(r.registrations.data, 'registrations') || []);
+            if (r.myRegistrations && r.myRegistrations.ok) setRegistrations(unwrap(r.myRegistrations.data, 'registrations') || []);
+            if (r.users && r.users.ok) setUsers(unwrap(r.users.data, 'users') || []);
+        } catch (err) {
+            console.warn('loadRealBackendData caught error:', err);
+            setLoadError('Could not load arena data.');
+        } finally {
+            setIsLoadingData(false);
+            setIsInitialized(true);
+        }
+    }, [role, applySettings]);
 
-        // Check if real database auth cookie exists
-        fetch('/api/auth/me')
-            .then(res => res.json())
-            .then(data => {
-                if (data.authenticated && data.user) {
-                    setCurrentUser(data.user);
-                    saveCurrentUser(data.user);
-                } else if (data.authenticated === false) {
-                    const visitor = {
-                        id: 'usr-visitor',
-                        name: 'Visitor',
-                        phone: '',
-                        role: 'visitor',
-                        createdAt: new Date().toISOString()
-                    };
-                    setCurrentUser(visitor);
-                    saveCurrentUser(visitor);
-                }
-            })
-            .catch(() => { });
-    }, [loadRealBackendData]);
-    // 10-minute hold ticker: check every 5 seconds to auto-release expired holds
+    // ---- Boot: who am I, then load for that role ----
     useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setSlotHolds(getActiveSlotHolds());
+            setSmsLogs(getStoredSMSLogs());
+            try { const c = JSON.parse(localStorage.getItem('cma_cart_v1') || '[]'); if (Array.isArray(c)) setCartItems(c); } catch { /* ignore */ }
+            let user = VISITOR;
+            const me = await api('/api/auth/me');
+            if (me.ok && me.data.authenticated && me.data.user) user = me.data.user;
+            if (cancelled) return;
+            setCurrentUser(user);
+            saveCurrentUser(user);
+            setAuthChecked(true);
+            await loadRealBackendData(user.role);
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Persist the cart only (per-device convenience)
+    useEffect(() => {
+        try { localStorage.setItem('cma_cart_v1', JSON.stringify(cartItems)); } catch { /* ignore */ }
+    }, [cartItems]);
+
+    // Local hold timer: only ticks while something is held, and only re-renders when the set changes
+    useEffect(() => {
+        if (slotHolds.length === 0) return undefined;
         const timer = setInterval(() => {
             const active = getActiveSlotHolds();
-            setSlotHolds(active);
+            setSlotHolds(prev => (prev.length === active.length && prev.every((h, i) => h.id === active[i]?.id) ? prev : active));
         }, 5000);
         return () => clearInterval(timer);
-    }, []);
-    // Current Overall Financial calculations
-    const grossRevenue = useMemo(() => {
-        const bookingRevenue = bookings.reduce((sum, b) => {
-            if (b.paymentStatus === 'paid_full')
-                return sum + b.totalPrice;
-            if (b.paymentStatus === 'paid_advance')
-                return sum + (b.advanceAmount || 500);
-            return sum;
-        }, 0);
-        const otherTotal = otherIncome.reduce((sum, o) => sum + o.amount, 0);
-        const refundsTotal = refunds.filter(r => r.status === 'completed').reduce((sum, r) => sum + r.amount, 0);
-        return Math.max(0, bookingRevenue + otherTotal - refundsTotal);
-    }, [bookings, otherIncome, refunds]);
-    const totalExpenses = useMemo(() => {
-        return expenses.reduce((sum, e) => sum + e.amount, 0);
-    }, [expenses]);
-    const netProfit = useMemo(() => {
-        return grossRevenue - totalExpenses;
-    }, [grossRevenue, totalExpenses]);
-    const isLossMonth = useMemo(() => {
-        return netProfit <= 0;
-    }, [netProfit]);
-    // Exact Section 8 Monthly Financial Report Formula
+    }, [slotHolds.length]);
+
+    // ---- Derived: my bookings (strict phone / userId match, never for visitors) ----
+    const myBookings = useMemo(() => {
+        if (isVisitor) return [];
+        const phone = cleanPhone(currentUser.phone);
+        const uid = String(currentUser.id || '');
+        return bookings.filter(b => !b.isPublicView && ((phone && cleanPhone(b.captainPhone) === phone) || (uid && b.userId === uid)));
+    }, [bookings, currentUser, isVisitor]);
+
+    // ---- Finance (monthly, cash basis) ----
     const calculateMonthlyFinance = useCallback((monthStr) => {
-        // monthStr format: "YYYY-MM"
         const [year, month] = monthStr.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
-        // 1. Booking money collected in this month
-        // Counted by payment date (createdAt starts with monthStr)
-        const monthBookings = bookings.filter(b => b.createdAt.startsWith(monthStr) && b.paymentStatus !== 'cancelled');
-        const bookingPayments = monthBookings.reduce((sum, b) => {
-            if (b.paymentStatus === 'paid_full')
-                return sum + b.totalPrice;
-            if (b.paymentStatus === 'paid_advance')
-                return sum + (b.advanceAmount || 500);
-            return sum;
-        }, 0);
-        // Completed refunds processed in this month
-        const monthRefunds = refunds.filter(r => r.status === 'completed' && (r.refundedDate?.startsWith(monthStr) || r.requestDate.startsWith(monthStr)));
-        const refundsAmount = monthRefunds.reduce((sum, r) => sum + r.amount, 0);
+        const inMonth = (iso) => String(iso || '').startsWith(monthStr);
+        // Money: by the day it was collected (paidAt, else createdAt) in Dhaka time
+        const paidMonthBookings = bookings.filter(b => !b.isPublicView && inMonth(dhakaDate(b.paidAt || b.createdAt)) && collectedAmount(b) > 0);
+        const bookingPayments = paidMonthBookings.reduce((s, b) => s + collectedAmount(b), 0);
+        const monthRefunds = refunds.filter(r => r.status === 'completed' && inMonth(r.refundedDate));
+        const refundsAmount = monthRefunds.reduce((s, r) => s + (Number(r.amount) || 0), 0);
         const bookingMoneyCollected = Math.max(0, bookingPayments - refundsAmount);
-        // 2. Other income entered for that month
-        const monthOtherIncome = otherIncome.filter(o => o.date.startsWith(monthStr));
-        const otherIncomeTotal = monthOtherIncome.reduce((sum, o) => sum + o.amount, 0);
-        // Total revenue = booking money collected + other income
+        const monthOtherIncome = otherIncome.filter(o => inMonth(o.date));
+        const otherIncomeTotal = monthOtherIncome.reduce((s, o) => s + (Number(o.amount) || 0), 0);
         const totalRevenue = bookingMoneyCollected + otherIncomeTotal;
-        // 3. Expenses dated in that month
-        const monthExpenses = expenses.filter(e => e.date.startsWith(monthStr));
-        const totalExpensesMonth = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-        // 4. Net profit = total revenue - expenses
+        const monthExpenses = expenses.filter(e => inMonth(e.date));
+        const totalExpensesMonth = monthExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
         const monthNetProfit = totalRevenue - totalExpensesMonth;
         const isLoss = monthNetProfit <= 0;
         const profitMargin = totalRevenue > 0 ? (monthNetProfit / totalRevenue) * 100 : 0;
-        // 5. Slots booked and occupancy
-        const slotsBooked = monthBookings.length;
-        const totalPossibleSlots = 12 * daysInMonth;
-        const occupancyRate = (slotsBooked / totalPossibleSlots) * 100;
-        // Cancellations
-        const cancelledBookings = bookings.filter(b => b.createdAt.startsWith(monthStr) && b.paymentStatus === 'cancelled');
+        // Slots: by play date
+        const playedMonthBookings = bookings.filter(b => inMonth(b.date) && b.paymentStatus !== 'cancelled' && b.paymentStatus !== 'pending_payment');
+        const slotsBooked = playedMonthBookings.length;
+        const occupancyRate = Math.min(100, (slotsBooked / (12 * daysInMonth)) * 100);
+        const cancelledBookings = bookings.filter(b => inMonth(b.date) && b.paymentStatus === 'cancelled' && !b.isPublicView);
         const cancellationsCount = cancelledBookings.length;
-        const cancellationsAmount = cancelledBookings.reduce((sum, b) => sum + (b.advanceAmount || 0), 0);
-        // Money still due
-        const dueAmountTotal = monthBookings.reduce((sum, b) => sum + (b.dueAmount || 0), 0);
-        // 6. Investor shares
-        // Investor share = net profit × investor % ÷ 100. If net profit is zero or negative, every share is ৳0.
+        const cancellationsAmount = cancelledBookings.reduce((s, b) => s + (Number(b.advanceAmount) || 0), 0);
+        const dueAmountTotal = playedMonthBookings.reduce((s, b) => s + (Number(b.dueAmount) || 0), 0);
+        // Investor shares (active partners only)
         const monthPayouts = payouts.filter(p => p.month === monthStr);
-        const investorShares = investors.map(inv => {
-            const shareAmount = isLoss ? 0 : Math.round((monthNetProfit * inv.sharePercentage) / 100);
-            const isPaid = monthPayouts.some(p => p.investorId === inv.id);
-            return {
-                investor: inv,
-                shareAmount,
-                percentage: inv.sharePercentage,
-                isPaid
-            };
+        const investorShares = investors.filter(inv => (inv.status || 'active') === 'active').map(inv => {
+            const shareAmount = isLoss ? 0 : Math.round((monthNetProfit * (Number(inv.sharePercentage) || 0)) / 100);
+            const paidAmount = monthPayouts.filter(p => p.investorId === inv.id).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+            return { investor: inv, shareAmount, percentage: Number(inv.sharePercentage) || 0, paidAmount, balance: Math.max(0, shareAmount - paidAmount), isPaid: shareAmount > 0 && paidAmount >= shareAmount };
         });
-        const totalInvestorShare = investorShares.reduce((sum, i) => sum + i.shareAmount, 0);
-        const ownersShare = Math.max(0, monthNetProfit - totalInvestorShare);
-        // 7. Daily Breakdown Table
+        const totalInvestorShare = investorShares.reduce((s, i) => s + i.shareAmount, 0);
+        const ownersShare = monthNetProfit - totalInvestorShare;
         const dailyBreakdown = [];
         for (let d = 1; d <= daysInMonth; d++) {
             const dayStr = `${monthStr}-${String(d).padStart(2, '0')}`;
-            const dayBookings = monthBookings.filter(b => b.date === dayStr);
-            const dayIncome = dayBookings.reduce((sum, b) => {
-                if (b.paymentStatus === 'paid_full')
-                    return sum + b.totalPrice;
-                return sum + (b.advanceAmount || 500);
-            }, 0);
-            const dayExp = monthExpenses.filter(e => e.date === dayStr).reduce((sum, e) => sum + e.amount, 0);
-            dailyBreakdown.push({
-                date: dayStr,
-                slotsBooked: dayBookings.length,
-                moneyCollected: dayIncome,
-                expenses: dayExp,
-                net: dayIncome - dayExp
-            });
+            const dayBookings = playedMonthBookings.filter(b => b.date === dayStr);
+            const dayIncome = paidMonthBookings.filter(b => dhakaDate(b.paidAt || b.createdAt) === dayStr).reduce((s, b) => s + collectedAmount(b), 0);
+            const dayExp = monthExpenses.filter(e => e.date === dayStr).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+            dailyBreakdown.push({ date: dayStr, slotsBooked: dayBookings.length, moneyCollected: dayIncome, expenses: dayExp, net: dayIncome - dayExp });
         }
-        // 8. Expenses by Category
         const categoryTotals = {};
-        monthExpenses.forEach(e => {
-            categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
-        });
-        const expensesByCategory = Object.entries(categoryTotals).map(([cat, amt]) => ({
-            category: cat,
-            amount: amt,
-            percentage: totalExpensesMonth > 0 ? (amt / totalExpensesMonth) * 100 : 0
-        }));
-        // 9. Income by Source
+        monthExpenses.forEach(e => { categoryTotals[e.category || 'other'] = (categoryTotals[e.category || 'other'] || 0) + (Number(e.amount) || 0); });
+        const expensesByCategory = Object.entries(categoryTotals).map(([cat, amt]) => ({ category: cat, amount: amt, percentage: totalExpensesMonth > 0 ? (amt / totalExpensesMonth) * 100 : 0 }));
+        const sumSrc = (f) => monthOtherIncome.filter(f).reduce((s, o) => s + (Number(o.amount) || 0), 0);
+        const pct = (a) => (totalRevenue > 0 ? (a / totalRevenue) * 100 : 0);
         const incomeBySource = [
-            { source: 'Turf Slots Booking', amount: bookingMoneyCollected, percentage: totalRevenue > 0 ? (bookingMoneyCollected / totalRevenue) * 100 : 0 },
-            { source: 'Sports Shop Pickup Sales', amount: monthOtherIncome.filter(o => o.source === 'shop_sales').reduce((sum, o) => sum + o.amount, 0), percentage: totalRevenue > 0 ? (monthOtherIncome.filter(o => o.source === 'shop_sales').reduce((sum, o) => sum + o.amount, 0) / totalRevenue) * 100 : 0 },
-            { source: 'Tournament & Event Fees', amount: monthOtherIncome.filter(o => o.source === 'event_fees').reduce((sum, o) => sum + o.amount, 0), percentage: totalRevenue > 0 ? (monthOtherIncome.filter(o => o.source === 'event_fees').reduce((sum, o) => sum + o.amount, 0) / totalRevenue) * 100 : 0 },
-            { source: 'Sponsorship & Other', amount: monthOtherIncome.filter(o => !['shop_sales', 'event_fees'].includes(o.source)).reduce((sum, o) => sum + o.amount, 0), percentage: totalRevenue > 0 ? (monthOtherIncome.filter(o => !['shop_sales', 'event_fees'].includes(o.source)).reduce((sum, o) => sum + o.amount, 0) / totalRevenue) * 100 : 0 }
+            { key: 'bookings', source: 'Turf Slots Booking', amount: bookingMoneyCollected, percentage: pct(bookingMoneyCollected) },
+            { key: 'shop_sales', source: 'Sports Shop Pickup Sales', amount: sumSrc(o => o.source === 'shop_sales'), percentage: pct(sumSrc(o => o.source === 'shop_sales')) },
+            { key: 'event_fees', source: 'Tournament & Event Fees', amount: sumSrc(o => o.source === 'event_fees'), percentage: pct(sumSrc(o => o.source === 'event_fees')) },
+            { key: 'other', source: 'Sponsorship & Other', amount: sumSrc(o => !['shop_sales', 'event_fees'].includes(o.source)), percentage: pct(sumSrc(o => !['shop_sales', 'event_fees'].includes(o.source))) }
         ];
-        // 10. Most Popular Slots
         const slotCounts = {};
-        monthBookings.forEach(b => {
-            slotCounts[b.slotNumber] = (slotCounts[b.slotNumber] || 0) + 1;
-        });
-        const popularSlotsRanking = pricing.slotPrices.map(s => ({
-            slotNumber: s.slotNumber,
-            displayTime: s.displayTime,
-            count: slotCounts[s.slotNumber] || 0
-        })).sort((a, b) => b.count - a.count);
-        return {
-            month: monthStr,
-            bookingMoneyCollected,
-            otherIncomeTotal,
-            totalRevenue,
-            totalExpenses: totalExpensesMonth,
-            netProfit: monthNetProfit,
-            isLossMonth: isLoss,
-            profitMargin,
-            slotsBooked,
-            occupancyRate,
-            cancellationsCount,
-            cancellationsAmount,
-            dueAmountTotal,
-            investorShares,
-            ownersShare,
-            dailyBreakdown,
-            expensesByCategory,
-            incomeBySource,
-            popularSlotsRanking
-        };
+        playedMonthBookings.forEach(b => { slotCounts[b.slotNumber] = (slotCounts[b.slotNumber] || 0) + 1; });
+        const popularSlotsRanking = (pricing.slotPrices || SCHEDULE_SLOTS_DEFINITION).map(s => ({ slotNumber: s.slotNumber, displayTime: s.displayTime, count: slotCounts[s.slotNumber] || 0 })).sort((a, b) => b.count - a.count);
+        return { month: monthStr, bookingMoneyCollected, otherIncomeTotal, totalRevenue, totalExpenses: totalExpensesMonth, netProfit: monthNetProfit, isLossMonth: isLoss, profitMargin, slotsBooked, occupancyRate, cancellationsCount, cancellationsAmount, refundsAmount, dueAmountTotal, investorShares, totalInvestorShare, ownersShare, dailyBreakdown, expensesByCategory, incomeBySource, popularSlotsRanking };
     }, [bookings, otherIncome, refunds, expenses, investors, payouts, pricing]);
-    // Auth Operations
-    const login = useCallback(async (phone, password = 'password123') => {
-        try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, password })
-            });
-            const data = await res.json();
-            if (res.ok && data.success && data.user) {
-                setCurrentUser(data.user);
-                saveCurrentUser(data.user);
-                return { success: true, message: data.message, user: data.user, token: data.token };
-            }
-            if (!res.ok && data.error) {
-                return { success: false, message: data.error };
-            }
+
+    const currentMonthFinance = useMemo(() => calculateMonthlyFinance(todayDhaka().slice(0, 7)), [calculateMonthlyFinance]);
+    const grossRevenue = currentMonthFinance.totalRevenue;
+    const totalExpenses = currentMonthFinance.totalExpenses;
+    const netProfit = currentMonthFinance.netProfit;
+    const isLossMonth = currentMonthFinance.isLossMonth;
+
+    // ---- Auth ----
+    const login = useCallback(async (phone, password) => {
+        const r = await api('/api/auth/login', { method: 'POST', body: { phone, password } });
+        if (r.ok && r.data.user) {
+            setCurrentUser(r.data.user);
+            saveCurrentUser(r.data.user);
+            loadRealBackendData(r.data.user.role);
+            return { success: true, message: r.data.message, user: r.data.user };
         }
-        catch (e) {
-            console.warn('Backend login error or offline, falling back to local state:', e);
-        }
-        // Fallback to local user lookup if API is offline
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-        const user = users.find(u => u.phone.replace(/[^0-9]/g, '') === cleanPhone);
-        if (!user) {
-            return { success: false, message: 'No account found with this phone number. Please sign up.' };
-        }
-        if (user.disabled) {
-            return { success: false, message: 'Account is deactivated. Please contact Crossbar arena desk.' };
-        }
-        if (user.password && user.password !== password) {
-            return { success: false, message: 'Incorrect password entered.' };
-        }
-        setCurrentUser(user);
-        saveCurrentUser(user);
-        return { success: true, user };
-    }, [users]);
+        return { success: false, message: r.error || 'Login failed' };
+    }, [loadRealBackendData]);
+
     const signup = useCallback(async (data) => {
-        try {
-            const res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const resData = await res.json();
-            if (res.ok && resData.success && resData.user) {
-                setCurrentUser(resData.user);
-                saveCurrentUser(resData.user);
-                setUsers(prev => {
-                    const exists = prev.some(u => u.id === resData.user.id || u.phone === resData.user.phone);
-                    return exists ? prev : [...prev, resData.user];
-                });
-                return { success: true, message: resData.message, user: resData.user, token: resData.token };
-            }
-            if (!res.ok && resData.error) {
-                return { success: false, message: resData.error };
-            }
+        const r = await api('/api/auth/register', { method: 'POST', body: data });
+        if (r.ok && r.data.user) {
+            setCurrentUser(r.data.user);
+            saveCurrentUser(r.data.user);
+            loadRealBackendData(r.data.user.role);
+            return { success: true, message: r.data.message, user: r.data.user };
         }
-        catch (e) {
-            console.warn('Backend register error or offline, fallback to local state:', e);
-        }
-        // Fallback to local storage
-        if (!data.phone || data.phone.length < 10) {
-            return { success: false, message: 'Please enter a valid 11-digit Bangladeshi mobile number.' };
-        }
-        if (!data.name?.trim()) {
-            return { success: false, message: 'Name is required.' };
-        }
-        const cleanPhone = data.phone.replace(/[^0-9]/g, '');
-        const existing = users.find(u => u.phone.replace(/[^0-9]/g, '') === cleanPhone);
-        if (existing) {
-            return { success: false, message: 'An account already exists with this phone number. Please log in.' };
-        }
-        const newUser = {
-            id: `usr-${Date.now()}`,
-            name: data.name.trim(),
-            phone: cleanPhone,
-            password: data.password || 'password123',
-            role: data.role || 'player',
-            playingPosition: data.playingPosition || 'MID',
-            email: data.email?.trim() || `${cleanPhone}@bookcrossbar.com`,
-            createdAt: new Date().toISOString()
-        };
-        const updated = saveUser(newUser);
-        setUsers(updated);
-        setCurrentUser(newUser);
-        saveCurrentUser(newUser);
-        return { success: true, user: newUser };
-    }, [users]);
+        return { success: false, message: r.error || 'Registration failed' };
+    }, [loadRealBackendData]);
+
     const logout = useCallback(async () => {
-        try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-        } catch {}
-        if (typeof document !== 'undefined') {
-            document.cookie = 'cma_auth_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
-            document.cookie = 'cma_user=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+        await api('/api/auth/logout', { method: 'POST' });
+        setCurrentUser(VISITOR);
+        saveCurrentUser(VISITOR);
+        setUsers([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+        loadRealBackendData('visitor');
+    }, [loadRealBackendData]);
+
+    /** Demo role switching only works when NEXT_PUBLIC_DEMO_MODE=true (never in production). */
+    const switchDemoUser = useCallback(async (targetRole) => {
+        if (!DEMO_MODE) {
+            showNotice('info', 'Demo accounts are disabled on this site. Please log in with your own account.');
+            return { success: false };
         }
-        const visitor = {
-            id: 'usr-visitor',
-            name: 'Visitor',
-            phone: '',
-            role: 'visitor',
-            createdAt: new Date().toISOString()
-        };
-        setCurrentUser(visitor);
-        saveCurrentUser(visitor);
+        if (targetRole === 'visitor') { await logout(); return { success: true }; }
+        const demo = { admin: '01711223344', investor: '01819556677', player: '01844332211' }[targetRole];
+        if (!demo) return { success: false };
+        return login(demo, 'password123');
+    }, [login, logout, showNotice]);
+
+    const resetPasswordSMS = useCallback(async () => ({
+        success: false,
+        message: 'Password reset by SMS is not available yet. Please contact the arena desk on WhatsApp to reset your password.'
+    }), []);
+
+    const handleUpdateProfile = useCallback(async (patch) => {
+        const r = await api('/api/auth/me', { method: 'PUT', body: patch });
+        if (r.ok && r.data.user) { setCurrentUser(r.data.user); saveCurrentUser(r.data.user); showNotice('success', r.data.message || 'Profile updated'); return { ok: true, user: r.data.user }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleChangePassword = useCallback(async (currentPassword, newPassword) => {
+        const r = await api('/api/auth/me', { method: 'PUT', body: { currentPassword, newPassword } });
+        if (r.ok) { showNotice('success', 'Password changed'); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Admin: users ----
+    const refreshUsers = useCallback(async () => {
+        const r = await api('/api/users?includeDisabled=1');
+        if (r.ok) setUsers(unwrap(r.data, 'users') || []);
     }, []);
-    const switchDemoUser = useCallback(async (role, specificId) => {
-        if (role === 'visitor') {
-            await logout();
-            return;
-        }
-        let target = users.find(u => u.role === role);
-        if (specificId) {
-            const found = users.find(u => u.id === specificId);
-            if (found) target = found;
-        }
-        if (!target) {
-            target = INITIAL_USERS.find(u => u.role === role);
-        }
-        if (target) {
-            setCurrentUser(target);
-            saveCurrentUser(target);
-            try {
-                await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: target.phone,
-                        password: target.password || 'password123'
-                    })
-                });
-            } catch (err) {
-                console.warn('switchDemoUser login API sync error:', err);
-            }
-        }
-    }, [users, logout]);
-    const resetPasswordSMS = useCallback(async (phone) => {
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-        const user = users.find(u => u.phone.replace(/[^0-9]/g, '') === cleanPhone);
-        if (!user) {
-            return { success: false, message: 'Mobile number not registered.' };
-        }
-        const otp = String(Math.floor(1000 + Math.random() * 9000));
-        const msg = `Crossbar Metro Arena: Your password reset security code is ${otp}. Valid for 5 minutes.`;
-        const sms = {
-            id: `sms-${Date.now()}`,
-            recipientPhone: user.phone,
-            message: msg,
-            event: 'otp_reset',
-            provider: 'SSLWireless',
-            sentAt: new Date().toISOString(),
-            status: 'delivered'
-        };
-        const updatedSms = logSMSNotification(sms);
-        setSmsLogs(updatedSms);
-        return {
-            success: true,
-            otp,
-            message: `SMS code sent to +880 ${cleanPhone}. (Sandbox Code: ${otp})`
-        };
-    }, [users]);
-    const handleUpdateUserRole = useCallback((userId, newRole) => {
-        const updated = users.map(u => u.id === userId ? { ...u, role: newRole } : u);
-        setUsers(updated);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('cma_users_v3', JSON.stringify(updated));
-        }
-    }, [users]);
+    const handleAdminUpdateUser = useCallback(async (id, patch) => {
+        const r = await api(`/api/users/${id}`, { method: 'PATCH', body: patch });
+        if (!r.ok) throw new Error(r.error);
+        setUsers(prev => prev.map(u => (u.id === id ? r.data.user : u)));
+        return r.data.user;
+    }, []);
+    const handleUpdateUserRole = useCallback((userId, newRole) => handleAdminUpdateUser(userId, { role: newRole }).catch(e => showNotice('error', e.message)), [handleAdminUpdateUser, showNotice]);
     const handleToggleUserDisabled = useCallback((userId) => {
-        const updated = users.map(u => u.id === userId ? { ...u, disabled: !u.disabled } : u);
-        setUsers(updated);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('cma_users_v3', JSON.stringify(updated));
-        }
-    }, [users]);
-    // SMS Notification Dispatch
+        const u = users.find(x => x.id === userId);
+        return handleAdminUpdateUser(userId, { disabled: !u?.disabled }).catch(e => showNotice('error', e.message));
+    }, [users, handleAdminUpdateUser, showNotice]);
+
+    // ---- SMS log (local record of notifications the system intends to send) ----
     const sendSMSNotification = useCallback((phone, message, event) => {
-        const sms = {
-            id: `sms-${Date.now()}`,
-            recipientPhone: phone,
-            message,
-            event,
-            provider: 'SSLWireless',
-            sentAt: new Date().toISOString(),
-            status: 'delivered'
-        };
-        const updated = logSMSNotification(sms);
-        setSmsLogs(updated);
+        const sms = { id: `sms-${Date.now()}`, recipientPhone: cleanPhone(phone), message, event, provider: 'queued', sentAt: new Date().toISOString(), status: 'queued' };
+        setSmsLogs(logSMSNotification(sms));
     }, []);
-    // Booking operations
+
+    // ---- Bookings ----
+    const refreshBookings = useCallback(async () => {
+        const [pub, mine] = await Promise.all([api('/api/bookings'), role === 'player' ? api('/api/bookings?mine=1') : Promise.resolve({ ok: false })]);
+        if (pub.ok) {
+            const map = new Map((unwrap(pub.data, 'bookings') || []).map(b => [b.id, b]));
+            if (mine.ok) (unwrap(mine.data, 'bookings') || []).forEach(b => map.set(b.id, b));
+            setBookings([...map.values()]);
+        }
+    }, [role]);
+
+    /** Admin counter / walk-in booking. Server computes price unless courtPrice is given. */
     const handleBookingSuccess = useCallback(async (newBooking) => {
-        try {
-            // First save optimistically to state and local storage
-            const updated = saveBooking(newBooking);
-            setBookings(updated);
-            setSlotHolds(getActiveSlotHolds());
-            setActiveTicketPass(newBooking);
-
-            // Send to real MongoDB API
-            const res = await fetch('/api/bookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newBooking)
-            });
-            const data = await res.json();
-            if (res.ok && data.booking) {
-                setBookings(prev => {
-                    const exists = prev.some(b => b.id === data.booking.id || b.bookingCode === data.booking.bookingCode);
-                    return exists 
-                        ? prev.map(b => (b.id === data.booking.id || b.bookingCode === data.booking.bookingCode) ? data.booking : b)
-                        : [data.booking, ...prev];
-                });
-            }
-
-            // Automated SMS confirmation
-            const smsText = `Crossbar Metro: Booking ${newBooking.bookingCode} confirmed for ${newBooking.date} (${newBooking.displayTime}). Paid: ৳${(newBooking.advanceAmount || 0).toLocaleString()}, Due: ৳${(newBooking.dueAmount || 0).toLocaleString()}. Uttara Metro Center.`;
-            sendSMSNotification(newBooking.captainPhone, smsText, 'booking_confirmed');
+        const r = await api('/api/bookings', { method: 'POST', body: newBooking });
+        if (r.ok && r.data.booking) {
+            setBookings(prev => upsert(prev, r.data.booking));
+            setActiveTicketPass(r.data.booking);
+            const b = r.data.booking;
+            sendSMSNotification(b.captainPhone, `Crossbar Metro: Booking ${b.bookingCode} confirmed for ${b.date} (${b.displayTime}). Paid: ৳${(b.advanceAmount || 0).toLocaleString()}, Due: ৳${(b.dueAmount || 0).toLocaleString()}.`, 'booking_confirmed');
+            showNotice('success', r.data.message || 'Booking confirmed');
+            return { ok: true, booking: b };
         }
-        catch (err) {
-            console.error('handleBookingSuccess error:', err);
-            alert(err.message || 'Error processing booking');
-        }
-    }, [sendSMSNotification]);
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [sendSMSNotification, showNotice]);
+
+    /** Public online booking: creates a server-priced payment hold and returns the gateway URL. */
+    const startOnlinePayment = useCallback(async (pendingBooking) => {
+        const r = await api('/api/payment/sslcommerz/init', { method: 'POST', body: { pendingBooking } });
+        if (r.ok && r.data.gatewayUrl) return { ok: true, ...r.data };
+        return { ok: false, error: r.error || 'Could not start payment' };
+    }, []);
+
+    /** Look up a booking by code (optionally with phone for full details). */
+    const lookupBooking = useCallback(async (code, phone) => {
+        const r = await api(`/api/bookings/${encodeURIComponent(code)}${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`);
+        return r.ok ? { ok: true, booking: r.data.booking } : { ok: false, error: r.error };
+    }, []);
 
     const handlePlaceSlotHold = useCallback((courtId, date, slotNumber, teamName) => {
         const hold = placeSlotHold(courtId, date, slotNumber, teamName, pricing.holdMinutes || 10);
         setSlotHolds(getActiveSlotHolds());
         return hold;
     }, [pricing.holdMinutes]);
-
     const handleReleaseSlotHold = useCallback((courtId, date, slotNumber) => {
         releaseSlotHold(courtId, date, slotNumber);
         setSlotHolds(getActiveSlotHolds());
     }, []);
 
     const handleUpdateBookingStatus = useCallback(async (id, status, collectedCash) => {
-        const updated = updateBookingStatus(id, status, collectedCash);
-        setBookings(updated);
-        try {
-            await fetch(`/api/bookings/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status, collectedCash })
-            });
-        } catch (e) {
-            console.warn('API updateBookingStatus error:', e);
-        }
-    }, []);
+        const body = {};
+        if (collectedCash && Number(collectedCash) > 0) body.collectedCash = Number(collectedCash);
+        else if (status) body.status = status;
+        if (status === 'played') { body.played = true; delete body.status; }
+        const r = await api(`/api/bookings/${id}`, { method: 'PATCH', body });
+        if (r.ok && r.data.booking) { setBookings(prev => upsert(prev, r.data.booking)); return { ok: true, booking: r.data.booking }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleMarkPlayed = useCallback(async (id, played = true) => {
+        const r = await api(`/api/bookings/${id}`, { method: 'PATCH', body: { played } });
+        if (r.ok && r.data.booking) { setBookings(prev => upsert(prev, r.data.booking)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
 
     const handleCancelBooking = useCallback(async (id) => {
-        const result = cancelBooking(id, true);
-        setBookings(result.bookings);
-        if (result.refund) {
-            setRefunds(getStoredRefunds());
+        const r = await api(`/api/bookings/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+            if (r.data.booking) setBookings(prev => upsert(prev, r.data.booking));
+            if (r.data.refund) setRefunds(prev => upsert(prev, r.data.refund));
+            const b = r.data.booking;
+            if (b) sendSMSNotification(b.captainPhone, `Crossbar Metro: Booking ${b.bookingCode} on ${b.date} was cancelled.${r.data.refund ? ` ৳${r.data.refund.amount} queued for refund.` : ''}`, 'booking_cancelled');
+            showNotice('success', r.data.message || 'Booking cancelled');
+            return { ok: true, booking: b, refund: r.data.refund };
         }
-        try {
-            const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.refund) {
-                setRefunds(prev => [data.refund, ...prev.filter(r => r.id !== data.refund.id)]);
-            }
-        } catch (e) {
-            console.warn('API cancelBooking error:', e);
-        }
-        const target = bookings.find(b => b.id === id);
-        if (target) {
-            const msg = `Crossbar Metro: Booking ${target.bookingCode} on ${target.date} was cancelled. Advance paid (৳${target.advanceAmount}) sent to refund queue.`;
-            sendSMSNotification(target.captainPhone, msg, 'booking_cancelled');
-        }
-    }, [bookings, sendSMSNotification]);
-
-    const handleRecordRefund = useCallback(async (refundId, amount, method, transactionRef) => {
-        const current = getStoredRefunds();
-        const updated = current.map(r => {
-            if (r.id === refundId) {
-                return {
-                    ...r,
-                    amount,
-                    refundMethod: method,
-                    status: 'completed',
-                    refundedDate: new Date().toISOString().split('T')[0],
-                    transactionRef: transactionRef || `REF-${Date.now().toString().slice(-6)}`,
-                    recordedBy: currentUser?.name || 'Admin Desk'
-                };
-            }
-            return r;
-        });
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('cma_refunds_v3', JSON.stringify(updated));
-        }
-        setRefunds(updated);
-
-        try {
-            await fetch(`/api/refunds/${refundId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount,
-                    refundMethod: method,
-                    transactionRef: transactionRef || `REF-${Date.now().toString().slice(-6)}`,
-                    status: 'completed',
-                    recordedBy: currentUser?.name || 'Admin Desk'
-                })
-            });
-        } catch (e) {
-            console.warn('API recordRefund error:', e);
-        }
-    }, [currentUser]);
-
-    const handleRecordPayout = useCallback(async (payout) => {
-        const updated = savePayout(payout);
-        setPayouts(updated);
-        try {
-            const res = await fetch('/api/payouts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payout)
-            });
-            const data = await res.json();
-            if (data.investors) {
-                setInvestors(data.investors);
-            }
-        } catch (e) {
-            console.warn('API recordPayout error:', e);
-        }
-    }, []);
-
-    const handleAddOtherIncome = useCallback(async (income) => {
-        const updated = saveOtherIncome(income);
-        setOtherIncome(updated);
-        try {
-            await fetch('/api/other-income', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(income)
-            });
-        } catch (e) {
-            console.warn('API addOtherIncome error:', e);
-        }
-    }, []);
-
-    const handleSavePricing = useCallback(async (newConfig) => {
-        const updated = savePricing(newConfig);
-        setPricing(updated);
-        try {
-            await fetch('/api/settings', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pricing: newConfig })
-            });
-        } catch (e) {
-            console.warn('API savePricing error:', e);
-        }
-    }, []);
-
-    const handleAddExpense = useCallback(async (expense) => {
-        const updated = saveExpense(expense);
-        setExpenses(updated);
-        try {
-            await fetch('/api/expenses', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(expense)
-            });
-        } catch (e) {
-            console.warn('API addExpense error:', e);
-        }
-    }, []);
-
-    const handleDeleteExpense = useCallback(async (id) => {
-        const updated = deleteExpense(id);
-        setExpenses(updated);
-        try {
-            await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
-        } catch (e) {
-            console.warn('API deleteExpense error:', e);
-        }
-    }, []);
-
-    const handleSaveInvestors = useCallback(async (invs) => {
-        const updated = saveInvestors(invs);
-        setInvestors(updated);
-        try {
-            await fetch('/api/investors', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(invs)
-            });
-        } catch (e) {
-            console.warn('API saveInvestors error:', e);
-        }
-    }, []);
-
-    const handleSaveTeam = useCallback(async (team) => {
-        const updated = saveTeam(team);
-        setTeams(updated);
-        try {
-            await fetch('/api/teams', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(team)
-            });
-        } catch (e) {
-            console.warn('API saveTeam error:', e);
-        }
-    }, []);
-
-    const handleAddPlayerToTeam = useCallback(async (teamId, player) => {
-        const updated = addPlayerToTeam(teamId, player);
-        setTeams(updated);
-        try {
-            await fetch(`/api/teams/${teamId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(player)
-            });
-        } catch (e) {
-            console.warn('API addPlayerToTeam error:', e);
-        }
-    }, []);
-
-    const handleSaveMatchResult = useCallback(async (result) => {
-        const updated = saveMatchResult(result);
-        setMatchResults(updated);
-        try {
-            await fetch('/api/match-results', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(result)
-            });
-        } catch (e) {
-            console.warn('API saveMatchResult error:', e);
-        }
-    }, []);
-
-    const handleSaveShopProduct = useCallback(async (product) => {
-        const updated = saveShopProduct(product);
-        setShopProducts(updated);
-        try {
-            await fetch('/api/products', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(product)
-            });
-        } catch (e) {
-            console.warn('API saveShopProduct error:', e);
-        }
-    }, []);
-
-    const handleSaveShopReservation = useCallback(async (reservation) => {
-        const updated = saveShopReservation(reservation);
-        setShopReservations(updated);
-        try {
-            const payload = {
-                reservationCode: reservation.reservationCode,
-                customerName: reservation.customerName,
-                customerPhone: reservation.customerPhone,
-                totalAmount: reservation.price,
-                items: reservation.items || [
-                    {
-                        productId: reservation.productId,
-                        name: reservation.productName,
-                        size: reservation.size || '',
-                        quantity: reservation.quantity || 1,
-                        price: reservation.price
-                    }
-                ],
-                notes: reservation.notes || ''
-            };
-            const res = await fetch('/api/shop-orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (res.ok && data.reservation) {
-                setShopReservations(prev => [data.reservation, ...prev.filter(r => r.id !== reservation.id)]);
-            }
-        } catch (e) {
-            console.warn('API saveShopReservation error:', e);
-        }
-    }, []);
-
-    const handleUpdateShopReservationStatus = useCallback(async (id, status) => {
-        const updated = updateShopReservationStatus(id, status);
-        setShopReservations(updated);
-        setOtherIncome(getStoredOtherIncome());
-        setShopProducts(getStoredShopProducts());
-        try {
-            await fetch(`/api/shop-orders/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
-            // Refresh products & other income
-            const [prodsRes, incRes] = await Promise.all([
-                fetch('/api/products').then(r => r.json()).catch(() => null),
-                fetch('/api/other-income').then(r => r.json()).catch(() => null)
-            ]);
-            if (prodsRes && Array.isArray(prodsRes)) setShopProducts(prodsRes);
-            if (incRes && Array.isArray(incRes)) setOtherIncome(incRes);
-        } catch (e) {
-            console.warn('API updateShopReservationStatus error:', e);
-        }
-    }, []);
-
-    const handleRegistrationSuccess = useCallback(async (newReg) => {
-        const updated = saveTournamentRegistration(newReg);
-        setRegistrations(updated);
-        setTournaments(getStoredTournaments());
-        try {
-            const res = await fetch('/api/registrations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newReg)
-            });
-            const data = await res.json();
-            if (res.ok && data.registration) {
-                setRegistrations(prev => [data.registration, ...prev.filter(r => r.id !== newReg.id)]);
-            }
-        } catch (e) {
-            console.warn('API registrationSuccess error:', e);
-        }
-    }, []);
-
-
-    // ---- Admin: recurring / bulk bookings (weekly fixed slots) ----
-    const refreshBookings = useCallback(async () => {
-        try {
-            const res = await fetch('/api/bookings');
-            const data = await res.json();
-            if (res.ok && Array.isArray(data.bookings)) {
-                setBookings(data.bookings);
-                if (typeof window !== 'undefined') {
-                    try { localStorage.setItem('cma_bookings_v3', JSON.stringify(data.bookings)); } catch { /* ignore */ }
-                }
-            }
-        } catch (e) {
-            console.warn('refreshBookings error:', e);
-        }
-    }, []);
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [sendSMSNotification, showNotice]);
 
     const handleCreateRecurringBookings = useCallback(async (payload) => {
-        const res = await fetch('/api/bookings/bulk', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            const err = new Error(data.error || 'Failed to create bookings');
-            err.data = data;
-            throw err;
+        const r = await api('/api/bookings/bulk', { method: 'POST', body: payload });
+        if (!r.ok) { const err = new Error(r.error); err.data = r.data; throw err; }
+        if (!payload.dryRun && Array.isArray(r.data.bookings) && r.data.bookings.length) {
+            setBookings(prev => { const codes = new Set(r.data.bookings.map(b => b.bookingCode)); return [...r.data.bookings, ...prev.filter(b => !codes.has(b.bookingCode))]; });
+            const first = r.data.bookings[0];
+            sendSMSNotification(first.captainPhone, `Crossbar Metro: ${r.data.bookings.length} fixed slots confirmed for ${first.teamName} (${first.displayTime}) from ${r.data.summary?.firstDate} to ${r.data.summary?.lastDate}.`, 'booking_confirmed');
         }
-        if (!payload.dryRun && Array.isArray(data.bookings) && data.bookings.length) {
-            setBookings(prev => {
-                const codes = new Set(data.bookings.map(b => b.bookingCode));
-                return [...data.bookings, ...prev.filter(b => !codes.has(b.bookingCode))];
-            });
-            const first = data.bookings[0];
-            const smsText = `Crossbar Metro: ${data.bookings.length} fixed slots confirmed for ${first.teamName} (${first.displayTime}) from ${data.summary?.firstDate} to ${data.summary?.lastDate}. Series ${data.seriesId}.`;
-            sendSMSNotification(first.captainPhone, smsText, 'booking_confirmed');
-        }
-        return data;
+        return r.data;
     }, [sendSMSNotification]);
-
     const handleCancelSeries = useCallback(async (seriesId, scope = 'upcoming') => {
-        const res = await fetch(`/api/bookings/bulk?seriesId=${encodeURIComponent(seriesId)}&scope=${scope}`, { method: 'DELETE' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to cancel series');
+        const r = await api(`/api/bookings/bulk?seriesId=${encodeURIComponent(seriesId)}&scope=${scope}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(r.error);
         await refreshBookings();
-        return data;
+        return r.data;
     }, [refreshBookings]);
 
-    // ---- Admin: edit tournament registration data ----
-    const handleUpdateRegistration = useCallback(async (id, patch) => {
-        const res = await fetch(`/api/registrations/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to update registration');
-        setRegistrations(prev => prev.map(r => (r.id === id ? data.registration : r)));
-        if (typeof window !== 'undefined') {
-            try {
-                const stored = JSON.parse(localStorage.getItem('cma_tournament_registrations_v3') || '[]');
-                localStorage.setItem('cma_tournament_registrations_v3', JSON.stringify(stored.map(r => (r.id === id ? data.registration : r))));
-            } catch { /* ignore */ }
+    // ---- Finance (admin) ----
+    const handleRecordRefund = useCallback(async (refundId, amount, method, transactionRef, status = 'completed') => {
+        const r = await api(`/api/refunds/${refundId}`, { method: 'PATCH', body: { amount, refundMethod: method, transactionRef, status, recordedBy: currentUser?.name || 'Admin Desk' } });
+        if (r.ok && r.data.refund) { setRefunds(prev => upsert(prev, r.data.refund)); showNotice('success', 'Refund updated'); return { ok: true, refund: r.data.refund }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [currentUser, showNotice]);
+
+    const handleRecordPayout = useCallback(async (payout) => {
+        const r = await api('/api/payouts', { method: 'POST', body: payout });
+        if (r.ok && r.data.payout) {
+            setPayouts(prev => upsert(prev, r.data.payout));
+            if (Array.isArray(r.data.investors)) setInvestors(r.data.investors);
+            showNotice('success', r.data.message || 'Payout recorded');
+            return { ok: true, payout: r.data.payout };
         }
-        return data.registration;
-    }, []);
+        if (r.status !== 409) showNotice('error', r.error);
+        return { ok: false, error: r.error, status: r.status, paidSoFar: r.data.paidSoFar };
+    }, [showNotice]);
 
-    const handleDeleteRegistration = useCallback(async (id) => {
-        const res = await fetch(`/api/registrations/${id}`, { method: 'DELETE' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to delete registration');
-        setRegistrations(prev => prev.filter(r => r.id !== id));
-        return data;
-    }, []);
+    const handleAddOtherIncome = useCallback(async (income) => {
+        const r = await api('/api/other-income', { method: 'POST', body: income });
+        if (r.ok && r.data.otherIncome) { setOtherIncome(prev => upsert(prev, r.data.otherIncome)); showNotice('success', 'Income recorded'); return { ok: true, otherIncome: r.data.otherIncome }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
 
-    // ---- Admin: view / edit registered player accounts ----
-    const refreshUsers = useCallback(async () => {
-        try {
-            const res = await fetch('/api/users?includeDisabled=1');
-            const data = await res.json();
-            if (res.ok && Array.isArray(data.users)) setUsers(data.users);
-        } catch (e) {
-            console.warn('refreshUsers error:', e);
-        }
-    }, []);
+    const handleAddExpense = useCallback(async (expense) => {
+        const r = await api('/api/expenses', { method: 'POST', body: expense });
+        if (r.ok && r.data.expense) { setExpenses(prev => upsert(prev, r.data.expense)); showNotice('success', 'Expense recorded'); return { ok: true, expense: r.data.expense }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
 
-    const handleAdminUpdateUser = useCallback(async (id, patch) => {
-        const res = await fetch(`/api/users/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to update player');
-        setUsers(prev => prev.map(u => (u.id === id ? data.user : u)));
-        return data.user;
-    }, []);
+    const handleDeleteExpense = useCallback(async (id) => {
+        const r = await api(`/api/expenses/${id}`, { method: 'DELETE' });
+        if (r.ok) { setExpenses(prev => prev.filter(e => e.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
 
-    const handleSaveTournament = useCallback(async (tournament) => {
-        try {
-            const res = await fetch('/api/events', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tournament)
-            });
-            const data = await res.json();
-            if (data.tournament) {
-                setTournaments(prev => [data.tournament, ...prev]);
-            }
-        } catch (e) {
-            console.warn('API saveTournament error:', e);
-        }
-    }, []);
-
-    const handleAddChallenge = useCallback(async (newChallenge) => {
-        const updated = saveChallenge(newChallenge);
-        setChallenges(updated);
-        try {
-            const res = await fetch('/api/challenges', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newChallenge)
-            });
-            const data = await res.json();
-            if (res.ok && data.challenge) {
-                setChallenges(prev => [data.challenge, ...prev.filter(c => c.id !== newChallenge.id)]);
-            }
-        } catch (e) {
-            console.warn('API addChallenge error:', e);
-        }
-    }, []);
-
-    const handleSavePhoto = useCallback(async (photo) => {
-        const updated = saveGalleryPhoto(photo);
-        setGalleryPhotos(updated);
-        try {
-            await fetch('/api/gallery', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(photo)
-            });
-        } catch (e) {
-            console.warn('API savePhoto error:', e);
-        }
-    }, []);
-
-    const handleDeletePhoto = useCallback(async (id) => {
-        const updated = deleteStoredGalleryPhoto(id);
-        setGalleryPhotos(updated);
-        try {
-            await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
-        } catch (e) {
-            console.warn('API deletePhoto error:', e);
-        }
-    }, []);
-
-    const handleToggleFeaturedPhoto = useCallback(async (id) => {
-        const target = galleryPhotos.find(p => p.id === id);
-        if (target) {
-            const updatedPhoto = { ...target, featured: !target.featured };
-            await handleSavePhoto(updatedPhoto);
-        }
-    }, [galleryPhotos, handleSavePhoto]);
+    const handleSavePricing = useCallback(async (newConfig) => {
+        const r = await api('/api/settings', { method: 'PUT', body: newConfig });
+        if (r.ok) { applySettings(r.data); showNotice('success', 'Pricing saved'); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [applySettings, showNotice]);
 
     const handleSaveSiteSettings = useCallback(async (settings) => {
-        const updated = saveSiteSettings(settings);
-        setSiteSettings(updated);
-        try {
-            await fetch('/api/settings', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings })
-            });
-        } catch (e) {
-            console.warn('API saveSiteSettings error:', e);
+        const r = await api('/api/settings', { method: 'PUT', body: settings });
+        if (r.ok) { applySettings(r.data); showNotice('success', 'Settings saved'); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [applySettings, showNotice]);
+
+    const handleSaveInvestors = useCallback(async (invs) => {
+        const payload = (Array.isArray(invs) ? invs : [invs]).map(i => (isObjectId(i.id) ? i : { ...i, id: undefined, _id: undefined }));
+        const r = await api('/api/investors', { method: 'POST', body: payload });
+        if (r.ok && Array.isArray(r.data.investors)) { setInvestors(r.data.investors); showNotice('success', r.data.message || 'Investors saved'); return { ok: true, investors: r.data.investors }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleUpdateInvestor = useCallback(async (id, patch) => {
+        const r = await api(`/api/investors/${id}`, { method: 'PUT', body: patch });
+        if (r.ok && r.data.investor) { setInvestors(prev => upsert(prev, r.data.investor)); showNotice('success', 'Investor updated'); return { ok: true, investor: r.data.investor }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleDeleteInvestor = useCallback(async (id) => {
+        const r = await api(`/api/investors/${id}`, { method: 'DELETE' });
+        if (r.ok) { setInvestors(prev => (r.data.investor ? upsert(prev, r.data.investor) : prev.filter(i => i.id !== id))); showNotice('success', r.data.message); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Teams ----
+    const handleSaveTeam = useCallback(async (team) => {
+        const r = await api('/api/teams', { method: 'POST', body: team });
+        if (r.ok && r.data.team) {
+            setTeams(prev => upsert(prev, r.data.team));
+            if (currentUser && !isObjectId(currentUser.teamId)) { const u = { ...currentUser, teamId: r.data.team.id }; setCurrentUser(u); saveCurrentUser(u); }
+            showNotice('success', 'Team registered');
+            return { ok: true, team: r.data.team };
         }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [currentUser, showNotice]);
+
+    const handleUpdateTeam = useCallback(async (teamId, patch) => {
+        const r = await api(`/api/teams/${teamId}`, { method: 'PATCH', body: patch });
+        if (r.ok && r.data.team) { setTeams(prev => upsert(prev, r.data.team)); return { ok: true, team: r.data.team }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleAddPlayerToTeam = useCallback((teamId, player) => handleUpdateTeam(teamId, { newPlayer: player }), [handleUpdateTeam]);
+    const handleRemovePlayerFromTeam = useCallback((teamId, playerId) => handleUpdateTeam(teamId, { removePlayerId: playerId }), [handleUpdateTeam]);
+    const handleDeleteTeam = useCallback(async (teamId) => {
+        const r = await api(`/api/teams/${teamId}`, { method: 'DELETE' });
+        if (r.ok) { setTeams(prev => prev.filter(t => t.id !== teamId)); showNotice('success', 'Team deleted'); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Match results ----
+    const handleSaveMatchResult = useCallback(async (result) => {
+        const r = isObjectId(result.id)
+            ? await api(`/api/match-results/${result.id}`, { method: 'PATCH', body: result })
+            : await api('/api/match-results', { method: 'POST', body: { ...result, id: undefined } });
+        if (r.ok && r.data.matchResult) {
+            const mr = r.data.matchResult;
+            setMatchResults(prev => (mr.status === 'published' || isAdmin ? upsert(prev, mr) : prev.filter(x => x.id !== mr.id)));
+            setMyMatchResults(prev => upsert(prev, mr));
+            if (mr.status === 'published') { const tr = await api('/api/teams'); if (tr.ok) setTeams(unwrap(tr.data, 'teams') || []); }
+            showNotice('success', r.data.message || 'Result saved');
+            return { ok: true, matchResult: mr, message: r.data.message };
+        }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [isAdmin, showNotice]);
+
+    const handleDeleteMatchResult = useCallback(async (id) => {
+        const r = await api(`/api/match-results/${id}`, { method: 'DELETE' });
+        if (r.ok) { setMatchResults(prev => prev.filter(m => m.id !== id)); setMyMatchResults(prev => prev.filter(m => m.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Shop ----
+    const handleSaveShopProduct = useCallback(async (product) => {
+        const body = isObjectId(product.id) ? product : { ...product, id: undefined, _id: undefined };
+        const r = await api('/api/products', { method: 'POST', body });
+        if (r.ok && r.data.product) { setShopProducts(prev => upsert(prev, r.data.product)); showNotice('success', r.data.message || 'Product saved'); return { ok: true, product: r.data.product }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleDeleteShopProduct = useCallback(async (id) => {
+        const r = await api(`/api/products/${id}`, { method: 'DELETE' });
+        if (r.ok) { setShopProducts(prev => prev.filter(p => p.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleSaveShopReservation = useCallback(async (reservation) => {
+        const items = reservation.items && reservation.items.length
+            ? reservation.items.map(i => ({ productId: i.productId || i.product?.id, quantity: i.quantity || 1, size: i.size || i.selectedSize || '' }))
+            : [{ productId: reservation.productId, quantity: reservation.quantity || 1, size: reservation.size || '' }];
+        const r = await api('/api/shop-orders', { method: 'POST', body: { customerName: reservation.customerName, customerPhone: reservation.customerPhone, items, pickupDate: reservation.pickupDate, notes: reservation.notes || '' } });
+        if (r.ok && r.data.reservation) { setShopReservations(prev => upsert(prev, r.data.reservation)); return { ok: true, reservation: r.data.reservation }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleUpdateShopReservationStatus = useCallback(async (id, status) => {
+        const r = await api(`/api/shop-orders/${id}`, { method: 'PATCH', body: { status } });
+        if (r.ok && r.data.reservation) {
+            setShopReservations(prev => upsert(prev, r.data.reservation));
+            const [prods, inc] = await Promise.all([api('/api/products'), api('/api/other-income')]);
+            if (prods.ok) setShopProducts(unwrap(prods.data, 'products') || []);
+            if (inc.ok) setOtherIncome(unwrap(inc.data, 'otherIncome') || []);
+            return { ok: true, reservation: r.data.reservation };
+        }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Tournaments & registrations ----
+    const handleRegistrationSuccess = useCallback(async (newReg) => {
+        const r = await api('/api/registrations', { method: 'POST', body: { ...newReg, id: undefined } });
+        if (r.ok && r.data.registration) { setRegistrations(prev => upsert(prev, r.data.registration)); return { ok: true, registration: r.data.registration, message: r.data.message }; }
+        return { ok: false, error: r.error };
     }, []);
-    // Cart operations
+    const handleUpdateRegistration = useCallback(async (id, patch) => {
+        const r = await api(`/api/registrations/${id}`, { method: 'PATCH', body: patch });
+        if (!r.ok) throw new Error(r.error);
+        setRegistrations(prev => prev.map(x => (x.id === id ? r.data.registration : x)));
+        const ev = await api('/api/events'); if (ev.ok) setTournaments(unwrap(ev.data, 'tournaments') || []);
+        return r.data.registration;
+    }, []);
+    const handleDeleteRegistration = useCallback(async (id) => {
+        const r = await api(`/api/registrations/${id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(r.error);
+        setRegistrations(prev => prev.filter(x => x.id !== id));
+        return r.data;
+    }, []);
+    const handleSaveTournament = useCallback(async (tournament) => {
+        const r = isObjectId(tournament.id)
+            ? await api(`/api/events/${tournament.id}`, { method: 'PATCH', body: tournament })
+            : await api('/api/events', { method: 'POST', body: { ...tournament, id: undefined } });
+        if (r.ok && r.data.tournament) { setTournaments(prev => upsert(prev, r.data.tournament)); showNotice('success', r.data.message || 'Tournament saved'); return { ok: true, tournament: r.data.tournament }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleDeleteTournament = useCallback(async (id) => {
+        const r = await api(`/api/events/${id}`, { method: 'DELETE' });
+        if (r.ok) { setTournaments(prev => prev.filter(t => t.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Challenges ----
+    const handleAddChallenge = useCallback(async (newChallenge) => {
+        const r = await api('/api/challenges', { method: 'POST', body: { ...newChallenge, id: undefined } });
+        if (r.ok && r.data.challenge) { setChallenges(prev => upsert(prev, r.data.challenge)); setMyChallenges(prev => upsert(prev, r.data.challenge)); return { ok: true, challenge: r.data.challenge }; }
+        if (r.status === 401) { setAuthModalInitialTab('login'); setShowAuthModal(true); }
+        showNotice('error', r.error); return { ok: false, error: r.error, status: r.status };
+    }, [showNotice]);
+    const handleUpdateChallenge = useCallback(async (id, patch) => {
+        const r = await api(`/api/challenges/${id}`, { method: 'PATCH', body: patch });
+        if (r.ok && r.data.challenge) {
+            const c = r.data.challenge;
+            setChallenges(prev => (c.status === 'open' ? upsert(prev, c) : prev.filter(x => x.id !== id)));
+            setMyChallenges(prev => upsert(prev, c));
+            showNotice('success', r.data.message || 'Challenge updated');
+            return { ok: true, challenge: c, message: r.data.message };
+        }
+        if (r.status === 401) { setAuthModalInitialTab('login'); setShowAuthModal(true); }
+        showNotice('error', r.error); return { ok: false, error: r.error, status: r.status };
+    }, [showNotice]);
+    const handleDeleteChallenge = useCallback(async (id) => {
+        const r = await api(`/api/challenges/${id}`, { method: 'DELETE' });
+        if (r.ok) { setChallenges(prev => prev.filter(c => c.id !== id)); setMyChallenges(prev => prev.filter(c => c.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Gallery ----
+    const handleSavePhoto = useCallback(async (photo) => {
+        const body = isObjectId(photo.id) ? photo : { ...photo, id: undefined, _id: undefined };
+        const r = await api('/api/gallery', { method: 'POST', body });
+        if (r.ok && r.data.photo) { setGalleryPhotos(prev => upsert(prev, r.data.photo)); return { ok: true, photo: r.data.photo }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleDeletePhoto = useCallback(async (id) => {
+        const r = await api(`/api/gallery/${id}`, { method: 'DELETE' });
+        if (r.ok) { setGalleryPhotos(prev => prev.filter(p => p.id !== id)); return { ok: true }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleToggleFeaturedPhoto = useCallback(async (id) => {
+        const target = galleryPhotos.find(p => p.id === id);
+        if (target) return handleSavePhoto({ ...target, featured: !target.featured });
+        return { ok: false };
+    }, [galleryPhotos, handleSavePhoto]);
+
+    // ---- Cart ----
     const addToCart = useCallback((product, selectedSize, qty = 1) => {
         setCartItems(prev => {
             const existing = prev.find(item => item.product.id === product.id && item.selectedSize === selectedSize);
-            if (existing) {
-                return prev.map(item => item === existing ? { ...item, quantity: item.quantity + qty } : item);
-            }
+            if (existing) return prev.map(item => (item === existing ? { ...item, quantity: Math.min(10, item.quantity + qty) } : item));
             return [...prev, { product, selectedSize, quantity: qty }];
         });
         setShowCartDrawer(true);
     }, []);
-    const removeFromCart = useCallback((productId, size) => {
-        setCartItems(prev => prev.filter(item => !(item.product.id === productId && item.selectedSize === size)));
-    }, []);
-    const clearCart = useCallback(() => {
-        setCartItems([]);
-    }, []);
-    // Daily backup JSON export
+    const removeFromCart = useCallback((productId, size) => setCartItems(prev => prev.filter(item => !(item.product.id === productId && item.selectedSize === size))), []);
+    const clearCart = useCallback(() => setCartItems([]), []);
+
+    // ---- Backup ----
     const exportDatabaseBackup = useCallback(() => {
-        const fullBackup = {
-            venue: 'Crossbar Metro Arena (bookcrossbar.com)',
-            backupGeneratedAt: new Date().toISOString(),
-            bookings,
-            pricing,
-            expenses,
-            investors,
-            payouts,
-            refunds,
-            otherIncome,
-            teams,
-            matchResults,
-            shopProducts,
-            shopReservations,
-            tournaments,
-            registrations,
-            challenges,
-            galleryPhotos,
-            users,
-            siteSettings,
-            smsLogs
-        };
+        const fullBackup = { venue: 'Crossbar Metro Arena (bookcrossbar.com)', backupGeneratedAt: new Date().toISOString(), bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings };
         const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute('href', jsonStr);
-        downloadAnchor.setAttribute('download', `crossbar_metro_backup_${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    }, [bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings, smsLogs]);
-    const handleRestoreDatabase = useCallback((backupJson) => {
-        const ok = restoreDatabaseBackup(backupJson);
-        if (ok) {
-            setBookings(getStoredBookings());
-            setPricing(getStoredPricing());
-            setExpenses(getStoredExpenses());
-            setInvestors(getStoredInvestors());
-            setPayouts(getStoredPayouts());
-            setRefunds(getStoredRefunds());
-            setOtherIncome(getStoredOtherIncome());
-            setTeams(getStoredTeams());
-            setMatchResults(getStoredMatchResults());
-            setShopProducts(getStoredShopProducts());
-            setShopReservations(getStoredShopReservations());
-            setTournaments(getStoredTournaments());
-            setRegistrations(getStoredRegistrations());
-            setChallenges(getStoredChallenges());
-            setGalleryPhotos(getStoredGalleryPhotos());
-            setUsers(getStoredUsers());
-            setSiteSettings(getStoredSiteSettings());
-        }
-        return ok;
-    }, []);
-    return (<ArenaContext.Provider value={{
-            bookings,
-            slotHolds,
-            pricing,
-            expenses,
-            investors,
-            payouts,
-            refunds,
-            otherIncome,
-            teams,
-            matchResults,
-            shopProducts,
-            shopReservations,
-            tournaments,
-            registrations,
-            challenges,
-            galleryPhotos,
-            users,
-            currentUser,
-            smsLogs,
-            siteSettings,
-            isInitialized,
-            cartItems,
-            addToCart,
-            removeFromCart,
-            clearCart,
-            showCartDrawer,
-            setShowCartDrawer,
-            grossRevenue,
-            totalExpenses,
-            netProfit,
-            isLossMonth,
-            calculateMonthlyFinance,
-            activeTicketPass,
-            setActiveTicketPass,
-            showSquadModal,
-            setShowSquadModal,
-            showAdminModal,
-            setShowAdminModal,
-            showPassesDrawer,
-            setShowPassesDrawer,
-            showInstallModal,
-            setShowInstallModal,
-            showAuthModal,
-            setShowAuthModal,
-            authModalInitialTab,
-            setAuthModalInitialTab,
-            showSSLCommerzModal,
-            setShowSSLCommerzModal,
-            pendingBookingData,
-            setPendingBookingData,
-            showHandoverGuide,
-            setShowHandoverGuide,
-            login,
-            signup,
-            logout,
-            switchDemoUser,
-            resetPasswordSMS,
-            handleUpdateUserRole,
-            handleToggleUserDisabled,
-            handleBookingSuccess,
-            handlePlaceSlotHold,
-            handleReleaseSlotHold,
-            handleUpdateBookingStatus,
-            handleCancelBooking,
-            handleRecordRefund,
-            handleRecordPayout,
-            handleAddOtherIncome,
-            handleSavePricing,
-            handleAddExpense,
-            handleDeleteExpense,
-            handleSaveInvestors,
-            handleSaveTeam,
-            handleAddPlayerToTeam,
-            handleSaveMatchResult,
-            handleSaveShopProduct,
-            handleSaveShopReservation,
-            handleUpdateShopReservationStatus,
-            handleRegistrationSuccess,
-            handleUpdateRegistration,
-            handleDeleteRegistration,
-            handleCreateRecurringBookings,
-            handleCancelSeries,
-            refreshBookings,
-            refreshUsers,
-            handleAdminUpdateUser,
-            handleSaveTournament,
-            handleAddChallenge,
-            handleSavePhoto,
-            handleDeletePhoto,
-            handleToggleFeaturedPhoto,
-            handleSaveSiteSettings,
-            sendSMSNotification,
-            exportDatabaseBackup,
-            handleRestoreDatabase,
-            isLoadingData,
-            refreshData: loadRealBackendData
-        }}>
-      {children}
-    </ArenaContext.Provider>);
+        const a = document.createElement('a');
+        a.setAttribute('href', jsonStr);
+        a.setAttribute('download', `crossbar_metro_backup_${todayDhaka()}.json`);
+        document.body.appendChild(a); a.click(); a.remove();
+    }, [bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings]);
+    const handleRestoreDatabase = useCallback(() => {
+        showNotice('info', 'Restore from a JSON file is not supported. Backups are read-only exports; data lives in the MongoDB database.');
+        return false;
+    }, [showNotice]);
+
+    const value = useMemo(() => ({
+        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, matchResults, myMatchResults,
+        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
+        isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
+        cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
+        grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
+        activeTicketPass, setActiveTicketPass, showSquadModal, setShowSquadModal, showAdminModal, setShowAdminModal,
+        showPassesDrawer, setShowPassesDrawer, showInstallModal, setShowInstallModal, showAuthModal, setShowAuthModal,
+        authModalInitialTab, setAuthModalInitialTab, showSSLCommerzModal, setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
+        showHandoverGuide, setShowHandoverGuide,
+        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, demoMode: DEMO_MODE,
+        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser,
+        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
+        handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
+        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
+        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor,
+        handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
+        handleSaveMatchResult, handleDeleteMatchResult,
+        handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
+        handleRegistrationSuccess, handleUpdateRegistration, handleDeleteRegistration, handleSaveTournament, handleDeleteTournament,
+        handleAddChallenge, handleUpdateChallenge, handleDeleteChallenge,
+        handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
+        sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
+    }), [
+        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, matchResults, myMatchResults,
+        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
+        isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice,
+        cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,
+        grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
+        activeTicketPass, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
+        showSSLCommerzModal, pendingBookingData, showHandoverGuide,
+        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword,
+        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser,
+        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
+        handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
+        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
+        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor,
+        handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
+        handleSaveMatchResult, handleDeleteMatchResult,
+        handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
+        handleRegistrationSuccess, handleUpdateRegistration, handleDeleteRegistration, handleSaveTournament, handleDeleteTournament,
+        handleAddChallenge, handleUpdateChallenge, handleDeleteChallenge,
+        handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
+        sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, loadRealBackendData
+    ]);
+
+    return <ArenaContext.Provider value={value}>{children}</ArenaContext.Provider>;
 };
+
 export const useArena = () => {
     const context = useContext(ArenaContext);
     if (!context) {

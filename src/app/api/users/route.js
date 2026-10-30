@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
 
 export async function GET(request) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
 
         const { searchParams } = new URL(request.url);

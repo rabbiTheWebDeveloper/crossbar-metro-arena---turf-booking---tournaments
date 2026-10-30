@@ -80,6 +80,14 @@ const MatchResultSchema = new Schema({
         type: String,
         default: () => new Date().toISOString()
     },
+    // Timeline events as entered on the player form: { side: 'home'|'away', type: 'goal'|'own_goal'|'assist'|'yellow'|'red', playerName, minute }
+    events: { type: [new Schema({ side: String, type: String, playerName: String, minute: Number }, { _id: false })], default: [] },
+    homeTeamId: { type: String, default: '' },
+    awayTeamId: { type: String, default: '' },
+    userId: { type: String, default: '', index: true },
+    postedByPhone: { type: String, default: '' },
+    // true once team stats / player goals were applied for this result (so they can be reversed exactly once)
+    standingsApplied: { type: Boolean, default: false },
     status: {
         type: String,
         enum: ['pending_approval', 'published', 'rejected'],

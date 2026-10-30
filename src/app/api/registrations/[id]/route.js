@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/TournamentRegistration';
 import { normalizeStatus, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
     try {
         await connectToDatabase();
         const { id } = await params;
+        if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
         const reg = await TournamentRegistration.findById(id);
         if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
         return NextResponse.json({ success: true, registration: reg.toJSON() });
@@ -21,8 +23,11 @@ export async function GET(_request, { params }) {
  */
 export async function PATCH(request, { params }) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;
+        if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
         const body = await request.json();
 
         const reg = await TournamentRegistration.findById(id);
@@ -35,7 +40,7 @@ export async function PATCH(request, { params }) {
         if (body.status) reg.status = normalizeStatus(body.status);
 
         await reg.save();
-        await adjustRegisteredCount(reg.tournamentId, prevStatus, reg.status);
+        await adjustRegisteredCount(reg.tournamentId, prevStatus, reg.status, reg);
 
         return NextResponse.json({
             success: true,
@@ -47,15 +52,18 @@ export async function PATCH(request, { params }) {
     }
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
     try {
+        const { denied } = await requireAdmin(request);
+        if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;
+        if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
         const reg = await TournamentRegistration.findById(id);
         if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
         const prevStatus = reg.status;
         await reg.deleteOne();
-        await adjustRegisteredCount(reg.tournamentId, prevStatus, 'deleted');
+        await adjustRegisteredCount(reg.tournamentId, prevStatus, 'deleted', reg);
         return NextResponse.json({ success: true, message: 'Registration deleted' });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

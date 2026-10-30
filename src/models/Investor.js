@@ -35,6 +35,8 @@ const InvestorSchema = new Schema({
         type: Number,
         default: 0
     },
+    // Linked login account (User._id). Set by the admin so the investor portal shows the right partner.
+    userId: { type: String, trim: true, default: '', index: true },
     status: {
         type: String,
         enum: ['active', 'inactive'],

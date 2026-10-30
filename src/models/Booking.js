@@ -6,6 +6,9 @@ const BookingAddOnSchema = new Schema({
     price: { type: Number, required: true },
     iconName: { type: String }
 }, { _id: false });
+
+export const BOOKING_ACTIVE_STATUSES = ['pending_payment', 'confirmed_unpaid', 'paid_advance', 'paid_full', 'needs_refund'];
+
 const BookingSchema = new Schema({
     bookingCode: {
         type: String,
@@ -23,7 +26,9 @@ const BookingSchema = new Schema({
     endTime: { type: String, required: true },
     displayTime: { type: String, required: true },
     captainName: { type: String, required: true, trim: true },
-    captainPhone: { type: String, required: true, trim: true },
+    captainPhone: { type: String, required: true, trim: true, index: true },
+    // Account that made the booking (when logged in). Used for "my bookings" and ownership checks.
+    userId: { type: String, trim: true, index: true },
     teamName: { type: String, required: true, trim: true },
     playerCount: { type: Number, default: 14 },
     matchType: {
@@ -40,7 +45,7 @@ const BookingSchema = new Schema({
         enum: ['advance_500', 'full_payment', 'pay_at_turf'],
         default: 'advance_500'
     },
-    advanceAmount: { type: Number, default: 500 },
+    advanceAmount: { type: Number, default: 0 },
     dueAmount: { type: Number, default: 0 },
     paymentMethod: {
         type: String,
@@ -49,36 +54,48 @@ const BookingSchema = new Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['confirmed_unpaid', 'paid_advance', 'paid_full', 'needs_refund', 'cancelled'],
+        // pending_payment = slot held while the customer is on the payment gateway
+        enum: ['pending_payment', 'confirmed_unpaid', 'paid_advance', 'paid_full', 'needs_refund', 'cancelled'],
         default: 'paid_advance',
         index: true
     },
-    transactionId: { type: String, trim: true },
+    transactionId: { type: String, trim: true, index: true },
+    gatewayTranId: { type: String, trim: true, index: true },
+    gatewayValId: { type: String, trim: true },
+    gatewayCardType: { type: String, trim: true },
+    expectedAmount: { type: Number }, // amount the gateway must report for this booking
+    paidAt: { type: Date },
     holdExpiresAt: { type: Number },
     isWalkIn: { type: Boolean, default: false },
+    played: { type: Boolean, default: false },
     // Recurring / bulk bookings created from the admin panel (weekly fixed slots)
     isRecurring: { type: Boolean, default: false },
     seriesId: { type: String, trim: true, index: true },
     seriesLabel: { type: String, trim: true },
+    cancelledAt: { type: Date },
+    cancelledBy: { type: String, trim: true },
     notes: { type: String, trim: true }
 }, {
     timestamps: true,
     toJSON: {
         transform(_doc, ret) {
             ret.id = ret._id.toString();
+            delete ret.__v;
             return ret;
         }
     }
 });
+
 /**
  * STRICT DATABASE UNIQUE CONSTRAINT
- * PRD Rule 1: "No double booking. A slot can have only one active booking.
- * This must be guaranteed by the database (a unique rule), not only by the screen."
- * We apply a partial unique index where paymentStatus is not cancelled.
+ * No double booking: one active booking (including a live payment hold) per date + slot.
+ * Partial indexes cannot use $ne, so the active statuses are listed with $in.
  */
 BookingSchema.index({ date: 1, slotNumber: 1 }, {
     unique: true,
-    partialFilterExpression: { paymentStatus: { $ne: 'cancelled' } }
+    partialFilterExpression: { paymentStatus: { $in: BOOKING_ACTIVE_STATUSES } }
 });
+BookingSchema.index({ createdAt: -1 });
+
 export const Booking = mongoose.models.Booking || mongoose.model('Booking', BookingSchema);
 export default Booking;

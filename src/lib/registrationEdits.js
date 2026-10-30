@@ -1,4 +1,5 @@
 import { Tournament } from '@/models/Tournament';
+import { OtherIncome } from '@/models/OtherIncome';
 
 // The admin UI historically used "verified"; the model stores "confirmed".
 export const normalizeStatus = (s) => (s === 'verified' ? 'confirmed' : s);
@@ -9,14 +10,21 @@ export const toStringList = (value) => {
     return [];
 };
 
-export async function adjustRegisteredCount(tournamentId, prevStatus, nextStatus) {
+export async function adjustRegisteredCount(tournamentId, prevStatus, nextStatus, reg = null) {
     if (!tournamentId || prevStatus === nextStatus) return;
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(tournamentId));
     if (!isObjectId) return;
     if (nextStatus === 'confirmed' && prevStatus !== 'confirmed') {
         await Tournament.findByIdAndUpdate(tournamentId, { $inc: { registeredCount: 1 } });
+        // Entry fee becomes income once the squad is confirmed (recorded once per registration)
+        if (reg && Number(reg.amount) > 0) {
+            const title = `Entry fee: ${reg.teamName} · ${reg.tournamentTitle} (${reg._id})`;
+            const exists = await OtherIncome.findOne({ title });
+            if (!exists) await OtherIncome.create({ source: 'event_fees', title, amount: Number(reg.amount), date: new Date().toISOString().split('T')[0], notes: `${reg.paymentMethod || ''} ${reg.transactionId || ''}`.trim(), recordedBy: 'Registrations' });
+        }
     } else if (prevStatus === 'confirmed' && nextStatus !== 'confirmed') {
         await Tournament.findByIdAndUpdate(tournamentId, { $inc: { registeredCount: -1 } });
+        if (reg) await OtherIncome.deleteOne({ title: `Entry fee: ${reg.teamName} · ${reg.tournamentTitle} (${reg._id})` }).catch(() => { });
     }
 }
 
