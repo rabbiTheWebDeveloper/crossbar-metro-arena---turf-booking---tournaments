@@ -1,263 +1,89 @@
 /**
- * SEO Configuration — Single source of truth.
- * Import from here in all metadata exports to avoid duplication.
+ * SEO configuration for Crossbar Metro Arena (bookcrossbar.com).
+ * Import `buildMetadata` from server page files to get consistent titles,
+ * descriptions, canonical URLs and social cards.
  */
+import { VENUE_INFO } from '../data/initialData';
+
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://bookcrossbar.com').replace(/\/+$/, '');
 
 export const siteConfig = {
-  name: "AMARDokan",
-  url: "https://amardokan-two.vercel.app",
-  /** Bengali tagline */
-  tagline: "আপনার অনলাইন দোকান তৈরি করুন সহজেই",
-  description:
-    "AMARDokan দিয়ে শুরু করুন আপনার ই-কমার্স ব্যবসা। বাংলা বাল্ক ইনভয়েস প্রিন্ট, অর্ডার ম্যানেজমেন্ট, স্টক ট্র্যাকিং, কুরিয়ার ইন্টিগ্রেশন — সব এক জায়গায়।",
-  descriptionEn:
-    "Bangladesh's #1 e-commerce automation platform. Bulk invoice printing, order management, stock tracking, courier integration — all in one dashboard.",
-  keywords: [
-    "ই-কমার্স",
-    "অনলাইন দোকান",
-    "বাংলাদেশ",
-    "বাংলা",
-    "ইকমার্স প্লাটফর্ম",
-    "AMARDokan",
-    "অনলাইন ব্যবসা",
-    "পণ্য বিক্রয়",
-    "bulk invoice print",
-    "Bangladesh e-commerce",
-    "order management",
-    "stock tracking",
-    "Daraz automation",
-    "e-commerce automation",
-  ],
-  author: "AMARDokan Team",
-  twitter: "@amardokan",
-  locale: "bn_BD",
-  /** Social profiles for sameAs in JSON-LD */
-  social: {
-    facebook: "https://facebook.com/amardokan",
-    twitter: "https://twitter.com/amardokan",
-    youtube: "https://youtube.com/@amardokan",
-  },
-  images: {
-    og: "/og-image.jpg",
-    twitter: "/twitter-image.jpg",
-    logo: "/logo.png",
-  },
+    name: 'Crossbar Metro Arena',
+    shortName: 'Crossbar Metro',
+    url: BASE_URL,
+    tagline: 'Floodlit Outdoor Football Turf beside Uttara Metro Center, Dhaka',
+    description:
+        'Book 90-minute floodlit football turf slots online at Crossbar Metro Arena, Sector 17 Uttara, Dhaka. 12 slots a day, pay the advance with bKash, Nagad or card, register for tournaments and post match results.',
+    keywords: [
+        'crossbar metro arena', 'bookcrossbar.com', 'dhaka turf booking', 'football turf uttara',
+        'uttara metro center turf', 'turf tournament bangladesh', '7v7 football turf dhaka', 'floodlit turf dhaka'
+    ],
+    locale: 'en_US',
+    logo: '/brand/crossbar-metro-arena-logo.png',
+    themeColor: '#4cbf02',
+    backgroundColor: '#070b0e'
 };
 
-/**
- * Build a full canonical URL from a path.
- * @param {string} path - e.g. "/registration"
- */
-export const getCanonicalUrl = (path = "/") =>
-  `${siteConfig.url}${path === "/" ? "" : path}`;
+/** Absolute canonical URL for a site path. */
+export const getCanonicalUrl = (path = '/') => (path === '/' ? `${siteConfig.url}/` : `${siteConfig.url}${path.startsWith('/') ? path : `/${path}`}`);
 
-/**
- * Shared Open Graph image block reused across every page.
- */
 export const defaultOgImages = [
-  {
-    url: siteConfig.images.og,
-    width: 1200,
-    height: 630,
-    alt: `${siteConfig.name} — ই-কমার্স প্লাটফর্ম`,
-    type: "image/jpeg",
-  },
+    { url: siteConfig.logo, width: 1024, height: 1024, alt: 'Crossbar Metro Arena logo' }
 ];
 
 /**
- * Build complete, non-duplicated metadata for a given page.
- *
- * @param {{
- *   title?: string,
- *   description?: string,
- *   path?: string,
- *   noIndex?: boolean,
- *   keywords?: string[],
- *   ogType?: string,
- *   ogImage?: string,
- * }} options
+ * Build page metadata. The root layout supplies the `%s | Crossbar Metro Arena` template,
+ * so pass a short page title (or `absoluteTitle` for the home page).
  */
-export function buildMetadata({
-  title,
-  description = siteConfig.description,
-  path = "/",
-  noIndex = false,
-  keywords = [],
-  ogType = "website",
-  ogImage = siteConfig.images.og,
-} = {}) {
-  const canonicalUrl = getCanonicalUrl(path);
-  const fullTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.name;
-  const allKeywords = [...siteConfig.keywords, ...keywords];
-
-  return {
-    // Avoid template duplication — provide a pre-built title
-    title: { absolute: fullTitle },
-    description,
-    keywords: allKeywords.join(", "),
-    authors: [{ name: siteConfig.author }],
-    creator: siteConfig.name,
-    publisher: siteConfig.name,
-    metadataBase: new URL(siteConfig.url),
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title: fullTitle,
-      description,
-      url: canonicalUrl,
-      siteName: siteConfig.name,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: fullTitle,
-          type: "image/jpeg",
+export function buildMetadata({ title, absoluteTitle, description = siteConfig.description, path = '/', noIndex = false, keywords = [] } = {}) {
+    const canonical = getCanonicalUrl(path);
+    const socialTitle = absoluteTitle || (title ? `${title} | ${siteConfig.name}` : siteConfig.name);
+    return {
+        title: absoluteTitle ? { absolute: absoluteTitle } : title,
+        description,
+        keywords: [...siteConfig.keywords, ...keywords],
+        alternates: { canonical },
+        openGraph: {
+            title: socialTitle,
+            description,
+            url: canonical,
+            siteName: siteConfig.name,
+            locale: siteConfig.locale,
+            type: 'website',
+            images: defaultOgImages
         },
-      ],
-      locale: siteConfig.locale,
-      type: ogType,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: fullTitle,
-      description,
-      images: [siteConfig.images.twitter || ogImage],
-      creator: siteConfig.twitter,
-      site: siteConfig.twitter,
-    },
-    robots: noIndex
-      ? { index: false, follow: false }
-      : {
-          index: true,
-          follow: true,
-          googleBot: {
-            index: true,
-            follow: true,
-            "max-video-preview": -1,
-            "max-image-preview": "large",
-            "max-snippet": -1,
-          },
+        twitter: {
+            card: 'summary',
+            title: socialTitle,
+            description,
+            images: [siteConfig.logo]
         },
-    formatDetection: { email: false, address: false, telephone: false },
-    category: "ecommerce",
-  };
+        robots: noIndex ? { index: false, follow: false } : { index: true, follow: true }
+    };
 }
 
-/* ─── JSON-LD Helpers ─── */
-
-export function organizationSchema() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "@id": `${siteConfig.url}/#organization`,
-    name: siteConfig.name,
-    url: siteConfig.url,
-    logo: {
-      "@type": "ImageObject",
-      url: `${siteConfig.url}${siteConfig.images.logo}`,
-    },
-    description: siteConfig.descriptionEn,
-    sameAs: Object.values(siteConfig.social),
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      availableLanguage: ["Bengali", "English"],
-    },
-  };
-}
-
-export function websiteSchema() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "@id": `${siteConfig.url}/#website`,
-    name: siteConfig.name,
-    url: siteConfig.url,
-    publisher: { "@id": `${siteConfig.url}/#organization` },
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${siteConfig.url}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
-  };
-}
-
-export function softwareApplicationSchema() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: siteConfig.name,
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    url: siteConfig.url,
-    description: siteConfig.descriptionEn,
-    offers: [
-      {
-        "@type": "Offer",
-        name: "Starter",
-        price: "0",
-        priceCurrency: "BDT",
-        description: "Free forever plan — up to 100 orders/month",
-      },
-      {
-        "@type": "Offer",
-        name: "Pro",
-        price: "2999",
-        priceCurrency: "BDT",
-        description: "For growing e-commerce businesses ready to scale",
-      },
-    ],
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.9",
-      ratingCount: "2000",
-      bestRating: "5",
-    },
-  };
-}
-
-export function faqSchema(faqs) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map(({ question, answer }) => ({
-      "@type": "Question",
-      name: question,
-      acceptedAnswer: { "@type": "Answer", text: answer },
-    })),
-  };
-}
-
-export function breadcrumbSchema(items) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.name,
-      item: getCanonicalUrl(item.path),
-    })),
-  };
-}
-
-export function webPageSchema({ title, description, path, dateModified }) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "@id": `${getCanonicalUrl(path)}#webpage`,
-    url: getCanonicalUrl(path),
-    name: title,
-    description,
-    isPartOf: { "@id": `${siteConfig.url}/#website` },
-    about: { "@id": `${siteConfig.url}/#organization` },
-    dateModified: dateModified || new Date().toISOString(),
-    inLanguage: "bn-BD",
-    breadcrumb: { "@id": `${getCanonicalUrl(path)}#breadcrumb` },
-  };
+/** JSON-LD for the venue (SportsActivityLocation). Accepts the DB site settings, falls back to VENUE_INFO. */
+export function venueSchema(settings = VENUE_INFO) {
+    const s = { ...VENUE_INFO, ...(settings || {}) };
+    const phone = String(s.phoneFormatted || s.phone || '').trim();
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'SportsActivityLocation',
+        '@id': `${siteConfig.url}/#venue`,
+        name: s.businessName || siteConfig.name,
+        url: siteConfig.url,
+        image: getCanonicalUrl(siteConfig.logo),
+        description: s.aboutText || siteConfig.description,
+        telephone: phone || undefined,
+        email: s.email || undefined,
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: s.address || undefined,
+            addressLocality: 'Dhaka',
+            addressCountry: 'BD'
+        },
+        openingHours: s.openingHours || undefined,
+        sameAs: [s.facebookUrl, s.instagramUrl].filter(Boolean),
+        sport: 'Football'
+    };
 }
