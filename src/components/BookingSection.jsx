@@ -64,7 +64,8 @@ export const BookingSection = ({ hideHeading = false }) => {
                 }
                 return prev - 1;
             });
-            setClockTick(t => (t + 1) % 60);
+            const minute = Math.floor(Date.now() / 60000);
+            setClockTick(prev => (prev === minute ? prev : minute));
         }, 1000);
         return () => clearInterval(interval);
     }, [refreshBookings]);

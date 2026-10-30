@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useArena, cleanPhone, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { PageHero } from '@/components/PageHero';
-import { User, Users, Trophy, PlusCircle, CheckCircle2, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock } from 'lucide-react';
+import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock } from 'lucide-react';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
 
@@ -406,7 +406,7 @@ export default function PlayerDashboard() {
 
     const deskPhone = siteSettings?.phone || '';
     const deskPhoneLabel = siteSettings?.phoneFormatted || siteSettings?.phone || 'the arena desk';
-    const Msg = ({ m }) => (m ? (<div className={`p-3 rounded-xl text-xs border ${m.type === 'success' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>{m.text}</div>) : null);
+    const renderMsg = (m) => (m ? (<div className={`p-3 rounded-xl text-xs border ${m.type === 'success' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>{m.text}</div>) : null);
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: Trophy },
@@ -417,13 +417,13 @@ export default function PlayerDashboard() {
         { id: 'profile', label: 'Profile & Settings', icon: User }
     ];
 
-    const BookingCard = ({ b, past }) => {
+    const renderBookingCard = (b, past) => {
         const meta = statusMeta(b?.paymentStatus);
         const isCancelled = b?.paymentStatus === 'cancelled';
         const paid = Number(b?.advanceAmount) || 0;
         const due = Number(b?.dueAmount) || 0;
         const cancelAllowed = !past && !isCancelled && b?.paymentStatus !== 'pending_payment' && canCancelBooking(b);
-        return (<div className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${isCancelled || past ? 'bg-black/30 border-white/5 opacity-75' : 'bg-slate-900/80 border-white/10 hover:border-emerald-500/30'}`}>
+        return (<div key={b.id} className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${isCancelled || past ? 'bg-black/30 border-white/5 opacity-75' : 'bg-slate-900/80 border-white/10 hover:border-emerald-500/30'}`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-mono font-black text-emerald-400">{b?.bookingCode}</span>
@@ -563,12 +563,12 @@ export default function PlayerDashboard() {
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Upcoming ({upcomingBookings.length})</h4>
                   {upcomingBookings.length === 0 ? (<div className="text-xs text-slate-400 p-4 rounded-2xl bg-slate-900/40 border border-white/5">No upcoming bookings.</div>)
-                    : upcomingBookings.map(b => <BookingCard key={b.id} b={b} past={false}/>)}
+                    : upcomingBookings.map(b => renderBookingCard(b, false))}
                 </div>
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Past &amp; cancelled ({pastBookings.length})</h4>
                   {pastBookings.length === 0 ? (<div className="text-xs text-slate-400 p-4 rounded-2xl bg-slate-900/40 border border-white/5">Nothing here yet.</div>)
-                    : pastBookings.map(b => <BookingCard key={b.id} b={b} past={true}/>)}
+                    : pastBookings.map(b => renderBookingCard(b, true))}
                 </div>
               </>)}
           </div>)}
@@ -717,7 +717,7 @@ export default function PlayerDashboard() {
                   Captains submit scores, scorers with minutes, cards and player of the match. {pricing?.approveResultsFirst ? 'Results are checked by the arena desk before they go live.' : 'Published results update the Match Day leaderboard immediately.'}
                 </p>
               </div>
-              <Msg m={postScoreMsg}/>
+              {renderMsg(postScoreMsg)}
               <form onSubmit={handlePostMatchSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
@@ -849,7 +849,7 @@ export default function PlayerDashboard() {
                   <span>You need a registered team before you can post a challenge.</span>
                   <button type="button" onClick={() => { setActiveTab('teams'); setShowCreateTeam(true); }} className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase cursor-pointer shrink-0">Create a Team</button>
                 </div>) : (<>
-                <Msg m={oppMsg}/>
+                {renderMsg(oppMsg)}
                 <form onSubmit={handlePostChallengeSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
@@ -943,7 +943,7 @@ export default function PlayerDashboard() {
                 {isVisitor ? (<div className="text-xs text-slate-400">
                     Log in to edit your profile. <button type="button" onClick={openLogin} className="text-emerald-400 font-bold hover:underline cursor-pointer">Log in</button>
                   </div>) : (<>
-                  <Msg m={profileMsg}/>
+                  {renderMsg(profileMsg)}
                   <form onSubmit={handleProfileSubmit} className="space-y-3.5 text-xs">
                     <div>
                       <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
@@ -975,7 +975,7 @@ export default function PlayerDashboard() {
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
                     <Lock className="w-4 h-4"/><span>Change Password</span>
                   </div>
-                  <Msg m={pwMsg}/>
+                  {renderMsg(pwMsg)}
                   <form onSubmit={handlePasswordSubmit} className="space-y-3 text-xs">
                     <div>
                       <label className="block text-slate-300 font-semibold mb-1">Current Password</label>

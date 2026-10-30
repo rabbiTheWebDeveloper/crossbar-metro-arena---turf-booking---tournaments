@@ -38,7 +38,7 @@ export const HandoverGuideModal = () => {
             { id: 'report', label: '3. 1-Click Monthly Report', icon: TrendingUp },
             { id: 'payouts', label: '4. Investor Payouts', icon: Users },
             { id: 'pricing', label: '5. 24 Slot Pricing Matrix', icon: ShieldCheck },
-            { id: 'backup', label: '6. Backup & Restore', icon: Download },
+            { id: 'backup', label: '6. Backups', icon: Download },
         ].map(t => {
             const Icon = t.icon;
             return (<button key={t.id} type="button" onClick={() => setActiveTopic(t.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer ${activeTopic === t.id
@@ -152,7 +152,7 @@ export const HandoverGuideModal = () => {
                 <li>Click <strong>&quot;Export Database Backup&quot;</strong> in the Admin panel top bar or Settings tab.</li>
                 <li>A JSON backup file containing all bookings, pricing, expenses, investors, shop orders, and match results is downloaded to your machine.</li>
                 <li>Keep backups in your secure Google Drive or local storage.</li>
-                <li>To restore the system on a new machine or staging server, use the <strong>&quot;Restore from Backup&quot;</strong> file uploader in Settings.</li>
+                <li>Backups are read-only JSON exports. All live data is stored in the MongoDB database, so restoring a new server means restoring the database itself (Atlas snapshot or mongorestore), not uploading this file.</li>
               </ol>
             </div>)}
         </div>

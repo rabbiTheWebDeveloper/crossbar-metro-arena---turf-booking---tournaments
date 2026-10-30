@@ -1,207 +1,219 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useArena } from '@/context/ArenaContext';
-import { Plus } from 'lucide-react';
+import { useArena, todayDhaka } from '@/context/ArenaContext';
+import { formatMoney, formatDate, formatMonth, shiftMonth, EXPENSE_CATEGORIES, INCOME_SOURCES, expenseCategoryLabel, slotShortLabel } from '@/data/finance';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 export const dynamic = 'force-dynamic';
+
 export default function AdminFinancialReportPage() {
-    const { calculateMonthlyFinance, expenses, handleAddExpense, handleDeleteExpense, handleAddOtherIncome } = useArena();
-    const [selectedMonth, setSelectedMonth] = useState('2026-10');
-    const financeReport = useMemo(() => {
-        return calculateMonthlyFinance(selectedMonth);
-    }, [calculateMonthlyFinance, selectedMonth]);
-    // Add Expense Modal
+    const { calculateMonthlyFinance, expenses, isLoadingData, handleAddExpense, handleDeleteExpense, handleAddOtherIncome } = useArena();
+    const [selectedMonth, setSelectedMonth] = useState(() => todayDhaka().slice(0, 7));
+    const financeReport = useMemo(() => calculateMonthlyFinance(selectedMonth), [calculateMonthlyFinance, selectedMonth]);
+
+    // Add Expense modal
     const [showExpenseModal, setShowExpenseModal] = useState(false);
-    const [expCategory, setExpCategory] = useState('turf_maintenance');
-    const [expTitle, setExpTitle] = useState('');
-    const [expAmount, setExpAmount] = useState(0);
-    const [expDate, setExpDate] = useState('2026-10-10');
-    // Add Income Modal
+    const [expForm, setExpForm] = useState({ title: '', category: EXPENSE_CATEGORIES[0].key, amount: '', date: todayDhaka(), receiptNote: '' });
+    const [expError, setExpError] = useState('');
+    const [isSavingExpense, setIsSavingExpense] = useState(false);
+
+    // Add Income modal
     const [showIncomeModal, setShowIncomeModal] = useState(false);
-    const [incSource, setIncSource] = useState('shop_sales');
-    const [incTitle, setIncTitle] = useState('');
-    const [incAmount, setIncAmount] = useState(0);
-    const [incDate, setIncDate] = useState('2026-10-10');
-    const handleExpenseSubmit = (e) => {
+    const [incForm, setIncForm] = useState({ title: '', source: INCOME_SOURCES[0].key, amount: '', date: todayDhaka(), notes: '' });
+    const [incError, setIncError] = useState('');
+    const [isSavingIncome, setIsSavingIncome] = useState(false);
+
+    const [deletingId, setDeletingId] = useState(null);
+    const [showAllExpenses, setShowAllExpenses] = useState(false);
+
+    const openExpenseModal = () => {
+        setExpError('');
+        setExpForm({ title: '', category: EXPENSE_CATEGORIES[0].key, amount: '', date: selectedMonth === todayDhaka().slice(0, 7) ? todayDhaka() : `${selectedMonth}-01`, receiptNote: '' });
+        setShowExpenseModal(true);
+    };
+    const openIncomeModal = () => {
+        setIncError('');
+        setIncForm({ title: '', source: INCOME_SOURCES[0].key, amount: '', date: selectedMonth === todayDhaka().slice(0, 7) ? todayDhaka() : `${selectedMonth}-01`, notes: '' });
+        setShowIncomeModal(true);
+    };
+
+    const handleExpenseSubmit = async (e) => {
         e.preventDefault();
-        if (!expTitle || !expAmount)
-            return;
-        handleAddExpense({
-            id: `exp-${Date.now()}`,
-            category: expCategory,
-            title: expTitle,
-            amount: Number(expAmount),
-            date: expDate,
-            recordedBy: 'Admin Desk'
-        });
+        setExpError('');
+        const amount = Number(expForm.amount);
+        if (!expForm.title.trim() || !amount || amount <= 0 || !expForm.date) { setExpError('Title, a positive amount and a date are required.'); return; }
+        setIsSavingExpense(true);
+        const result = await handleAddExpense({ title: expForm.title.trim(), category: expForm.category, amount, date: expForm.date, receiptNote: expForm.receiptNote.trim() });
+        setIsSavingExpense(false);
+        if (!result.ok) { setExpError(result.error || 'Could not save the expense.'); return; }
         setShowExpenseModal(false);
-        setExpTitle('');
-        setExpAmount(0);
     };
-    const handleIncomeSubmit = (e) => {
+
+    const handleIncomeSubmit = async (e) => {
         e.preventDefault();
-        if (!incTitle || !incAmount)
-            return;
-        handleAddOtherIncome({
-            id: `inc-${Date.now()}`,
-            source: incSource,
-            title: incTitle,
-            amount: Number(incAmount),
-            date: incDate,
-            recordedBy: 'Admin Desk'
-        });
+        setIncError('');
+        const amount = Number(incForm.amount);
+        if (!incForm.title.trim() || !amount || amount <= 0 || !incForm.date) { setIncError('Description, a positive amount and a date are required.'); return; }
+        setIsSavingIncome(true);
+        const result = await handleAddOtherIncome({ source: incForm.source, title: incForm.title.trim(), amount, date: incForm.date, notes: incForm.notes.trim() });
+        setIsSavingIncome(false);
+        if (!result.ok) { setIncError(result.error || 'Could not record the income.'); return; }
         setShowIncomeModal(false);
-        setIncTitle('');
-        setIncAmount(0);
     };
-    // Dynamic Popular Slots Ranking from live bookings data
-    const popularSlots = useMemo(() => {
-        if (!financeReport.popularSlotsRanking || financeReport.popularSlotsRanking.length === 0) {
-            return [];
-        }
-        return financeReport.popularSlotsRanking.slice(0, 12).map(s => ({
-            time: s.displayTime ? s.displayTime.split('–')[0].trim() : `S${s.slotNumber}`,
-            count: s.count
-        }));
-    }, [financeReport.popularSlotsRanking]);
+
+    const handleDelete = async (expense) => {
+        if (!confirm(`Delete "${expense.title}" (${formatMoney(expense.amount)})?`)) return;
+        setDeletingId(expense.id);
+        await handleDeleteExpense(expense.id);
+        setDeletingId(null);
+    };
+
+    const monthExpenses = useMemo(() => {
+        const list = showAllExpenses ? expenses : expenses.filter(e => String(e.date || '').startsWith(selectedMonth));
+        return [...list].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    }, [expenses, selectedMonth, showAllExpenses]);
+
+    const popularSlots = useMemo(() => (financeReport.popularSlotsRanking || [])
+        .slice()
+        .sort((a, b) => a.slotNumber - b.slotNumber)
+        .map(s => ({ slotNumber: s.slotNumber, time: slotShortLabel(s.displayTime, s.slotNumber), full: s.displayTime || `Slot ${s.slotNumber}`, count: s.count })), [financeReport.popularSlotsRanking]);
+
+    const maxDailyMoney = useMemo(() => Math.max(1, ...financeReport.dailyBreakdown.map(d => d.moneyCollected)), [financeReport.dailyBreakdown]);
+    const maxSlotCount = useMemo(() => Math.max(1, ...popularSlots.map(s => s.count)), [popularSlots]);
+    const dayCount = financeReport.dailyBreakdown.length;
+    const axisDays = useMemo(() => {
+        const days = [1, 6, 11, 16, 21, 26].filter(d => d < dayCount);
+        if (dayCount > 0) days.push(dayCount);
+        return days.map(d => ({ day: d, left: dayCount > 1 ? ((d - 1) / (dayCount - 1)) * 100 : 0 }));
+    }, [dayCount]);
+
+    const retainedPct = Math.max(0, 100 - (financeReport.investorShares || []).reduce((sum, i) => sum + i.percentage, 0));
+    const inputCls = 'w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white';
+
     return (<div className="space-y-6 animate-fade-in font-sans">
-      
-      {/* 4 TOP KPI METRIC CARDS (MATCHING SCREENSHOT 4) */}
+
+      {/* MONTH SELECTOR */}
+      <div className="flex items-center justify-center gap-4 py-1">
+        <button type="button" onClick={() => setSelectedMonth(m => shiftMonth(m, -1))} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white cursor-pointer" aria-label="Previous month">
+          <ChevronLeft className="w-4 h-4"/>
+        </button>
+        <span className="font-mono font-bold text-sm text-white tracking-widest uppercase">{formatMonth(selectedMonth)}</span>
+        <button type="button" onClick={() => setSelectedMonth(m => shiftMonth(m, 1))} className="p-1.5 rounded-lg bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white cursor-pointer" aria-label="Next month">
+          <ChevronRight className="w-4 h-4"/>
+        </button>
+      </div>
+
+      {isLoadingData && expenses.length === 0 && financeReport.totalRevenue === 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4" aria-busy="true">
+          {[1, 2, 3, 4].map(n => <div key={n} className="h-24 rounded-2xl bg-[#0c131a] border border-white/5 animate-pulse"/>)}
+        </div>
+      )}
+
+      {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        
-        {/* Total Revenue */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
           <div className="text-[12px] text-slate-400">Total revenue</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
-            ৳{financeReport.totalRevenue.toLocaleString()}
-          </div>
+          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">{formatMoney(financeReport.totalRevenue)}</div>
           <div className="text-[11px] text-slate-500 mt-0.5 truncate">
-            Bookings ৳{financeReport.bookingMoneyCollected.toLocaleString()} + other ৳{financeReport.otherIncomeTotal.toLocaleString()}
+            Bookings {formatMoney(financeReport.bookingMoneyCollected)} + other {formatMoney(financeReport.otherIncomeTotal)}
           </div>
         </div>
 
-        {/* Total Expenses */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
           <div className="text-[12px] text-slate-400">Total expenses</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
-            ৳{financeReport.totalExpenses.toLocaleString()}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
-            Rent, staff, utilities &amp; maintenance
+          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">{formatMoney(financeReport.totalExpenses)}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+            {financeReport.expensesByCategory.length} categor{financeReport.expensesByCategory.length === 1 ? 'y' : 'ies'} · refunds paid {formatMoney(financeReport.refundsAmount)}
           </div>
         </div>
 
-        {/* Net Profit */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
           <div className="text-[12px] text-slate-400">Net profit</div>
           <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
-            {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit).toLocaleString()}
+            {financeReport.netProfit < 0 ? '-' : ''}{formatMoney(Math.abs(financeReport.netProfit))}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
-            {financeReport.profitMargin.toFixed(0)}% margin
-          </div>
+          <div className="text-[11px] text-slate-500 mt-0.5">{financeReport.profitMargin.toFixed(1)}% margin</div>
         </div>
 
-        {/* Slots Booked */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
           <div className="text-[12px] text-slate-400">Slots booked</div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
-            {financeReport.slotsBooked}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
-            {financeReport.occupancyRate.toFixed(0)}% occupancy · {financeReport.cancellationsCount} cancelled
+          <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">{financeReport.slotsBooked}</div>
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+            {financeReport.occupancyRate.toFixed(1)}% occupancy · {financeReport.cancellationsCount} cancelled (advance {formatMoney(financeReport.cancellationsAmount)})
           </div>
         </div>
-
       </div>
 
-      {/* TWO CHARTS ROW (MATCHING SCREENSHOT 4) */}
+      {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Chart 1: Money collected per day */}
+
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-3">
           <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              Money collected per day
-            </h3>
-            <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Money collected per day</h3>
+            <p className="text-[11px] text-slate-500">Hover a bar to see the value · peak {formatMoney(maxDailyMoney)}</p>
           </div>
 
           <div className="h-32 flex items-end gap-1 pt-4">
-            {financeReport.dailyBreakdown.slice(0, 31).map((d, i) => {
-            const maxAmount = 25000;
-            const heightPct = Math.min(100, Math.max(8, (d.moneyCollected / maxAmount) * 100));
-            return (<div key={d.date} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                  <div style={{ height: `${heightPct}%` }} className="w-full bg-lime-400 hover:brightness-125 rounded-t-sm transition-all cursor-pointer"/>
-                  {/* Tooltip */}
+            {financeReport.dailyBreakdown.map(d => {
+              const heightPct = d.moneyCollected > 0 ? Math.min(100, Math.max(6, (d.moneyCollected / maxDailyMoney) * 100)) : 2;
+              return (<div key={d.date} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                  <div style={{ height: `${heightPct}%` }} className={`w-full rounded-t-sm transition-all cursor-pointer ${d.moneyCollected > 0 ? 'bg-lime-400 hover:brightness-125' : 'bg-slate-800/70'}`}/>
                   <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[10px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
-                    {d.date.slice(8)} Oct: ৳{d.moneyCollected.toLocaleString()}
+                    {formatDate(d.date)}: {formatMoney(d.moneyCollected)}
                   </div>
                 </div>);
-        })}
+            })}
           </div>
 
-          <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5">
-            <span>1</span>
-            <span>5</span>
-            <span>11</span>
-            <span>16</span>
-            <span>21</span>
-            <span>26</span>
-            <span>31</span>
+          <div className="relative h-4 text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5">
+            {axisDays.map(a => <span key={a.day} style={{ left: `${a.left}%` }} className="absolute -translate-x-1/2">{a.day}</span>)}
           </div>
         </div>
 
-        {/* Chart 2: Most popular slots */}
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-3">
           <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              Most popular slots
-            </h3>
-            <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Most popular slots</h3>
+            <p className="text-[11px] text-slate-500">Bookings per slot · peak {maxSlotCount}</p>
           </div>
 
           <div className="h-32 flex items-end gap-1.5 pt-4">
             {popularSlots.map(s => {
-            const heightPct = Math.min(100, Math.max(10, (s.count / 28) * 100));
-            return (<div key={s.time} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                  <div style={{ height: `${heightPct}%` }} className="w-full bg-lime-400 hover:brightness-125 rounded-t-sm transition-all cursor-pointer"/>
+              const heightPct = s.count > 0 ? Math.min(100, Math.max(8, (s.count / maxSlotCount) * 100)) : 2;
+              return (<div key={s.slotNumber} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                  <div style={{ height: `${heightPct}%` }} className={`w-full rounded-t-sm transition-all cursor-pointer ${s.count > 0 ? 'bg-lime-400 hover:brightness-125' : 'bg-slate-800/70'}`}/>
                   <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[10px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
-                    {s.time}: {s.count} matches
+                    {s.full}: {s.count} booking{s.count === 1 ? '' : 's'}
                   </div>
                 </div>);
-        })}
+            })}
           </div>
 
-          <div className="flex justify-between text-[8px] font-mono text-slate-500 pt-1 border-t border-white/5 overflow-x-auto">
-            {popularSlots.map(s => (<span key={s.time}>{s.time}</span>))}
+          <div className="flex justify-between gap-1 text-[8px] font-mono text-slate-500 pt-1 border-t border-white/5 overflow-x-auto">
+            {popularSlots.map(s => (<span key={s.slotNumber} className="flex-1 text-center whitespace-nowrap">{s.time}</span>))}
           </div>
         </div>
 
       </div>
 
-      {/* EXPENSES BY CATEGORY & INCOME SOURCES (MATCHING SCREENSHOT 4) */}
+      {/* EXPENSES BY CATEGORY & INCOME SOURCES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Expenses by Category */}
+
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              EXPENSES BY CATEGORY
-            </h3>
-            <button type="button" onClick={() => setShowExpenseModal(true)} className="px-3 py-1 rounded-xl bg-lime-400 text-slate-950 font-bold text-xs flex items-center gap-1 cursor-pointer hover:bg-lime-300 transition-colors">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">EXPENSES BY CATEGORY</h3>
+            <button type="button" onClick={openExpenseModal} className="px-3 py-1 rounded-xl bg-lime-400 text-slate-950 font-bold text-xs flex items-center gap-1 cursor-pointer hover:bg-lime-300 transition-colors">
               <Plus className="w-3 h-3 stroke-[3]"/>
               <span>Add expense</span>
             </button>
           </div>
 
           <div className="space-y-3">
-            {financeReport.expensesByCategory && financeReport.expensesByCategory.length > 0 ? (
-              financeReport.expensesByCategory.map(cat => (
+            {financeReport.expensesByCategory.length > 0 ? (
+              [...financeReport.expensesByCategory].sort((a, b) => b.amount - a.amount).map(cat => (
                 <div key={cat.category} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300 font-medium capitalize">{cat.category.replace(/_/g, ' ')}</span>
-                    <span className="font-mono text-white font-bold">৳{cat.amount.toLocaleString()}</span>
+                    <span className="text-slate-300 font-medium">{expenseCategoryLabel(cat.category)}</span>
+                    <span className="font-mono text-white font-bold">{formatMoney(cat.amount)}</span>
                   </div>
                   <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                     <div style={{ width: `${Math.min(100, Math.max(4, cat.percentage))}%` }} className="h-full bg-lime-400 rounded-full"/>
@@ -209,30 +221,27 @@ export default function AdminFinancialReportPage() {
                 </div>
               ))
             ) : (
-              <div className="text-slate-500 text-xs py-2">No expenses logged for this month.</div>
+              <div className="text-slate-500 text-xs py-2">No expenses logged for {formatMonth(selectedMonth)}.</div>
             )}
           </div>
         </div>
 
-        {/* Income Sources */}
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              INCOME SOURCES
-            </h3>
-            <button type="button" onClick={() => setShowIncomeModal(true)} className="px-3 py-1 rounded-xl bg-white/10 text-white font-bold text-xs flex items-center gap-1 cursor-pointer hover:bg-white/20 transition-colors">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">INCOME SOURCES</h3>
+            <button type="button" onClick={openIncomeModal} className="px-3 py-1 rounded-xl bg-white/10 text-white font-bold text-xs flex items-center gap-1 cursor-pointer hover:bg-white/20 transition-colors">
               <Plus className="w-3 h-3 stroke-[3]"/>
               <span>Add income</span>
             </button>
           </div>
 
           <div className="space-y-2.5">
-            {financeReport.incomeBySource && financeReport.incomeBySource.length > 0 ? (
+            {financeReport.totalRevenue > 0 ? (
               financeReport.incomeBySource.map(source => (
-                <div key={source.source} className="space-y-1">
+                <div key={source.key} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-300 font-medium">{source.source}</span>
-                    <span className="font-mono text-white font-bold">৳{source.amount.toLocaleString()}</span>
+                    <span className="font-mono text-white font-bold">{formatMoney(source.amount)} <span className="text-slate-500 font-normal">({source.percentage.toFixed(0)}%)</span></span>
                   </div>
                   <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                     <div style={{ width: `${Math.min(100, Math.max(source.amount > 0 ? 4 : 0, source.percentage))}%` }} className="h-full bg-lime-400 rounded-full"/>
@@ -240,7 +249,7 @@ export default function AdminFinancialReportPage() {
                 </div>
               ))
             ) : (
-              <div className="text-slate-500 text-xs py-2">No revenue logged yet for this month.</div>
+              <div className="text-slate-500 text-xs py-2">No revenue logged yet for {formatMonth(selectedMonth)}.</div>
             )}
           </div>
         </div>
@@ -249,16 +258,11 @@ export default function AdminFinancialReportPage() {
 
       {/* PROFIT DISTRIBUTION & EXPENSE ENTRIES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Profit Distribution */}
+
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              PROFIT DISTRIBUTION
-            </h3>
-            <Link href="/admin/investors" className="text-xs text-lime-400 hover:underline">
-              Manage investors
-            </Link>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">PROFIT DISTRIBUTION</h3>
+            <Link href="/admin/investors" className="text-xs text-lime-400 hover:underline">Manage investors</Link>
           </div>
 
           <div className="overflow-x-auto">
@@ -270,58 +274,68 @@ export default function AdminFinancialReportPage() {
                   <th className="pb-2">Amount</th>
                   <th className="pb-2">Paid</th>
                   <th className="pb-2">Balance</th>
+                  <th className="pb-2">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 font-mono text-[12px]">
-                {financeReport.investorShares && financeReport.investorShares.map(item => (
+                {(financeReport.investorShares || []).length === 0 && (
+                  <tr><td colSpan={6} className="py-3 font-sans text-slate-500">No active partners.</td></tr>
+                )}
+                {(financeReport.investorShares || []).map(item => (
                   <tr key={item.investor.id}>
                     <td className="py-2.5 font-sans font-medium text-slate-300">{item.investor.name}</td>
                     <td className="py-2.5 text-slate-400">{item.percentage}%</td>
-                    <td className="py-2.5 text-slate-300 font-bold">৳{item.shareAmount.toLocaleString()}</td>
-                    <td className="py-2.5 text-emerald-400">{item.isPaid ? 'Paid' : '৳0'}</td>
-                    <td className="py-2.5 text-amber-300">{item.isPaid ? '৳0' : `৳${item.shareAmount.toLocaleString()}`}</td>
+                    <td className="py-2.5 text-slate-300 font-bold">{formatMoney(item.shareAmount)}</td>
+                    <td className="py-2.5 text-emerald-400">{formatMoney(item.paidAmount)}</td>
+                    <td className={`py-2.5 ${item.balance > 0 ? 'text-amber-300' : 'text-slate-400'}`}>{formatMoney(item.balance)}</td>
+                    <td className="py-2.5">
+                      {item.shareAmount === 0
+                        ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/5 text-slate-400">no share</span>
+                        : item.isPaid
+                          ? <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300">paid</span>
+                          : <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-400/20 text-amber-300">owed</span>}
+                    </td>
                   </tr>
                 ))}
                 <tr className="font-bold text-white">
                   <td className="py-2.5 font-sans">Owners / retained</td>
-                  <td className="py-2.5">
-                    {Math.max(0, 100 - (financeReport.investorShares?.reduce((sum, i) => sum + i.percentage, 0) || 0))}%
-                  </td>
-                  <td className="py-2.5 text-lime-400">৳{financeReport.ownersShare.toLocaleString()}</td>
-                  <td className="py-2.5"></td>
-                  <td className="py-2.5"></td>
+                  <td className="py-2.5">{retainedPct}%</td>
+                  <td className={`py-2.5 ${financeReport.ownersShare < 0 ? 'text-rose-400' : 'text-lime-400'}`}>{financeReport.ownersShare < 0 ? '-' : ''}{formatMoney(Math.abs(financeReport.ownersShare))}</td>
+                  <td className="py-2.5" colSpan={3}></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div className="text-[12px] text-amber-400">
-            {financeReport.isLossMonth 
+            {financeReport.isLossMonth
               ? 'This month shows a loss or breakeven so far, so there is no net dividend to distribute.'
-              : 'Net dividends distributed according to registered equity ownership percentages.'}
+              : 'Net dividends are split according to each active partner\'s equity percentage; the remainder is retained by the owners.'}
           </div>
         </div>
 
-        {/* Expense entries */}
         <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-4">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-            Expense entries
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Expense entries</h3>
+            <button type="button" onClick={() => setShowAllExpenses(v => !v)} className="text-[11px] text-lime-400 hover:underline cursor-pointer">
+              {showAllExpenses ? `Only ${formatMonth(selectedMonth, { month: 'short', year: 'numeric' })}` : 'Show all'}
+            </button>
+          </div>
 
-          <div className="space-y-2">
-            {expenses.slice(0, 4).map(e => (<div key={e.id} className="p-3 rounded-2xl bg-[#080d12] border border-white/5 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-white">{e.title}</div>
-                  <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                    {e.date} · {e.category.replace('_', ' ')}
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+            {monthExpenses.length === 0 ? (
+              <div className="text-slate-500 text-xs py-2">{showAllExpenses ? 'No expenses recorded yet.' : `No expenses recorded for ${formatMonth(selectedMonth)}.`}</div>
+            ) : monthExpenses.map(e => (<div key={e.id} className="p-3 rounded-2xl bg-[#080d12] border border-white/5 flex items-center justify-between text-xs gap-3">
+                <div className="min-w-0">
+                  <div className="font-bold text-white truncate">{e.title}</div>
+                  <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
+                    {formatDate(e.date, { day: 'numeric', month: 'short', year: 'numeric' })} · {expenseCategoryLabel(e.category)}{e.receiptNote ? ` · ${e.receiptNote}` : ''}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-mono font-bold text-white">
-                    ৳{e.amount.toLocaleString()}
-                  </span>
-                  <button type="button" onClick={() => handleDeleteExpense(e.id)} className="p-1 text-slate-500 hover:text-rose-400">
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono font-bold text-white">{formatMoney(e.amount)}</span>
+                  <button type="button" disabled={deletingId === e.id} onClick={() => handleDelete(e)} className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer disabled:opacity-40" aria-label={`Delete ${e.title}`}>
                     ✕
                   </button>
                 </div>
@@ -331,15 +345,13 @@ export default function AdminFinancialReportPage() {
 
       </div>
 
-      {/* DAILY BREAKDOWN TABLE (MATCHING SCREENSHOT 4) */}
+      {/* DAILY BREAKDOWN TABLE */}
       <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-3">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-          Daily breakdown
-        </h3>
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider">Daily breakdown · {formatMonth(selectedMonth)}</h3>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[28rem] overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
+            <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5 sticky top-0 bg-[#0c131a]">
               <tr>
                 <th className="py-2">DATE</th>
                 <th className="py-2 text-center">BOOKINGS</th>
@@ -349,18 +361,28 @@ export default function AdminFinancialReportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 font-mono text-[12px]">
-              {financeReport.dailyBreakdown.slice(0, 15).map(day => (<tr key={day.date} className="hover:bg-white/[0.02]">
-                  <td className="py-2 font-sans text-slate-300">{day.date}</td>
+              {financeReport.dailyBreakdown.map(day => (<tr key={day.date} className={`hover:bg-white/[0.02] ${day.slotsBooked === 0 && day.moneyCollected === 0 && day.expenses === 0 ? 'text-slate-600' : ''}`}>
+                  <td className="py-2 font-sans text-slate-300">{formatDate(day.date, { weekday: 'short', day: 'numeric', month: 'short' })}</td>
                   <td className="py-2 text-center text-slate-400">{day.slotsBooked}</td>
-                  <td className="py-2 text-right text-emerald-400">৳{day.moneyCollected.toLocaleString()}</td>
-                  <td className="py-2 text-right text-slate-400">৳{day.expenses.toLocaleString()}</td>
+                  <td className="py-2 text-right text-emerald-400">{formatMoney(day.moneyCollected)}</td>
+                  <td className="py-2 text-right text-slate-400">{formatMoney(day.expenses)}</td>
                   <td className={`py-2 text-right font-bold ${day.net < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {day.net < 0 ? '-' : ''}৳{Math.abs(day.net).toLocaleString()}
+                    {day.net < 0 ? '-' : ''}{formatMoney(Math.abs(day.net))}
                   </td>
                 </tr>))}
             </tbody>
+            <tfoot className="font-mono text-[12px] font-bold text-white border-t border-white/10">
+              <tr>
+                <td className="py-2 font-sans">Month total</td>
+                <td className="py-2 text-center">{financeReport.slotsBooked}</td>
+                <td className="py-2 text-right text-emerald-400">{formatMoney(financeReport.dailyBreakdown.reduce((s, d) => s + d.moneyCollected, 0))}</td>
+                <td className="py-2 text-right">{formatMoney(financeReport.totalExpenses)}</td>
+                <td className={`py-2 text-right ${financeReport.netProfit < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{financeReport.netProfit < 0 ? '-' : ''}{formatMoney(Math.abs(financeReport.netProfit))}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
+        <p className="text-[11px] text-slate-500">Collected shows booking cash by the day it was paid (before refunds); month net also includes other income and completed refunds.</p>
       </div>
 
       {/* ADD EXPENSE MODAL */}
@@ -369,32 +391,37 @@ export default function AdminFinancialReportPage() {
             <h3 className="text-base font-bold text-white">Add Expense Record</h3>
             <form onSubmit={handleExpenseSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 mb-1">Expense Title</label>
-                <input type="text" required placeholder="e.g. Floodlights Generator Fuel" value={expTitle} onChange={e => setExpTitle(e.target.value)} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white"/>
+                <label className="block text-slate-300 mb-1">Expense title *</label>
+                <input type="text" required placeholder="e.g. Floodlight generator fuel" value={expForm.title} onChange={e => setExpForm(f => ({ ...f, title: e.target.value }))} className={inputCls}/>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-slate-300 mb-1">Category</label>
-                  <select value={expCategory} onChange={e => setExpCategory(e.target.value)} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white">
-                    <option value="turf_maintenance">Maintenance</option>
-                    <option value="floodlight_electricity">Electricity</option>
-                    <option value="staff_wages">Staff Wages</option>
-                    <option value="rent">Rent Lease</option>
-                    <option value="equipment">Equipment</option>
+                  <select value={expForm.category} onChange={e => setExpForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
+                    {EXPENSE_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">Amount (৳)</label>
-                  <input type="number" required value={expAmount} onChange={e => setExpAmount(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
+                  <label className="block text-slate-300 mb-1">Amount (৳) *</label>
+                  <input type="number" required min={1} value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} className={`${inputCls} font-mono`}/>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-300 mb-1">Date *</label>
+                  <input type="date" required value={expForm.date} onChange={e => setExpForm(f => ({ ...f, date: e.target.value }))} className={`${inputCls} font-mono`}/>
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">Receipt / voucher no.</label>
+                  <input type="text" value={expForm.receiptNote} onChange={e => setExpForm(f => ({ ...f, receiptNote: e.target.value }))} className={inputCls}/>
+                </div>
+              </div>
+
+              {expError && <p className="text-rose-400 text-[12px]">{expError}</p>}
+
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowExpenseModal(false)} className="flex-1 py-2 bg-white/5 rounded-xl text-slate-300 font-bold">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl">
-                  Save Expense
-                </button>
+                <button type="button" disabled={isSavingExpense} onClick={() => setShowExpenseModal(false)} className="flex-1 py-2 bg-white/5 rounded-xl text-slate-300 font-bold cursor-pointer disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={isSavingExpense} className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl cursor-pointer disabled:opacity-50">{isSavingExpense ? 'Saving…' : 'Save expense'}</button>
               </div>
             </form>
           </div>
@@ -406,31 +433,37 @@ export default function AdminFinancialReportPage() {
             <h3 className="text-base font-bold text-white">Record Income</h3>
             <form onSubmit={handleIncomeSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 mb-1">Income Description</label>
-                <input type="text" required placeholder="e.g. Counter Grip Socks Sales" value={incTitle} onChange={e => setIncTitle(e.target.value)} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white"/>
+                <label className="block text-slate-300 mb-1">Income description *</label>
+                <input type="text" required placeholder="e.g. Counter grip socks sales" value={incForm.title} onChange={e => setIncForm(f => ({ ...f, title: e.target.value }))} className={inputCls}/>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-slate-300 mb-1">Source</label>
-                  <select value={incSource} onChange={e => setIncSource(e.target.value)} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white">
-                    <option value="shop_sales">Shop Sales</option>
-                    <option value="event_fees">Event Fees</option>
-                    <option value="sponsorship">Sponsorship</option>
-                    <option value="other">Other</option>
+                  <select value={incForm.source} onChange={e => setIncForm(f => ({ ...f, source: e.target.value }))} className={inputCls}>
+                    {INCOME_SOURCES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-300 mb-1">Amount (৳)</label>
-                  <input type="number" required value={incAmount} onChange={e => setIncAmount(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
+                  <label className="block text-slate-300 mb-1">Amount (৳) *</label>
+                  <input type="number" required min={1} value={incForm.amount} onChange={e => setIncForm(f => ({ ...f, amount: e.target.value }))} className={`${inputCls} font-mono`}/>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-300 mb-1">Date *</label>
+                  <input type="date" required value={incForm.date} onChange={e => setIncForm(f => ({ ...f, date: e.target.value }))} className={`${inputCls} font-mono`}/>
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">Notes</label>
+                  <input type="text" value={incForm.notes} onChange={e => setIncForm(f => ({ ...f, notes: e.target.value }))} className={inputCls}/>
+                </div>
+              </div>
+
+              {incError && <p className="text-rose-400 text-[12px]">{incError}</p>}
+
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setShowIncomeModal(false)} className="flex-1 py-2 bg-white/5 rounded-xl text-slate-300 font-bold">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl">
-                  Save Income
-                </button>
+                <button type="button" disabled={isSavingIncome} onClick={() => setShowIncomeModal(false)} className="flex-1 py-2 bg-white/5 rounded-xl text-slate-300 font-bold cursor-pointer disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={isSavingIncome} className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl cursor-pointer disabled:opacity-50">{isSavingIncome ? 'Saving…' : 'Save income'}</button>
               </div>
             </form>
           </div>

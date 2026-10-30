@@ -247,6 +247,13 @@ export const ArenaProvider = ({ children }) => {
         return bookings.filter(b => !b.isPublicView && ((phone && cleanPhone(b.captainPhone) === phone) || (uid && b.userId === uid)));
     }, [bookings, currentUser, isVisitor]);
 
+    // Teams the signed-in user captains (server marks them with isMine; teams created this session carry captainPhone)
+    const myTeams = useMemo(() => {
+        if (isVisitor) return [];
+        const phone = cleanPhone(currentUser.phone);
+        return teams.filter(t => t.isMine || (phone && t.captainPhone && cleanPhone(t.captainPhone) === phone) || (currentUser.teamId && t.id === currentUser.teamId));
+    }, [teams, currentUser, isVisitor]);
+
     // ---- Finance (monthly, cash basis) ----
     const calculateMonthlyFinance = useCallback((monthStr) => {
         const [year, month] = monthStr.split('-').map(Number);
@@ -563,7 +570,7 @@ export const ArenaProvider = ({ children }) => {
     const handleSaveTeam = useCallback(async (team) => {
         const r = await api('/api/teams', { method: 'POST', body: team });
         if (r.ok && r.data.team) {
-            setTeams(prev => upsert(prev, r.data.team));
+            setTeams(prev => upsert(prev, { ...r.data.team, isMine: true }));
             if (currentUser && !isObjectId(currentUser.teamId)) { const u = { ...currentUser, teamId: r.data.team.id }; setCurrentUser(u); saveCurrentUser(u); }
             showNotice('success', 'Team registered');
             return { ok: true, team: r.data.team };
@@ -742,7 +749,7 @@ export const ArenaProvider = ({ children }) => {
     }, [showNotice]);
 
     const value = useMemo(() => ({
-        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
@@ -765,7 +772,7 @@ export const ArenaProvider = ({ children }) => {
         handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
         sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
     }), [
-        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,

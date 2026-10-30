@@ -1,464 +1,224 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useArena } from '../context/ArenaContext';
-import { X, CreditCard, Smartphone, Building, CheckCircle2, AlertTriangle, Info, ExternalLink, Loader2, ShieldCheck } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { COURTS, SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '../data/initialData';
+import { isWeekendDate, formatIsoDate } from '../lib/dateUtils';
+import { X, AlertTriangle, ExternalLink, Loader2, ShieldCheck, MessageCircle, Phone, Lock } from 'lucide-react';
 
+const MATCH_TYPE_LABEL = { friendly: 'Friendly Scrimmage', competitive: 'Competitive Match', practice: 'Tactical Training', corporate: 'Corporate Game' };
+
+const classifyError = (message) => {
+    const m = String(message || '').toLowerCase();
+    if (m.includes('not configured')) return 'gateway_unavailable';
+    if (m.includes('another customer') || m.includes('already been reserved') || m.includes('taken a moment ago') || m.includes('could not reserve')) return 'slot_conflict';
+    if (m.includes('already passed') || m.includes('days ahead') || m.includes('invalid date')) return 'bad_date';
+    return 'generic';
+};
+
+/**
+ * Step 2 of the public online booking: confirm the summary, create the server-side
+ * payment hold (server prices everything) and redirect to the hosted SSLCommerz page.
+ */
 export const SSLCommerzModal = () => {
     const {
-        showSSLCommerzModal,
-        setShowSSLCommerzModal,
-        pendingBookingData,
-        setPendingBookingData,
-        handleBookingSuccess,
-        bookings
+        setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
+        startOnlinePayment, pricing, siteSettings, handleReleaseSlotHold, refreshBookings
     } = useArena();
 
-    const [paymentTab, setPaymentTab] = useState('mfs');
-    const [selectedMfs, setSelectedMfs] = useState('bkash');
-    const [mfsNumber, setMfsNumber] = useState('01844332211');
-    const [mfsPin, setMfsPin] = useState('1234');
-    const [step, setStep] = useState('checkout');
-    const [statusLog, setStatusLog] = useState('');
-    const [isRedirecting, setIsRedirecting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [serverQuote, setServerQuote] = useState(null); // { amount, totalPrice, dueAfterPayment, bookingCode, holdExpiresAt }
     const [errorMessage, setErrorMessage] = useState('');
+    const [errorKind, setErrorKind] = useState('');
+    const redirectedRef = useRef(false);
 
-    const [tranId] = useState(() => `SSLCZ-TRX-${Math.floor(100000 + Math.random() * 900000)}`);
+    const pb = pendingBookingData;
+    const courtId = COURTS[0].id;
 
-    if (!showSSLCommerzModal || !pendingBookingData) return null;
+    // Client-side estimate shown before the server quote arrives (server amounts replace it)
+    const estimate = useMemo(() => {
+        if (!pb) return null;
+        const defs = Array.isArray(pricing.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION;
+        const def = defs.find(d => Number(d.slotNumber) === Number(pb.slotNumber)) || {};
+        const weekend = isWeekendDate(pb.date, pricing.weekendDays);
+        const courtPrice = Number(weekend ? def.weekendPrice : def.weekdayPrice) || 0;
+        const addOns = BOOKING_ADDONS.filter(a => (pb.addOns || []).includes(a.id));
+        const addOnsPrice = addOns.reduce((s, a) => s + a.price, 0);
+        const totalPrice = courtPrice + addOnsPrice;
+        const advanceSetting = Number(pricing.advanceAmount) > 0 ? Number(pricing.advanceAmount) : 500;
+        const amount = pb.paymentType === 'full_payment' ? totalPrice : Math.min(advanceSetting, totalPrice);
+        return { displayTime: def.displayTime || `Slot #${pb.slotNumber}`, courtPrice, addOns, addOnsPrice, totalPrice, amount, dueAfterPayment: Math.max(0, totalPrice - amount) };
+    }, [pb, pricing.slotPrices, pricing.weekendDays, pricing.advanceAmount]);
 
-    const payableAmount = pendingBookingData.paymentType === 'full_payment'
-        ? (pendingBookingData.totalPrice || 2500)
-        : (pendingBookingData.advanceAmount || 500);
+    if (!pb || !estimate) return null;
 
-    const handleClose = () => {
-        if (isRedirecting) return;
+    const payable = serverQuote ? Number(serverQuote.amount) : estimate.amount;
+    const total = serverQuote ? Number(serverQuote.totalPrice) : estimate.totalPrice;
+    const dueAfter = serverQuote ? Number(serverQuote.dueAfterPayment) : estimate.dueAfterPayment;
+
+    const closeModal = () => {
+        if (isSubmitting || redirectedRef.current) return;
+        // No redirect happened: free the cosmetic local hold so the grid is accurate
+        handleReleaseSlotHold(courtId, pb.date, pb.slotNumber);
         setShowSSLCommerzModal(false);
         setPendingBookingData(null);
-        setStep('checkout');
-        setErrorMessage('');
     };
 
-    /**
-     * Official SSLCommerz Sandbox Gateway Redirect
-     */
-    const handlePayWithSSLCommerz = async () => {
-        setIsRedirecting(true);
+    const handleConfirmAndPay = async () => {
+        if (isSubmitting || redirectedRef.current) return;
+        setIsSubmitting(true);
         setErrorMessage('');
-        try {
-            const res = await fetch('/api/payment/sslcommerz/init', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    pendingBooking: pendingBookingData,
-                    baseUrl: window.location.origin
-                })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok || !data.gatewayUrl) {
-                throw new Error(data.error || 'Failed to initialize SSLCommerz gateway session');
-            }
-
-            // Redirect user to official SSLCommerz Sandbox Hosted Gateway
-            window.location.href = data.gatewayUrl;
-        } catch (err) {
-            console.error('SSLCommerz gateway init error:', err);
-            setIsRedirecting(false);
-            setErrorMessage(err.message || 'Could not connect to SSLCommerz gateway.');
+        setErrorKind('');
+        const r = await startOnlinePayment(pb);
+        if (r.ok && r.gatewayUrl) {
+            setServerQuote({ amount: r.amount, totalPrice: r.totalPrice, dueAfterPayment: r.dueAfterPayment, bookingCode: r.bookingCode, holdExpiresAt: r.holdExpiresAt });
+            redirectedRef.current = true;
+            // Keep the spinner on while the browser navigates away
+            window.location.href = r.gatewayUrl;
+            return;
         }
+        setIsSubmitting(false);
+        setErrorKind(classifyError(r.error));
+        setErrorMessage(r.error || 'Could not start the payment. Please try again.');
+        if (classifyError(r.error) === 'slot_conflict') refreshBookings().catch(() => { /* ignore */ });
     };
 
-    /**
-     * Local Sandbox Simulation (For instant offline or in-modal verification)
-     */
-    const handleSimulateSuccess = () => {
-        setStep('verifying');
-        setStatusLog('Validating transaction with SSLCommerz Server Validation API...');
-        setTimeout(() => {
-            const slotTaken = bookings.some(b => 
-                b.date === pendingBookingData.date &&
-                b.slotNumber === pendingBookingData.slotNumber &&
-                b.paymentStatus !== 'cancelled'
-            );
-
-            if (slotTaken) {
-                setStep('expired_hold');
-                setStatusLog('Slot was already booked by another user while payment was in progress.');
-                return;
-            }
-
-            const confirmedBooking = {
-                id: `book-${Date.now()}`,
-                bookingCode: pendingBookingData.bookingCode || `CMA-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-                courtId: pendingBookingData.courtId || 'main-turf',
-                courtName: pendingBookingData.courtName || 'Crossbar Metro Arena (Main Turf)',
-                date: pendingBookingData.date,
-                slotNumber: pendingBookingData.slotNumber,
-                startTime: pendingBookingData.startTime,
-                endTime: pendingBookingData.endTime,
-                displayTime: pendingBookingData.displayTime,
-                captainName: pendingBookingData.captainName || 'Player Team',
-                captainPhone: pendingBookingData.captainPhone || '01844-332211',
-                teamName: pendingBookingData.teamName || 'Squad FC',
-                playerCount: pendingBookingData.playerCount || 14,
-                matchType: pendingBookingData.matchType || 'friendly',
-                addOns: pendingBookingData.addOns || [],
-                courtPrice: pendingBookingData.courtPrice || 2500,
-                addOnsPrice: pendingBookingData.addOnsPrice || 0,
-                totalPrice: pendingBookingData.totalPrice || 2500,
-                paymentType: pendingBookingData.paymentType || 'advance_500',
-                advanceAmount: payableAmount,
-                dueAmount: Math.max(0, (pendingBookingData.totalPrice || 2500) - payableAmount),
-                paymentMethod: selectedMfs,
-                paymentStatus: pendingBookingData.paymentType === 'full_payment' ? 'paid_full' : 'paid_advance',
-                transactionId: tranId,
-                notes: pendingBookingData.notes,
-                createdAt: new Date().toISOString()
-            };
-
-            handleBookingSuccess(confirmedBooking);
-            setStep('success');
-            try {
-                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-            } catch { }
-        }, 1200);
-    };
-
-    const handleSimulateFailure = () => {
-        setStep('verifying');
-        setStatusLog('Processing MFS Gateway authentication...');
-        setTimeout(() => {
-            setStep('failed');
-            setStatusLog('MFS Gateway Error: Transaction declined by provider (Insufficient balance or invalid PIN).');
-        }, 1000);
-    };
+    const whatsappUrl = siteSettings?.whatsappUrl || '';
+    const phoneHref = siteSettings?.phone ? `tel:${String(siteSettings.phone).replace(/[^0-9+]/g, '')}` : '';
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
             <div className="relative bg-[#0c131c] border border-emerald-500/40 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                
-                {/* Gateway Brand Header */}
+
+                {/* Header */}
                 <div className="bg-[#101b2b] px-6 py-4 border-b border-white/10 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-black text-xs font-mono shadow-inner">
-                            SSL
+                        <div className="h-9 w-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                            <Lock className="w-4 h-4" />
                         </div>
                         <div>
-                            <div className="text-sm font-black text-white flex items-center gap-2">
-                                <span>SSLCOMMERZ</span>
-                                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
-                                    Sandbox Live
-                                </span>
-                            </div>
-                            <div className="text-[12px] text-slate-400">
-                                Store ID: <strong className="font-mono text-emerald-400">fajra6aa249a39ddb2</strong>
-                            </div>
+                            <div className="text-sm font-black text-white">Confirm &amp; pay securely</div>
+                            <div className="text-[12px] text-slate-400">You will be redirected to SSLCommerz (bKash, Nagad, Rocket, cards)</div>
                         </div>
                     </div>
-                    <button 
-                        onClick={handleClose} 
-                        disabled={isRedirecting}
-                        className="p-1.5 rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-                    >
+                    <button type="button" onClick={closeModal} disabled={isSubmitting} aria-label="Close" className="p-1.5 rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Order Payment Summary */}
-                <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-950/40 to-slate-900 border-b border-white/10 flex items-center justify-between">
-                    <div>
-                        <div className="text-xs text-slate-400">Slot #{pendingBookingData.slotNumber} · {pendingBookingData.displayTime}</div>
-                        <div className="text-sm font-bold text-white mt-0.5">
-                            {pendingBookingData.teamName} · {pendingBookingData.date}
+                {/* Booking summary */}
+                <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-950/40 to-slate-900 border-b border-white/10 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <div className="text-xs text-slate-400">Slot #{pb.slotNumber} · {estimate.displayTime}</div>
+                            <div className="text-sm font-bold text-white mt-0.5">{formatIsoDate(pb.date)}</div>
+                            <div className="text-xs text-slate-300 mt-1">
+                                {pb.teamName} · {pb.captainName} · {pb.captainPhone}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">{MATCH_TYPE_LABEL[pb.matchType] || 'Friendly Scrimmage'}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                            <div className="text-xs text-slate-400 font-medium">{serverQuote ? 'Amount (confirmed)' : 'Pay now'}</div>
+                            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">৳{payable.toLocaleString()}</div>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <div className="text-xs text-slate-400 font-medium">Payable Now</div>
-                        <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
-                            ৳{payableAmount.toLocaleString()}
+
+                    <div className="rounded-xl bg-black/30 border border-white/10 p-3 text-xs space-y-1">
+                        <div className="flex items-center justify-between text-slate-300">
+                            <span>Slot price</span>
+                            <span className="font-mono text-white">৳{estimate.courtPrice.toLocaleString()}</span>
                         </div>
+                        {estimate.addOns.map(a => (
+                            <div key={a.id} className="flex items-center justify-between text-slate-400">
+                                <span>+ {a.name}</span>
+                                <span className="font-mono">৳{a.price.toLocaleString()}</span>
+                            </div>
+                        ))}
+                        <div className="flex items-center justify-between text-white font-bold border-t border-white/10 pt-1">
+                            <span>Total</span>
+                            <span className="font-mono">৳{total.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-emerald-300 font-bold">
+                            <span>{pb.paymentType === 'full_payment' ? 'Full payment online' : 'Advance online'}</span>
+                            <span className="font-mono">৳{payable.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-400">
+                            <span>Due at the arena desk</span>
+                            <span className="font-mono">৳{dueAfter.toLocaleString()}</span>
+                        </div>
+                        {serverQuote?.bookingCode && (
+                            <div className="flex items-center justify-between text-slate-400 pt-1">
+                                <span>Booking code</span>
+                                <span className="font-mono text-white">{serverQuote.bookingCode}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Checkout Content */}
-                {step === 'checkout' && (
-                    <div className="p-5 sm:p-6 space-y-5">
-                        
-                        {errorMessage && (
-                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                <div className="p-5 sm:p-6 space-y-4">
+
+                    {errorMessage && (
+                        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs space-y-2">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
                                 <span>{errorMessage}</span>
                             </div>
-                        )}
-
-                        {/* Primary Action: Official SSLCommerz Sandbox Hosted Gateway */}
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/50 via-slate-900 to-[#0e1724] border border-emerald-500/40 space-y-3">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <h4 className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-1.5">
-                                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                        <span>Official SSLCommerz Gateway</span>
-                                    </h4>
-                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                                        Redirect to the official SSLCommerz Sandbox portal. Test live payments with bKash, Nagad, Rocket, or test credit cards.
-                                    </p>
+                            {errorKind === 'gateway_unavailable' && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {whatsappUrl && (
+                                        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/30">
+                                            <MessageCircle className="w-3.5 h-3.5" /> Book on WhatsApp
+                                        </a>
+                                    )}
+                                    {phoneHref && (
+                                        <a href={phoneHref} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/10 font-bold hover:bg-white/15">
+                                            <Phone className="w-3.5 h-3.5" /> Call {siteSettings.phoneFormatted || siteSettings.phone}
+                                        </a>
+                                    )}
                                 </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={handlePayWithSSLCommerz}
-                                disabled={isRedirecting}
-                                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60"
-                            >
-                                {isRedirecting ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                                        <span>Connecting to SSLCommerz...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Proceed to SSLCommerz Sandbox</span>
-                                        <ExternalLink className="w-4 h-4 text-slate-950" />
-                                    </>
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="relative flex items-center justify-center">
-                            <div className="border-t border-white/10 w-full"></div>
-                            <span className="bg-[#0c131c] px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
-                                or instant in-modal test
-                            </span>
-                        </div>
-
-                        {/* Payment Method Tabs */}
-                        <div className="grid grid-cols-3 gap-2 bg-white/5 p-1 rounded-xl text-xs font-bold border border-white/10">
-                            <button
-                                type="button"
-                                onClick={() => setPaymentTab('mfs')}
-                                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${paymentTab === 'mfs' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                <Smartphone className="w-3.5 h-3.5" />
-                                <span>Mobile Banking</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPaymentTab('cards')}
-                                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${paymentTab === 'cards' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                <span>Cards</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPaymentTab('netbanking')}
-                                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${paymentTab === 'netbanking' ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                <Building className="w-3.5 h-3.5" />
-                                <span>Net Banking</span>
-                            </button>
-                        </div>
-
-                        {/* MFS Providers selection */}
-                        {paymentTab === 'mfs' && (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-4 gap-2">
-                                    {[
-                                        { id: 'bkash', name: 'bKash', color: 'from-[#E2136E] to-[#b00f55]', border: 'border-pink-500/50' },
-                                        { id: 'nagad', name: 'Nagad', color: 'from-[#F7941D] to-[#d67b0d]', border: 'border-orange-500/50' },
-                                        { id: 'rocket', name: 'Rocket', color: 'from-[#8C3494] to-[#6a2471]', border: 'border-purple-500/50' },
-                                        { id: 'upay', name: 'Upay', color: 'from-[#0066B3] to-[#004e8a]', border: 'border-blue-500/50' },
-                                    ].map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => setSelectedMfs(p.id)}
-                                            className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                                                selectedMfs === p.id
-                                                    ? `bg-gradient-to-br ${p.color} text-white font-black shadow-lg ${p.border}`
-                                                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
-                                            }`}
-                                        >
-                                            <div className="text-xs font-bold">{p.name}</div>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                                            {selectedMfs.toUpperCase()} Wallet Number
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={mfsNumber}
-                                            onChange={e => setMfsNumber(e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-300 mb-1">
-                                            Sandbox PIN
-                                        </label>
-                                        <input
-                                            type="password"
-                                            value={mfsPin}
-                                            onChange={e => setMfsPin(e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-sm"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Cards selection */}
-                        {paymentTab === 'cards' && (
-                            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                                <div className="text-xs text-slate-300 font-bold mb-1">Accepted Cards</div>
-                                <div className="text-xs text-slate-400">VISA · MasterCard · American Express · UnionPay</div>
-                                <input
-                                    type="text"
-                                    placeholder="Card Number: 4111 2222 3333 4444"
-                                    defaultValue="4111 2222 3333 4444"
-                                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white font-mono text-xs"
-                                />
-                            </div>
-                        )}
-
-                        {/* Net banking */}
-                        {paymentTab === 'netbanking' && (
-                            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
-                                <div className="text-xs text-slate-300 font-bold">Select Internet Banking Portal</div>
-                                <select className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs">
-                                    <option>City Touch (City Bank)</option>
-                                    <option>BRAC Bank Astha</option>
-                                    <option>Islami Bank CellFin</option>
-                                    <option>Dutch-Bangla Bank NexusPay</option>
-                                </select>
-                            </div>
-                        )}
-
-                        {/* In-Modal Quick Action Controls */}
-                        <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
-                            <div className="text-[12px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                <Info className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Quick In-Modal Test Actions</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                <button
-                                    type="button"
-                                    onClick={handleSimulateSuccess}
-                                    className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-emerald-500 hover:text-slate-950 text-white font-black text-center transition-colors cursor-pointer"
-                                >
-                                    Instant Test Confirm
+                            )}
+                            {(errorKind === 'slot_conflict' || errorKind === 'bad_date') && (
+                                <button type="button" onClick={closeModal} className="px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/10 font-bold hover:bg-white/15 cursor-pointer">
+                                    Pick another slot
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={handleSimulateFailure}
-                                    className="py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold transition-colors cursor-pointer"
-                                >
-                                    Test Decline
-                                </button>
-                            </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/50 via-slate-900 to-[#0e1724] border border-emerald-500/40 space-y-3">
+                        <div>
+                            <h4 className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                <span>SSLCommerz secure checkout</span>
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                The slot is held for you for {Number(pricing.holdMinutes) || 10} minutes once you continue. Complete the payment on the SSLCommerz page and you will be brought back here with your booking confirmation.
+                            </p>
                         </div>
 
-                    </div>
-                )}
-
-                {/* Verifying step */}
-                {step === 'verifying' && (
-                    <div className="p-10 text-center space-y-4">
-                        <div className="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin mx-auto"></div>
-                        <div className="text-base font-bold text-white">Validating with SSLCommerz...</div>
-                        <p className="text-xs text-slate-400 max-w-sm mx-auto">{statusLog}</p>
-                    </div>
-                )}
-
-                {/* Success step */}
-                {step === 'success' && (
-                    <div className="p-8 text-center space-y-4">
-                        <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 mx-auto">
-                            <CheckCircle2 className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-xl font-black text-white font-display uppercase tracking-wide">
-                            Payment Validated &amp; Slot Locked!
-                        </h3>
-                        <p className="text-xs text-slate-300 max-w-md mx-auto">
-                            Your payment of <strong className="text-emerald-400">৳{payableAmount.toLocaleString()}</strong> has been verified via SSLCommerz validation API. Transaction ID: <span className="font-mono text-white font-bold">{tranId}</span>.
-                        </p>
-                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
-                            An SMS confirmation pass has been dispatched to <strong>{pendingBookingData.captainPhone}</strong>.
-                        </div>
                         <button
                             type="button"
-                            onClick={handleClose}
-                            className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-lg shadow-emerald-500/20 cursor-pointer"
+                            onClick={handleConfirmAndPay}
+                            disabled={isSubmitting || errorKind === 'gateway_unavailable'}
+                            className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            View Match Day Pass Ticket
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>{serverQuote ? 'Redirecting to SSLCommerz…' : 'Reserving your slot…'}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Pay ৳{payable.toLocaleString()} with SSLCommerz</span>
+                                    <ExternalLink className="w-4 h-4" />
+                                </>
+                            )}
                         </button>
                     </div>
-                )}
 
-                {/* Failed step */}
-                {step === 'failed' && (
-                    <div className="p-8 text-center space-y-4">
-                        <div className="w-14 h-14 rounded-full bg-rose-500/20 border border-rose-500 flex items-center justify-center text-rose-400 mx-auto">
-                            <X className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-xl font-black text-white font-display uppercase tracking-wide">
-                            Payment Incomplete
-                        </h3>
-                        <p className="text-xs text-rose-300 max-w-md mx-auto">
-                            {statusLog}
-                        </p>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setStep('checkout')}
-                                className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                            >
-                                Try Again
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Late Payment after hold expired */}
-                {step === 'expired_hold' && (
-                    <div className="p-8 text-center space-y-4">
-                        <div className="w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500 flex items-center justify-center text-amber-400 mx-auto">
-                            <AlertTriangle className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-xl font-black text-white font-display uppercase tracking-wide">
-                            Hold Expired · Money in Refund Queue
-                        </h3>
-                        <p className="text-xs text-amber-200 max-w-md mx-auto">
-                            Your 10-minute hold window expired and another squad booked the slot. Your payment of <strong>৳{payableAmount.toLocaleString()}</strong> has been safely recorded in the <strong>Admin Refund Queue</strong>.
-                        </p>
-                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
-                            The arena management has been alerted and will process your full refund via bKash/Nagad.
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                        >
-                            Acknowledge &amp; Pick Another Slot
-                        </button>
-                    </div>
-                )}
-
+                    <button type="button" onClick={closeModal} disabled={isSubmitting} className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50">
+                        Go back
+                    </button>
+                </div>
             </div>
         </div>
     );

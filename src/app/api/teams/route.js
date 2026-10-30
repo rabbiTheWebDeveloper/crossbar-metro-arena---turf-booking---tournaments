@@ -2,20 +2,28 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
-import { requireAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
+import { requireAuth, optionalAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
 import { sanitizePlayer } from '@/lib/teams';
 
-export async function GET() {
+export async function GET(request) {
     try {
         await connectToDatabase();
+        const user = await optionalAuth(request);
+        const myPhone = user ? cleanPhone(user.phone) : '';
+        const isAdmin = user?.role === 'admin';
         const teams = await Team.find().sort({ 'stats.points': -1, createdAt: -1 }).lean();
-        // Public listing: hide roster phone numbers
-        const list = teams.map(t => ({
-            ...t,
-            id: String(t._id),
-            captainPhone: undefined,
-            players: (t.players || []).map(p => ({ ...p, phone: undefined }))
-        }));
+        // Public listing hides phone numbers; the captain (and admins) get full details plus an isMine flag
+        const list = teams.map(t => {
+            const mine = !!myPhone && cleanPhone(t.captainPhone) === myPhone;
+            const full = mine || isAdmin;
+            return {
+                ...t,
+                id: String(t._id),
+                isMine: mine,
+                captainPhone: full ? t.captainPhone : undefined,
+                players: (t.players || []).map(p => ({ ...p, phone: full ? p.phone : undefined }))
+            };
+        });
         return NextResponse.json({ success: true, count: list.length, teams: list });
     } catch (err) {
         console.error('GET /api/teams error:', err);

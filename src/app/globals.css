@@ -47,9 +47,12 @@
   /* ---- Typography ----
      Montserrat (800/900) matches the heavy geometric wordmark of the
      Crossbar Metro Arena logo. Body stays Plus Jakarta Sans. */
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Montserrat', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-sport: 'Teko', sans-serif;
+  /* The font faces are self-hosted via next/font in src/app/layout.jsx, which
+     exposes them as --font-sans-next / --font-display-next / --font-sport-next
+     on <html>. The theme tokens below resolve to those (with named fallbacks). */
+  --font-sans: var(--font-sans-next, 'Plus Jakarta Sans'), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-display-next, 'Montserrat'), var(--font-sans-next, 'Plus Jakarta Sans'), system-ui, sans-serif;
+  --font-sport: var(--font-sport-next, 'Teko'), sans-serif;
 
   /* Slightly larger small-text scale: the UI relies heavily on text-xs /
      text-sm, which were 12px / 14px and hard to read on phones. */
