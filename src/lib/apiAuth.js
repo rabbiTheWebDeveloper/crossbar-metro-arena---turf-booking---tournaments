@@ -1,3 +1,4 @@
+import { cleanPhone } from './phone';
 import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest } from './serverAuth';
 
@@ -60,14 +61,7 @@ export async function optionalAuth(request) {
     }
 }
 
-/** Normalise a Bangladeshi mobile number to the 11-digit "01XXXXXXXXX" form. */
-export function cleanPhone(raw) {
-    let p = String(raw || '').replace(/[^0-9]/g, '');
-    if (p.startsWith('8801')) p = p.substring(2);
-    return p;
-}
-
-export const isValidBdPhone = (raw) => /^01[3-9]\d{8}$/.test(cleanPhone(raw));
+export { cleanPhone, isValidBdPhone } from './phone';
 
 /** Escape a string so it can be used safely inside a MongoDB $regex. */
 export function escapeRegex(value) {

@@ -35,9 +35,9 @@ export const metadata = {
         images: defaultOgImages
     },
     icons: {
-        icon: siteConfig.logo,
-        apple: siteConfig.logo,
-        shortcut: siteConfig.logo
+        icon: '/brand/logo-192.png',
+        apple: '/brand/logo-192.png',
+        shortcut: '/brand/logo-192.png'
     },
     twitter: {
         card: 'summary',

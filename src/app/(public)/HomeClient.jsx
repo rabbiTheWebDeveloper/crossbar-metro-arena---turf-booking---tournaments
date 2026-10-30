@@ -297,7 +297,7 @@ export default function ArenaHomePage() {
           {galleryPhotos && galleryPhotos.length > 0 ? (
             galleryPhotos.slice(0, 4).map((item, idx) => (
               <Link key={item.id || idx} href="/gallery" className="group relative rounded-2xl overflow-hidden aspect-[4/3] border border-white/10">
-                <img src={item.url} alt={item.title || 'Crossbar Arena'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                <img loading="lazy" decoding="async" src={item.url} alt={item.title || 'Crossbar Arena'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
                   <span className="text-[11px] text-emerald-400 font-bold uppercase">{item.album || 'Arena'}</span>
                   <span className="text-xs font-bold text-white truncate">{item.title}</span>

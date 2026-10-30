@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/Team';
@@ -37,7 +38,8 @@ export async function POST(request) {
         const { user, denied } = await requireAuth(request);
         if (denied) return denied;
         await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const name = String(body.name || '').trim();
         if (name.length < 3) return NextResponse.json({ error: 'Team name must be at least 3 characters.' }, { status: 400 });
 

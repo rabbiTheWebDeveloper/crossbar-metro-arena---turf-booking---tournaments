@@ -209,7 +209,7 @@ export default function ResultsPage() {
 
                     {/* Team Photo if available */}
                     {match.teamPhoto && (<div className="pt-2">
-                        <img src={match.teamPhoto} alt="Match Day Squad" className="w-full max-h-56 object-cover rounded-2xl border border-white/10"/>
+                        <img loading="lazy" decoding="async" src={match.teamPhoto} alt="Match Day Squad" className="w-full max-h-56 object-cover rounded-2xl border border-white/10"/>
                       </div>)}
                   </div>))}
               </div>)}

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Payout } from '@/models/Payout';
 import { Investor } from '@/models/Investor';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { PAYOUT_SCHEMA } from '@/lib/schemas';
 import { requireRole, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 async function myInvestor(user) {
@@ -47,21 +49,21 @@ export async function POST(request) {
     try {
         const { user, denied } = await requireAdmin(request);
         if (denied) return denied;
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const investorId = body.investorId;
+        if (!isObjectId(investorId)) return badRequest('Pick a saved investor first.');
+        const { data, error: inputError } = validate(body, PAYOUT_SCHEMA);
+        if (inputError) return badRequest(inputError);
+        const { month, amount, datePaid, paymentMethod: method, transactionNote, allowDuplicate } = data;
+        if (amount <= 0) return badRequest('Amount must be greater than zero.');
         await connectToDatabase();
-        const body = await request.json();
-        const { investorId, month, datePaid, paymentMethod, transactionNote } = body;
-        const amount = Number(body.amount);
-
-        if (!isObjectId(investorId)) return NextResponse.json({ error: 'Pick a saved investor first.' }, { status: 400 });
-        if (!/^\d{4}-\d{2}$/.test(String(month || ''))) return NextResponse.json({ error: 'Month must look like 2026-10.' }, { status: 400 });
-        if (Number.isNaN(amount) || amount <= 0) return NextResponse.json({ error: 'Amount must be greater than zero.' }, { status: 400 });
         const investor = await Investor.findById(investorId);
         if (!investor) return NextResponse.json({ error: 'Investor not found.' }, { status: 404 });
 
-        const method = ['bank_transfer', 'bkash', 'nagad', 'rocket', 'cheque', 'cash'].includes(paymentMethod) ? paymentMethod : 'bank_transfer';
         const already = await Payout.aggregate([{ $match: { investorId: String(investor._id), month } }, { $group: { _id: null, total: { $sum: '$amount' } } }]);
         const paidSoFar = already[0]?.total || 0;
-        if (paidSoFar > 0 && !body.allowDuplicate) {
+        if (paidSoFar > 0 && !allowDuplicate) {
             return NextResponse.json({ error: `৳${paidSoFar.toLocaleString()} has already been paid to ${investor.name} for ${month}. Tick "add another payout for this month" to record a second payment.`, paidSoFar }, { status: 409 });
         }
 
@@ -72,7 +74,7 @@ export async function POST(request) {
             amount,
             datePaid: /^\d{4}-\d{2}-\d{2}$/.test(datePaid || '') ? datePaid : new Date().toISOString().split('T')[0],
             paymentMethod: method,
-            transactionNote: String(transactionNote || '').slice(0, 200),
+            transactionNote,
             recordedBy: user.name || 'Admin Desk'
         });
         await newPayout.save();
@@ -89,7 +91,6 @@ export async function POST(request) {
             investors: investors.map(i => i.toJSON())
         }, { status: 201 });
     } catch (err) {
-        console.error('POST /api/payouts error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'POST /api/payouts');
     }
 }

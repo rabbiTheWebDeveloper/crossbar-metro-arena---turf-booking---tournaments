@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/MatchResult';
@@ -57,7 +58,8 @@ export async function POST(request) {
         const { user, denied } = await requireAuth(request);
         if (denied) return denied;
         await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const isAdmin = user.role === 'admin';
 
         // Admin edit path

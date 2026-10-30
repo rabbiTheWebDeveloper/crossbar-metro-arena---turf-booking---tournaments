@@ -1,3 +1,5 @@
+import { validate } from '@/lib/validate';
+import { REGISTRATION_EDIT_SCHEMA } from '@/lib/schemas';
 import { Tournament } from '@/models/Tournament';
 import { OtherIncome } from '@/models/OtherIncome';
 
@@ -26,6 +28,14 @@ export async function adjustRegisteredCount(tournamentId, prevStatus, nextStatus
         await Tournament.findByIdAndUpdate(tournamentId, { $inc: { registeredCount: -1 } });
         if (reg) await OtherIncome.deleteOne({ title: `Entry fee: ${reg.teamName} · ${reg.tournamentTitle} (${reg._id})` }).catch(() => { });
     }
+}
+
+/** Validate an admin edit body (accepts the legacy 'verified' status and newline/object player lists). */
+export function parseRegistrationEdits(body) {
+    const input = { ...body };
+    if (input.status) input.status = normalizeStatus(input.status);
+    if (input.playersList !== undefined) input.playersList = toStringList(input.playersList);
+    return validate(input, REGISTRATION_EDIT_SCHEMA, { partial: true });
 }
 
 /** Apply admin-editable fields from a request body onto a registration document. */

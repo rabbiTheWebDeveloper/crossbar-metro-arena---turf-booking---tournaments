@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/Team';
@@ -34,7 +35,8 @@ export async function PATCH(request, { params }) {
         await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         const team = await Team.findById(id);
         if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });

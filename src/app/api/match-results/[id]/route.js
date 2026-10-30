@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/MatchResult';
@@ -12,7 +13,8 @@ export async function PATCH(request, { params }) {
         await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Match result not found' }, { status: 404 });
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         const result = await MatchResult.findById(id);
         if (!result) return NextResponse.json({ error: 'Match result not found' }, { status: 404 });

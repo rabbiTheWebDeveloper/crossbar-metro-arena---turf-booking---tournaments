@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireAdmin, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/TournamentRegistration';
-import { normalizeStatus, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
+import { readJson, badRequest } from '@/lib/validate';
+import { parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 
 export async function GET(request, { params }) {
     try {
@@ -25,10 +26,13 @@ export async function PATCH(request, { params }) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
-        const body = await request.json();
+        const { body: raw, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const { data: body, error: inputError } = parseRegistrationEdits(raw);
+        if (inputError) return badRequest(inputError);
+        await connectToDatabase();
 
         const reg = await TournamentRegistration.findById(id);
         if (!reg) {
@@ -37,7 +41,7 @@ export async function PATCH(request, { params }) {
 
         const prevStatus = reg.status;
         applyRegistrationEdits(reg, body);
-        if (body.status) reg.status = normalizeStatus(body.status);
+        if (body.status) reg.status = body.status;
 
         await reg.save();
         await adjustRegisteredCount(reg.tournamentId, prevStatus, reg.status, reg);

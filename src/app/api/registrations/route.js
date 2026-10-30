@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/TournamentRegistration';
 import { Tournament } from '@/models/Tournament';
-import { normalizeStatus, toStringList, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
+import { normalizeStatus, toStringList, parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
+import { badRequest, readJson } from '@/lib/validate';
 import { optionalAuth, requireAdmin, cleanPhone, isObjectId, escapeRegex, rateLimit } from '@/lib/apiAuth';
 import { todayDhaka } from '@/lib/booking';
 
@@ -44,17 +45,20 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const targetId = body.id || body._id;
 
         if (isObjectId(targetId)) {
             const { denied } = await requireAdmin(request);
             if (denied) return denied;
+            const { data: edits, error: editError } = parseRegistrationEdits(body);
+            if (editError) return badRequest(editError);
             const existing = await TournamentRegistration.findById(targetId);
             if (!existing) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
             const prevStatus = existing.status;
-            applyRegistrationEdits(existing, body);
-            if (body.status) existing.status = normalizeStatus(body.status);
+            applyRegistrationEdits(existing, edits);
+            if (edits.status) existing.status = edits.status;
             await existing.save();
             await adjustRegisteredCount(existing.tournamentId, prevStatus, existing.status, existing);
             return NextResponse.json({ success: true, message: 'Tournament registration updated successfully', registration: existing.toJSON() });

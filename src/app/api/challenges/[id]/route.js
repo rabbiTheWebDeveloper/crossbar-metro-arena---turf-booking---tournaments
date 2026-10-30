@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/Challenge';
@@ -17,7 +18,8 @@ export async function PATCH(request, { params }) {
         await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const c = await Challenge.findById(id);
         if (!c) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
 

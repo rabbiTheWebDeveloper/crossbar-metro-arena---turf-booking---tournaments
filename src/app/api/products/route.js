@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requireAdmin, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { PRODUCT_SCHEMA, PRODUCT_CATEGORIES } from '@/lib/schemas';
+
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80';
 
 export async function GET(request) {
     try {
@@ -11,7 +15,10 @@ export async function GET(request) {
         const featured = searchParams.get('featured');
 
         const query = {};
-        if (category && category !== 'all') query.category = category;
+        if (category && category !== 'all') {
+            if (!PRODUCT_CATEGORIES.includes(category)) return badRequest('Unknown product category.');
+            query.category = category;
+        }
         if (featured === 'true') query.featured = true;
 
         const products = await Product.find(query).sort({ featured: -1, createdAt: -1 });
@@ -21,80 +28,54 @@ export async function GET(request) {
             products: products.map(p => p.toJSON())
         });
     } catch (err) {
-        console.error('GET /api/products error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'GET /api/products');
     }
 }
 
+/** POST creates a product, or updates it when the body carries an existing id (used by the admin editor). */
 export async function POST(request) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+
         const targetId = body.id || body._id;
+        if (targetId && !isObjectId(targetId)) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
 
-        if (targetId) {
-            const existing = await Product.findById(targetId);
-            if (existing) {
-                if (body.name) existing.name = body.name.trim();
-                if (body.category) existing.category = body.category;
-                if (body.price !== undefined) existing.price = Number(body.price);
-                if (body.salePrice !== undefined) existing.salePrice = Number(body.salePrice);
-                if (body.stock !== undefined) {
-                    existing.stock = Number(body.stock);
-                    existing.inStock = existing.stock > 0;
-                }
-                if (body.sizes) existing.sizes = body.sizes;
-                if (body.badge !== undefined) existing.badge = body.badge;
-                if (body.description !== undefined) existing.description = body.description;
-                if (body.image) existing.image = body.image;
-                if (body.featured !== undefined) existing.featured = body.featured;
-                if (body.visible !== undefined) existing.visible = body.visible;
+        await connectToDatabase();
+        const existing = targetId ? await Product.findById(targetId) : null;
+        if (targetId && !existing) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
 
-                await existing.save();
+        const { data, error } = validate(body, PRODUCT_SCHEMA, { partial: Boolean(existing) });
+        if (error) return badRequest(error);
 
-                return NextResponse.json({
-                    success: true,
-                    message: 'Product updated successfully',
-                    product: existing.toJSON()
-                });
-            }
+        const price = data.price ?? existing?.price;
+        if (data.salePrice !== undefined && data.salePrice > price) return badRequest('Sale price cannot be higher than the regular price.');
+
+        if (existing) {
+            existing.set(data);
+            if (data.stock !== undefined) existing.inStock = existing.stock > 0;
+            await existing.save();
+            return NextResponse.json({ success: true, message: 'Product updated successfully', product: existing.toJSON() });
         }
 
-        const { name, category, price, salePrice, stock, sizes, badge, description, image } = body;
-
-        if (!name || price === undefined) {
-            return NextResponse.json(
-                { error: 'Product name and price are required.' },
-                { status: 400 }
-            );
-        }
-
-        const newProduct = new Product({
-            name: name.trim(),
-            category: category || 'accessories',
-            price: Number(price),
-            salePrice: salePrice ? Number(salePrice) : Number(price),
-            stock: Number(stock ?? 10),
-            sizes: sizes || [],
-            badge: badge || '',
-            description: description || '',
-            inStock: (stock ?? 10) > 0,
-            featured: body.featured ?? false,
-            visible: true,
-            image: image || 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80'
+        const product = new Product({
+            ...data,
+            salePrice: data.salePrice ?? data.price,
+            inStock: data.stock > 0,
+            featured: data.featured ?? false,
+            visible: data.visible ?? true,
+            image: data.image || DEFAULT_IMAGE
         });
-
-        await newProduct.save();
+        await product.save();
 
         return NextResponse.json({
             success: true,
             message: 'Product added to inventory',
-            product: newProduct.toJSON()
+            product: product.toJSON()
         }, { status: 201 });
     } catch (err) {
-        console.error('POST /api/products error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'POST /api/products');
     }
 }

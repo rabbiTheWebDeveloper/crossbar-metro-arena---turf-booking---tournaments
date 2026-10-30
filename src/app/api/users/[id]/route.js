@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
@@ -36,7 +37,8 @@ export async function PATCH(request, { params }) {
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         const user = await User.findById(id);
         if (!user) return NextResponse.json({ error: 'Player not found' }, { status: 404 });

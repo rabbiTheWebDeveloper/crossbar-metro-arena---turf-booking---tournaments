@@ -2,36 +2,34 @@ import { NextResponse } from 'next/server';
 import { requireAdmin, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/Refund';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { REFUND_UPDATE_SCHEMA } from '@/lib/schemas';
 
 export async function PATCH(request, { params }) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
+        const { data, error } = validate(body, REFUND_UPDATE_SCHEMA, { partial: true });
+        if (error) return badRequest(error);
+
+        await connectToDatabase();
         const refund = await Refund.findById(id);
-        if (!refund) {
-            return NextResponse.json({ error: 'Refund record not found' }, { status: 404 });
-        }
+        if (!refund) return NextResponse.json({ error: 'Refund record not found' }, { status: 404 });
 
-        if (body.status) {
-            if (!['pending', 'approved', 'completed', 'rejected'].includes(body.status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
-            refund.status = body.status;
+        if (refund.status === 'completed' && data.status && data.status !== 'completed') {
+            return badRequest('A completed refund cannot be moved back to another status.');
         }
-        if (body.amount !== undefined && Number(body.amount) >= 0) refund.amount = Number(body.amount);
-        if (body.recordedBy) refund.recordedBy = String(body.recordedBy).slice(0, 60);
-        if (body.notes !== undefined) refund.notes = String(body.notes).slice(0, 300);
-        if (body.refundMethod) refund.refundMethod = body.refundMethod;
-        if (body.transactionRef) refund.transactionRef = body.transactionRef;
-        if (body.refundedDate) {
-            refund.refundedDate = body.refundedDate;
-        } else if (body.status === 'completed' && !refund.refundedDate) {
+        if (data.amount !== undefined && data.amount <= 0) return badRequest('Refund amount must be greater than zero.');
+
+        refund.set(data);
+        if (data.status === 'completed' && !refund.refundedDate) {
             refund.refundedDate = new Date().toISOString().split('T')[0];
         }
-
         await refund.save();
 
         return NextResponse.json({
@@ -40,6 +38,6 @@ export async function PATCH(request, { params }) {
             refund: refund.toJSON()
         });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'PATCH /api/refunds/[id]');
     }
 }

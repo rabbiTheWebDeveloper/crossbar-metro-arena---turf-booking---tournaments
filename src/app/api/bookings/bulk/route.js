@@ -1,32 +1,30 @@
 import { NextResponse } from 'next/server';
+import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
 import { Setting } from '@/models/Setting';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
+import { readJson, validate, badRequest } from '@/lib/validate';
+import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
 import { requireAdmin as requireAdminGuard } from '@/lib/apiAuth';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const parseIso = (iso) => {
-    const [y, m, d] = String(iso).split('-').map(Number);
-    return new Date(y, m - 1, d);
-};
 
 /**
  * Expand a recurrence rule into concrete dates.
  * weekdays: array of 0..6 (Sunday = 0). Empty array means "every day".
  */
 function expandDates({ startDate, endDate, weekdays }) {
-    const start = parseIso(startDate);
-    const end = parseIso(endDate);
+    const start = parseLocalDate(startDate);
+    const end = parseLocalDate(endDate);
     const out = [];
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return out;
     const days = Array.isArray(weekdays) ? weekdays.map(Number).filter(n => n >= 0 && n <= 6) : [];
     const cursor = new Date(start);
     while (cursor <= end) {
-        if (days.length === 0 || days.includes(cursor.getDay())) out.push(toIso(cursor));
+        if (days.length === 0 || days.includes(cursor.getDay())) out.push(toIsoLocal(cursor));
         cursor.setDate(cursor.getDate() + 1);
     }
     return out;
@@ -54,23 +52,17 @@ export async function POST(request) {
         const denied = await requireAdmin(request);
         if (denied) return denied;
 
+        const { body: raw, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const { data, error: inputError } = validate(raw, BULK_BOOKING_SCHEMA);
+        if (inputError) return badRequest(inputError);
+        const { captainName, captainPhone, teamName, startDate, endDate, paidPerSlot, paymentMethod, pricePerSlot, notes, matchType, skipConflicts, dryRun, seriesLabel } = data;
+        if (endDate < startDate) return badRequest('End date must be on or after the start date.');
+        if ((parseLocalDate(endDate) - parseLocalDate(startDate)) / 86400000 > 800) return badRequest('A series can cover at most 800 days. Shorten the date range.');
+        const weekdays = Array.isArray(raw.weekdays) ? [...new Set(raw.weekdays.map(Number))] : [];
+        if (weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) return badRequest('Weekdays must be numbers from 0 (Sunday) to 6 (Saturday).');
+        const slotNumbers = Array.isArray(raw.slotNumbers) ? raw.slotNumbers : [];
         await connectToDatabase();
-        const body = await request.json();
-        const {
-            captainName, captainPhone, teamName,
-            startDate, endDate,
-            weekdays = [], slotNumbers = [],
-            paidPerSlot = 0, paymentMethod = 'cash',
-            pricePerSlot, notes = '', matchType = 'friendly',
-            skipConflicts = false, dryRun = false, seriesLabel
-        } = body;
-
-        if (!captainName || !captainPhone || !teamName) {
-            return NextResponse.json({ error: 'Team name, captain name and mobile number are required.' }, { status: 400 });
-        }
-        if (!startDate || !endDate) {
-            return NextResponse.json({ error: 'Start date and end date are required.' }, { status: 400 });
-        }
         const slots = [...new Set((slotNumbers || []).map(Number))].filter(n => n >= 1 && n <= 12).sort((a, b) => a - b);
         if (slots.length === 0) {
             return NextResponse.json({ error: 'Select at least one time slot.' }, { status: 400 });
@@ -99,7 +91,7 @@ export async function POST(request) {
         const plan = [];
         const conflicts = [];
         for (const date of dates) {
-            const dayName = DAY_NAMES[parseIso(date).getDay()];
+            const dayName = DAY_NAMES[parseLocalDate(date).getDay()];
             const isWeekend = weekendDays.includes(dayName);
             for (const slotNumber of slots) {
                 const def = slotPrices.find(s => s.slotNumber === slotNumber) || SCHEDULE_SLOTS_DEFINITION.find(s => s.slotNumber === slotNumber);
@@ -216,7 +208,7 @@ export async function GET(request) {
         const denied = await requireAdmin(request);
         if (denied) return denied;
         await connectToDatabase();
-        const today = toIso(new Date());
+        const today = toIsoLocal(new Date());
         const series = await Booking.aggregate([
             { $match: { seriesId: { $exists: true, $ne: null } } },
             { $group: {
@@ -263,7 +255,7 @@ export async function DELETE(request) {
             return NextResponse.json({ error: 'seriesId is required' }, { status: 400 });
         }
         const query = { seriesId, paymentStatus: { $ne: 'cancelled' } };
-        if (scope !== 'all') query.date = { $gte: toIso(new Date()) };
+        if (scope !== 'all') query.date = { $gte: toIsoLocal(new Date()) };
         const result = await Booking.updateMany(query, { $set: { paymentStatus: 'cancelled' } });
         return NextResponse.json({
             success: true,

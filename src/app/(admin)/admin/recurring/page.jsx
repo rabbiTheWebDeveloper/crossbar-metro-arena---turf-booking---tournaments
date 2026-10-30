@@ -1,4 +1,5 @@
 'use client';
+import { toIsoLocal } from '@/lib/dateUtils';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
@@ -15,13 +16,12 @@ const WEEKDAYS = [
     { value: 5, label: 'Fri' }
 ];
 
-const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const addMonths = (iso, months) => {
     const [y, m, d] = iso.split('-').map(Number);
     const date = new Date(y, m - 1 + months, d);
     date.setDate(date.getDate() - 1); // inclusive range: 1 month from 1 Nov = 30 Nov
-    return toIso(date);
+    return toIsoLocal(date);
 };
 
 const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition-colors';
@@ -29,7 +29,7 @@ const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-4
 export default function AdminRecurringBookingsPage() {
     const { pricing, handleCreateRecurringBookings, handleCancelSeries, refreshBookings } = useArena();
 
-    const todayStr = useMemo(() => toIso(new Date()), []);
+    const todayStr = useMemo(() => toIsoLocal(new Date()), []);
 
     // ---- Form state ----
     const [teamName, setTeamName] = useState('');

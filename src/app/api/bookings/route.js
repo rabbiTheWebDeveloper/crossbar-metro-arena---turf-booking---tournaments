@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
@@ -89,7 +90,8 @@ export async function POST(request) {
         if (denied) return denied;
         await connectToDatabase();
         await expireStaleHolds();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         const { date, captainName, captainPhone, teamName } = body;
         const slotNumber = Number(body.slotNumber);

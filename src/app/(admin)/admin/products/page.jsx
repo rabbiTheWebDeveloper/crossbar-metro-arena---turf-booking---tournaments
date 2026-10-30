@@ -169,7 +169,7 @@ export default function AdminProductsPage() {
             return (<div key={prod.id} className={`p-4 rounded-3xl bg-[#0c131a] border space-y-3 transition-all flex flex-col justify-between ${hidden ? 'border-white/5 opacity-60' : 'border-white/5 hover:border-lime-400/30'}`}>
             <div>
               <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#080d12] border border-white/5 mb-3">
-                <img src={prod.image || FALLBACK_IMAGE} alt={prod.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = FALLBACK_IMAGE; }}/>
+                <img loading="lazy" decoding="async" src={prod.image || FALLBACK_IMAGE} alt={prod.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = FALLBACK_IMAGE; }}/>
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[11px] font-bold uppercase font-mono bg-black/70 text-lime-400 border border-lime-400/30">
                   {prod.category}
                 </span>

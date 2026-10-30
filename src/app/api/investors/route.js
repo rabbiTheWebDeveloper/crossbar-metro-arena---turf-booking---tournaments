@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/Investor';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requireRole, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 /** Fields an investor may see about other partners (no contact details). */
@@ -72,19 +74,21 @@ export async function POST(request) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
-        const body = await request.json();
-        const items = Array.isArray(body) ? body : [body];
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const rawItems = Array.isArray(body) ? body : [body];
+        if (rawItems.length === 0 || rawItems.length > 50) return badRequest('Send between 1 and 50 investors at a time.');
 
-        for (const item of items) {
-            if (item.sharePercentage !== undefined) {
-                const p = Number(item.sharePercentage);
-                if (Number.isNaN(p) || p < 0 || p > 100) return NextResponse.json({ error: 'Share percentage must be between 0 and 100.' }, { status: 400 });
-            }
-            if (!Array.isArray(body) && (!item.name || !item.phone || item.sharePercentage === undefined)) {
-                return NextResponse.json({ error: 'Name, phone, and share percentage are required.' }, { status: 400 });
-            }
+        const items = [];
+        for (const raw of rawItems) {
+            if (!raw || typeof raw !== 'object') return badRequest('Each investor must be an object.');
+            const id = raw.id || raw._id;
+            const { data, error } = validate(raw, INVESTOR_SCHEMA, { partial: isObjectId(id) });
+            if (error) return badRequest(error);
+            items.push({ ...data, id, userId: raw.userId, payoutsPaid: raw.payoutsPaid === undefined ? undefined : Math.max(0, Number(raw.payoutsPaid) || 0) });
         }
+
+        await connectToDatabase();
 
         // Validate the resulting share total before writing anything
         const existing = await Investor.find();
@@ -124,7 +128,6 @@ export async function POST(request) {
             investors: all.map(i => i.toJSON())
         }, { status: Array.isArray(body) ? 200 : 201 });
     } catch (err) {
-        console.error('POST /api/investors error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'POST /api/investors');
     }
 }

@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/Investor';
 import { Payout } from '@/models/Payout';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 export async function PUT(request, { params }) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Investor not found' }, { status: 404 });
-        const body = await request.json();
+        const { body: raw, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const { data, error: inputError } = validate(raw, INVESTOR_SCHEMA, { partial: true });
+        if (inputError) return badRequest(inputError);
+        const body = { ...data, ...(raw.userId !== undefined ? { userId: raw.userId } : {}) };
+        await connectToDatabase();
 
         const investor = await Investor.findById(id);
         if (!investor) {
@@ -19,8 +25,7 @@ export async function PUT(request, { params }) {
         }
 
         if (body.sharePercentage !== undefined) {
-            const p = Number(body.sharePercentage);
-            if (Number.isNaN(p) || p < 0 || p > 100) return NextResponse.json({ error: 'Share percentage must be between 0 and 100.' }, { status: 400 });
+            const p = body.sharePercentage;
             const others = await Investor.find({ _id: { $ne: investor._id }, status: 'active' }).select('sharePercentage');
             const total = others.reduce((s, o) => s + (o.sharePercentage || 0), 0) + ((body.status || investor.status) === 'active' ? p : 0);
             if (total > 100.0001) return NextResponse.json({ error: `Active partner shares would total ${total}%. The total cannot exceed 100%.` }, { status: 400 });
@@ -42,7 +47,7 @@ export async function PUT(request, { params }) {
             investor: investor.toJSON()
         });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'investors/[id]');
     }
 }
 
@@ -62,6 +67,6 @@ export async function DELETE(request, { params }) {
         await Investor.findByIdAndDelete(id);
         return NextResponse.json({ success: true, message: 'Investor deleted successfully' });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'investors/[id]');
     }
 }

@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ShopReservation } from '@/models/ShopReservation';
@@ -41,7 +42,8 @@ export async function POST(request) {
         const limited = rateLimit(request, 'shop-order', 15, 60 * 60 * 1000);
         if (limited) return limited;
         await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const customerName = String(body.customerName || '').trim();
         const customerPhone = cleanPhone(body.customerPhone);
         const rawItems = Array.isArray(body.items) ? body.items : [];

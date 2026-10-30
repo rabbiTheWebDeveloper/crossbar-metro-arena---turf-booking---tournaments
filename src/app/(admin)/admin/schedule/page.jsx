@@ -1,4 +1,5 @@
 'use client';
+import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
@@ -7,11 +8,6 @@ export const dynamic = 'force-dynamic';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PHONE_RE = /^01[3-9]\d{8}$/;
-const parseLocalDate = (iso) => {
-    const [y, m, d] = String(iso || '').split('-').map(Number);
-    return new Date(y || 1970, (m || 1) - 1, d || 1);
-};
-const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const PILL = {
     cyan: 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30',
@@ -51,7 +47,7 @@ export default function AdminSchedulePage() {
         for (let i = -6; i <= 7; i++) {
             const d = new Date(base);
             d.setDate(base.getDate() + i);
-            const iso = toIso(d);
+            const iso = toIsoLocal(d);
             dates.push({
                 iso,
                 dayName: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),

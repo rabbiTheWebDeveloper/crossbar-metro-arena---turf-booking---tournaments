@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/Setting';
 import { requireAdmin } from '@/lib/apiAuth';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
+import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
 
 const PRICING_KEYS = ['slotPrices', 'morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours', 'weekendDays', 'approveResultsFirst'];
 
@@ -18,10 +20,8 @@ export async function GET() {
         await connectToDatabase();
         const settings = await Setting.getOrCreateSettings();
         return NextResponse.json({ success: true, ...shape(settings) });
-    }
-    catch (err) {
-        console.error('Settings GET error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+    } catch (err) {
+        return errorResponse(err, 'GET /api/settings');
     }
 }
 
@@ -30,49 +30,39 @@ export async function PUT(request) {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
 
-        const raw = await request.json();
+        const { body: raw, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         // Accept flat fields, { pricing: {...} } or { settings: {...} }
-        const body = { ...(raw.settings || {}), ...(raw.pricing || {}), ...raw };
-        delete body.settings;
-        delete body.pricing;
+        const merged = { ...(raw.settings || {}), ...(raw.pricing || {}), ...raw };
+        delete merged.settings;
+        delete merged.pricing;
+
+        const { data, error } = validate(merged, SETTINGS_SCHEMA, { partial: true });
+        if (error) return badRequest(error);
+
+        if (data.weekendDays && !data.weekendDays.every(isDayName)) return badRequest('Weekend days must be full day names such as Friday.');
+
+        let slotPrices;
+        if (Array.isArray(merged.slotPrices) && merged.slotPrices.length > 0) {
+            const checked = validateSlotPrices(merged.slotPrices);
+            if (checked.error) return badRequest(checked.error);
+            slotPrices = checked.value;
+        } else if (merged.slotPrices !== undefined && !Array.isArray(merged.slotPrices)) {
+            return badRequest('Slot prices must be a list of 12 slots.');
+        }
 
         await connectToDatabase();
         const settings = await Setting.getOrCreateSettings();
-
-        const stringFields = ['businessName', 'tagline', 'phone', 'phoneFormatted', 'whatsappUrl', 'email', 'address', 'metroStation', 'metroDetails', 'googleMapsUrl', 'facebookUrl', 'instagramUrl', 'website', 'openingHours', 'aboutText'];
-        for (const f of stringFields) {
-            if (typeof body[f] === 'string') settings[f] = body[f].trim();
-        }
-
-        if (Array.isArray(body.slotPrices) && body.slotPrices.length === 12) {
-            const ok = body.slotPrices.every(s => Number(s.weekdayPrice) >= 0 && Number(s.weekendPrice) >= 0 && s.startTime && s.endTime);
-            if (!ok) return NextResponse.json({ error: 'Every slot needs a start/end time and non-negative prices.' }, { status: 400 });
-            settings.slotPrices = body.slotPrices.map(s => ({
-                slotNumber: Number(s.slotNumber),
-                startTime: s.startTime,
-                endTime: s.endTime,
-                displayTime: s.displayTime,
-                period: s.period,
-                weekdayPrice: Number(s.weekdayPrice),
-                weekendPrice: Number(s.weekendPrice)
-            }));
-        }
-        const numberFields = ['morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours'];
-        for (const f of numberFields) {
-            if (body[f] !== undefined && !Number.isNaN(Number(body[f])) && Number(body[f]) >= 0) settings[f] = Number(body[f]);
-        }
-        if (Array.isArray(body.weekendDays)) settings.weekendDays = body.weekendDays.filter(d => typeof d === 'string');
-        if (typeof body.approveResultsFirst === 'boolean') settings.approveResultsFirst = body.approveResultsFirst;
-
+        settings.set(data);
+        if (slotPrices) settings.slotPrices = slotPrices;
         await settings.save();
+
         return NextResponse.json({
             success: true,
             message: 'Arena settings and slot pricing updated.',
             ...shape(settings)
         });
-    }
-    catch (err) {
-        console.error('Settings PUT error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+    } catch (err) {
+        return errorResponse(err, 'PUT /api/settings');
     }
 }

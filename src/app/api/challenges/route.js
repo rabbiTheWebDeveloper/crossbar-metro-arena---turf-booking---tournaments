@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/Challenge';
@@ -45,7 +46,8 @@ export async function POST(request) {
         const limited = rateLimit(request, 'challenge-post', 10, 60 * 60 * 1000);
         if (limited) return limited;
         await connectToDatabase();
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         const teamName = String(body.teamName || '').trim();
         const date = body.date;

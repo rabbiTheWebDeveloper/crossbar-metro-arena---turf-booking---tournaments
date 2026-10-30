@@ -142,7 +142,7 @@ export default function AdminEventsPage() {
             const registered = Math.max(Number(t.registeredCount) || 0, regCount(t));
             const full = registered >= (Number(t.maxTeams) || 0);
             return (<div key={t.id} className={`p-5 rounded-3xl bg-[#0c131a] border space-y-3 transition-all text-xs ${status === 'open' ? 'border-white/5 hover:border-lime-400/30' : 'border-white/5 opacity-85'}`}>
-            {t.bannerUrl ? (<div className="aspect-[3/1] rounded-2xl overflow-hidden bg-[#080d12] border border-white/5"><img src={t.bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }}/></div>) : null}
+            {t.bannerUrl ? (<div className="aspect-[3/1] rounded-2xl overflow-hidden bg-[#080d12] border border-white/5"><img loading="lazy" decoding="async" src={t.bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }}/></div>) : null}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="px-2.5 py-1 rounded-lg bg-lime-400/10 text-lime-400 border border-lime-400/20 font-bold uppercase font-mono text-[11px] truncate">

@@ -45,9 +45,12 @@ export async function PATCH(request, { params }) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
-        const body = await request.json();
+        const { body: raw, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
+        const { data: body, error: inputError } = validate(raw, BOOKING_UPDATE_SCHEMA, { partial: true });
+        if (inputError) return badRequest(inputError);
+        await connectToDatabase();
         const booking = await findBooking(id);
         if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         if (booking.paymentStatus === 'cancelled') return NextResponse.json({ error: 'This booking is cancelled.' }, { status: 400 });

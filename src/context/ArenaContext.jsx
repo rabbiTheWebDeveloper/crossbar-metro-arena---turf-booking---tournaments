@@ -2,13 +2,14 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, getStoredSMSLogs, logSMSNotification } from '../utils/storage';
 import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+import { cleanPhone } from '../lib/phone';
 
 const ArenaContext = createContext(undefined);
 
 const VISITOR = { id: 'usr-visitor', name: 'Visitor', phone: '', role: 'visitor' };
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(String(id || ''));
-export const cleanPhone = (raw) => { let p = String(raw || '').replace(/[^0-9]/g, ''); if (p.startsWith('8801')) p = p.substring(2); return p; };
+export { cleanPhone };
 
 /** Dhaka calendar date (YYYY-MM-DD) for an ISO timestamp. */
 const dhakaDate = (iso) => {

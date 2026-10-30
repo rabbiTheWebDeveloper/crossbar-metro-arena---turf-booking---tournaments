@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest, setAuthCookies, clearAuthCookies, signJwtToken } from '@/lib/serverAuth';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -70,7 +71,8 @@ export async function PUT(request) {
         if (!authUser || !isObjectId(authUser.userId || authUser.id)) {
             return NextResponse.json({ error: 'Unauthorized. Please sign in.' }, { status: 401 });
         }
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
 
         await connectToDatabase();
         const user = await User.findById(authUser.userId || authUser.id);

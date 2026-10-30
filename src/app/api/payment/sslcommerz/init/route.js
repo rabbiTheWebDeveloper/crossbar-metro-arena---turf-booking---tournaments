@@ -1,3 +1,4 @@
+import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
@@ -19,7 +20,8 @@ export async function POST(request) {
         const limited = rateLimit(request, 'payment-init', 12, 10 * 60 * 1000);
         if (limited) return limited;
 
-        const body = await request.json();
+        const { body, error: jsonError } = await readJson(request);
+        if (jsonError) return jsonError;
         const pb = body.pendingBooking || body;
         const slotNumber = Number(pb.slotNumber);
         const captainName = String(pb.captainName || '').trim();

@@ -14,9 +14,9 @@ export default function manifest() {
         lang: 'en',
         categories: ['sports', 'lifestyle'],
         icons: [
-            { src: '/brand/crossbar-metro-arena-logo.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-            { src: '/brand/crossbar-metro-arena-logo.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-            { src: '/brand/crossbar-metro-arena-logo.png', sizes: '1024x1024', type: 'image/png', purpose: 'any maskable' }
+            { src: '/brand/logo-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: '/brand/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: '/brand/logo-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ],
         shortcuts: [
             { name: 'Book a slot', url: '/booking', description: 'Book a 90-minute turf slot' },
