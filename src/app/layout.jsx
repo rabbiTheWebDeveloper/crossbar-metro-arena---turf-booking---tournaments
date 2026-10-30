@@ -13,6 +13,11 @@ export const metadata = {
         type: 'website',
         locale: 'en_US',
         siteName: 'Crossbar Metro Arena',
+        images: [{ url: '/brand/crossbar-metro-arena-logo.png', width: 1024, height: 1024, alt: 'Crossbar Metro Arena logo' }],
+    },
+    icons: {
+        icon: '/brand/crossbar-metro-arena-logo.png',
+        apple: '/brand/crossbar-metro-arena-logo.png',
     },
     twitter: {
         card: 'summary_large_image',
@@ -21,7 +26,7 @@ export const metadata = {
     },
 };
 export const viewport = {
-    themeColor: '#070b0e',
+    themeColor: '#4cbf02',
     width: 'device-width',
     initialScale: 1,
 };
@@ -30,7 +35,7 @@ export default function RootLayout({ children, }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@500;700;800&family=Teko:wght@500;600;700&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Montserrat:wght@600;700;800;900&family=Teko:wght@500;600;700&display=swap" rel="stylesheet"/>
       </head>
       <body className="bg-[#070b0e] text-slate-100 antialiased selection:bg-emerald-500 selection:text-black min-h-screen flex flex-col font-sans">
         <ArenaProvider>

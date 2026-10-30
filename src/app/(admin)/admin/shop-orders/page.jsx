@@ -39,7 +39,7 @@ export default function AdminShopOrdersPage() {
                             : 'bg-[#0c131a] border-lime-400/30'}`}>
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-lime-400">{res.reservationCode}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${isCollected
+                  <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase font-mono ${isCollected
                         ? 'bg-emerald-500/20 text-emerald-300'
                         : isCancelled
                             ? 'bg-rose-500/20 text-rose-300'
@@ -50,10 +50,10 @@ export default function AdminShopOrdersPage() {
 
                 <div>
                   <h4 className="font-bold text-white text-sm">{res.productName}</h4>
-                  <div className="text-slate-400 text-[11px] mt-1">
+                  <div className="text-slate-400 text-[12px] mt-1">
                     Customer: <span className="text-white font-medium">{res.customerName}</span> ({res.customerPhone})
                   </div>
-                  {res.size && (<div className="text-slate-500 text-[10px] mt-0.5">Size/Variant: {res.size}</div>)}
+                  {res.size && (<div className="text-slate-500 text-[11px] mt-0.5">Size/Variant: {res.size}</div>)}
                   <div className="font-mono text-lime-400 font-bold text-base mt-2">
                     ৳{res.price.toLocaleString()}
                   </div>

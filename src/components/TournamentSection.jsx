@@ -64,10 +64,10 @@ export const TournamentSection = ({ tournaments, onRegistrationSuccess, hideHead
                   <div>
                     {/* Category & Status */}
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-mono">
+                      <span className="text-[12px] font-bold uppercase tracking-wider text-amber-400 font-mono">
                         {t.category}
                       </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${t.status === 'fast_filling'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${t.status === 'fast_filling'
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
                       : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}>
                         {t.status === 'fast_filling' ? 'Filling Fast!' : 'Registration Open'}
@@ -83,10 +83,10 @@ export const TournamentSection = ({ tournaments, onRegistrationSuccess, hideHead
                     {/* Prize Pool Display */}
                     <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-300 uppercase tracking-wider text-[11px] font-medium">Total Prize Pool</span>
+                        <span className="text-slate-300 uppercase tracking-wider text-[12px] font-medium">Total Prize Pool</span>
                         <span className="text-lg font-black font-mono text-amber-400">৳{t.prizePool.toLocaleString()}</span>
                       </div>
-                      <div className="text-[11px] text-slate-300 pt-1 border-t border-amber-500/20 flex flex-col gap-0.5">
+                      <div className="text-[12px] text-slate-300 pt-1 border-t border-amber-500/20 flex flex-col gap-0.5">
                         <span><strong>1st Place:</strong> {t.firstPrize}</span>
                         <span><strong>Runners Up:</strong> {t.runnerUpPrize}</span>
                       </div>
@@ -121,7 +121,7 @@ export const TournamentSection = ({ tournaments, onRegistrationSuccess, hideHead
 
                     {/* Highlights */}
                     <div className="pt-3 border-t border-white/10 mb-6">
-                      <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
+                      <div className="text-[12px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
                         Tournament Highlights:
                       </div>
                       <ul className="space-y-1.5 text-xs text-slate-300">

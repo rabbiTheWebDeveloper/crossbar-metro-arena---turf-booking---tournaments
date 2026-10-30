@@ -35,11 +35,11 @@ export default function AboutPage() {
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
                 <div className="text-emerald-400 font-bold text-sm">400-Lux Lighting</div>
-                <div className="text-[11px] text-slate-400">Zero-shadow stadium floodlights</div>
+                <div className="text-[12px] text-slate-400">Zero-shadow stadium floodlights</div>
               </div>
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
                 <div className="text-emerald-400 font-bold text-sm">2-Min Metro Walk</div>
-                <div className="text-[11px] text-slate-400">Directly beside Uttara Center Station</div>
+                <div className="text-[12px] text-slate-400">Directly beside Uttara Center Station</div>
               </div>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function AboutPage() {
 
           <div className="overflow-x-auto rounded-3xl border border-white/10 bg-slate-900/60">
             <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
+              <thead className="bg-white/5 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
                 <tr>
                   <th className="py-3 px-4">Slot #</th>
                   <th className="py-3 px-4">Match Kickoff Time</th>
@@ -106,7 +106,7 @@ export default function AboutPage() {
                 {pricing.slotPrices.map(s => (<tr key={s.slotNumber} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 px-4 font-bold text-white">#{s.slotNumber}</td>
                     <td className="py-3 px-4 font-sans font-bold text-white">{s.displayTime}</td>
-                    <td className="py-3 px-4 font-sans uppercase text-[10px] font-bold text-slate-400">
+                    <td className="py-3 px-4 font-sans uppercase text-[11px] font-bold text-slate-400">
                       {s.period}
                     </td>
                     <td className="py-3 px-4 text-slate-200 font-bold">

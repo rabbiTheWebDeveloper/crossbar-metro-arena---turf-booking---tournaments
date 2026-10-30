@@ -111,13 +111,13 @@ export default function AdminSchedulePage() {
             return (<button key={item.iso} type="button" onClick={() => setSelectedDate(item.iso)} className={`flex-1 min-w-[62px] sm:min-w-[70px] py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all cursor-pointer ${isSelected
                     ? 'bg-lime-400 text-slate-950 font-black shadow-lg shadow-lime-400/20'
                     : 'bg-[#0c131a] border border-white/5 text-slate-300 hover:border-lime-400/30'}`}>
-              <span className={`text-[10px] font-mono font-bold tracking-wider uppercase ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>
+              <span className={`text-[11px] font-mono font-bold tracking-wider uppercase ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>
                 {item.isToday ? 'TODAY' : item.dayName}
               </span>
               <span className="text-base sm:text-lg font-black font-display my-0.5">
                 {item.dayNum}
               </span>
-              <span className={`text-[9px] font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
+              <span className={`text-[10px] font-mono ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
                 {item.bookedCount} booked
               </span>
             </button>);
@@ -152,7 +152,7 @@ export default function AdminSchedulePage() {
                       <div className="text-xs sm:text-sm font-semibold text-slate-300">
                         Not booked
                       </div>
-                      <div className="text-[11px] font-mono text-slate-500">
+                      <div className="text-[12px] font-mono text-slate-500">
                         ৳{slot.price.toLocaleString()}
                       </div>
                     </div>) : (<div>
@@ -162,7 +162,7 @@ export default function AdminSchedulePage() {
                             · {b.teamName}
                           </span>)}
                       </div>
-                      <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      <div className="text-[12px] font-mono text-slate-400 mt-0.5">
                         ৳{(b.advanceAmount || b.courtPrice).toLocaleString()} of ৳{b.totalPrice.toLocaleString()}
                         {b.dueAmount && b.dueAmount > 0 ? (<span className="text-amber-400 font-bold ml-1.5">(Due ৳{b.dueAmount.toLocaleString()})</span>) : null}
                       </div>
@@ -176,10 +176,10 @@ export default function AdminSchedulePage() {
                     + Book Walk-in
                   </button>) : (<div className="flex items-center gap-2">
                     {/* Status Pill (matching screenshot style) */}
-                    {isPlayed ? (<span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
+                    {isPlayed ? (<span className="px-3 py-1 rounded-full text-[12px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                         <span>Played</span>
-                      </span>) : (<span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                      </span>) : (<span className="px-3 py-1 rounded-full text-[12px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span>Confirmed</span>
                       </span>)}

@@ -29,10 +29,10 @@ export default function AdminMatchResultsPage() {
                         ? 'bg-[#0a1210] border-emerald-500/30'
                         : 'bg-[#0c131a] border-amber-400/30'}`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase">
                     {res.date} · {res.slotDisplay} · {res.matchType}
                   </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${isPublished ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-400/20 text-amber-300'}`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase ${isPublished ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-400/20 text-amber-300'}`}>
                     {res.status.replace('_', ' ')}
                   </span>
                 </div>
@@ -51,7 +51,7 @@ export default function AdminMatchResultsPage() {
                 </div>
 
                 {/* Details */}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-slate-400 pt-2 border-t border-white/5">
                   <div>
                     {res.playerOfTheMatch && (<span>★ Player of Match: <strong className="text-white">{res.playerOfTheMatch}</strong></span>)}
                   </div>

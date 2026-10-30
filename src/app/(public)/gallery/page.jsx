@@ -110,7 +110,7 @@ export default function GalleryPage() {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-5">
                                     {photo.album && (
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                                             {photo.album}
                                         </span>
                                     )}
@@ -167,7 +167,7 @@ export default function GalleryPage() {
                             className="max-h-[70vh] mx-auto object-contain rounded-2xl shadow-2xl border border-white/10"
                         />
                         <div className="text-left bg-slate-900/90 p-4 rounded-2xl border border-white/10 max-w-2xl mx-auto">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                                 {filteredItems[lightboxIndex].album ? `${filteredItems[lightboxIndex].album} Album · ` : ''}Photo {lightboxIndex + 1} of {filteredItems.length}
                             </span>
                             <h3 className="text-lg font-black text-white font-display mt-0.5">

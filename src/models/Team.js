@@ -38,7 +38,7 @@ const TeamSchema = new Schema({
     },
     homeColor: {
         type: String,
-        default: '#10b981'
+        default: '#4cbf02'
     },
     area: {
         type: String,

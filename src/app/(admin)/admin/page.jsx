@@ -95,44 +95,44 @@ export default function AdminTodayPage() {
         
         {/* Today's slots */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Today&apos;s slots</div>
+          <div className="text-[12px] text-slate-400">Today&apos;s slots</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             {todayBookings.length}/12
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             {12 - todayBookings.length} still open
           </div>
         </div>
 
         {/* Collected today */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Collected today</div>
+          <div className="text-[12px] text-slate-400">Collected today</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             ৳{todayCollected.toLocaleString()}
           </div>
-          <div className="text-[10px] text-emerald-400 mt-0.5">
+          <div className="text-[11px] text-emerald-400 mt-0.5">
             Online advance + cash
           </div>
         </div>
 
         {/* Bookings - Current Month */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Bookings · {new Date().toLocaleDateString('en-US', { month: 'short' })}</div>
+          <div className="text-[12px] text-slate-400">Bookings · {new Date().toLocaleDateString('en-US', { month: 'short' })}</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             {financeReport.slotsBooked}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             {financeReport.occupancyRate.toFixed(0)}% occupancy
           </div>
         </div>
 
         {/* Net profit - month */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Net profit · month</div>
+          <div className="text-[12px] text-slate-400">Net profit · month</div>
           <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
             {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit / 1000).toFixed(1)}k
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             Rev ৳{(financeReport.totalRevenue / 1000).toFixed(0)}k · Exp ৳{(financeReport.totalExpenses / 1000).toFixed(0)}k
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function AdminTodayPage() {
                     <div className="min-w-0">
                       {!isBooked ? (<div>
                           <span className="text-slate-300 font-medium">Not booked</span>
-                          <span className="text-slate-500 font-mono text-[11px] ml-2">
+                          <span className="text-slate-500 font-mono text-[12px] ml-2">
                             ৳{slot.price.toLocaleString()}
                           </span>
                         </div>) : (<div>
@@ -207,7 +207,7 @@ export default function AdminTodayPage() {
                                 · {b.teamName}
                               </span>)}
                           </div>
-                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                          <div className="text-[12px] font-mono text-slate-400 mt-0.5">
                             ৳{(b.advanceAmount || b.courtPrice).toLocaleString()} of ৳{b.totalPrice.toLocaleString()}
                           </div>
                         </div>)}
@@ -216,10 +216,10 @@ export default function AdminTodayPage() {
 
                   {/* Right Status Pill */}
                   <div className="shrink-0">
-                    {isBooked ? (isPlayed ? (<span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                    {isBooked ? (isPlayed ? (<span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                           <span>Played</span>
-                        </span>) : (<span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        </span>) : (<span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                           <span>Confirmed</span>
                         </span>)) : null}
@@ -239,22 +239,22 @@ export default function AdminTodayPage() {
               <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 Net profit · 6 months
               </h3>
-              <p className="text-[10px] text-slate-500">Tap a bar to see the value</p>
+              <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
             </div>
 
             <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2">
               {sixMonthsProfit.map(m => (<div key={m.month} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                  <div className="opacity-0 group-hover:opacity-100 absolute -top-6 bg-slate-900 border border-white/10 text-white text-[9px] font-mono py-0.5 px-1 rounded pointer-events-none z-10 whitespace-nowrap shadow-md">
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-6 bg-slate-900 border border-white/10 text-white text-[10px] font-mono py-0.5 px-1 rounded pointer-events-none z-10 whitespace-nowrap shadow-md">
                     {m.val < 0 ? '-' : ''}৳{Math.abs(m.val)}k
                   </div>
 
-                  <span className="text-[9px] font-mono text-slate-400 mb-1">
+                  <span className="text-[10px] font-mono text-slate-400 mb-1">
                     {m.val < 0 ? '-' : ''}৳{Math.abs(m.val)}k
                   </span>
 
                   <div style={{ height: `${m.height}%` }} className={`w-full max-w-[28px] rounded-t-sm transition-all ${m.isLoss ? 'bg-rose-500' : 'bg-lime-400'}`}/>
 
-                  <span className="text-[10px] font-mono text-slate-400 mt-2">
+                  <span className="text-[11px] font-mono text-slate-400 mt-2">
                     {m.month}
                   </span>
                 </div>))}
@@ -267,7 +267,7 @@ export default function AdminTodayPage() {
               <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                 Bookings per day · {new Date(`${currentMonthStr}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h3>
-              <p className="text-[10px] text-slate-500">Tap a bar to see the value</p>
+              <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
             </div>
 
             <div className="h-28 flex items-end gap-1 pt-3">
@@ -282,7 +282,7 @@ export default function AdminTodayPage() {
         })}
             </div>
 
-            <div className="flex justify-between text-[9px] font-mono text-slate-500 pt-1 border-t border-white/5">
+            <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5">
               <span>1</span>
               <span>6</span>
               <span>11</span>
@@ -295,7 +295,7 @@ export default function AdminTodayPage() {
 
           {/* Database Backup & Restore Utility Bar */}
           <div className="p-4 rounded-2xl bg-[#0c131a] border border-white/5 flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-mono text-[11px]">Database Tools:</span>
+            <span className="text-slate-400 font-mono text-[12px]">Database Tools:</span>
             <div className="flex items-center gap-2">
               <button type="button" onClick={exportDatabaseBackup} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-lime-400 font-bold flex items-center gap-1 cursor-pointer">
                 <Download className="w-3.5 h-3.5"/>

@@ -48,7 +48,7 @@ export default function PlayerDashboard() {
     const [newTeamArea, setNewTeamArea] = useState('Uttara, Dhaka');
     const [captainName, setCaptainName] = useState(currentUser?.name || '');
     const [captainPhone, setCaptainPhone] = useState(currentUser?.phone || '');
-    const [homeColor, setHomeColor] = useState('#10b981');
+    const [homeColor, setHomeColor] = useState('#4cbf02');
     const [teamError, setTeamError] = useState('');
     // Add Player state
     const [selectedTeamId, setSelectedTeamId] = useState(myTeams[0]?.id || teams[0]?.id || '');
@@ -287,22 +287,22 @@ export default function PlayerDashboard() {
               <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
                 <div className="text-xs text-slate-400">Upcoming Fixtures</div>
                 <div className="text-3xl font-black font-display text-white mt-1">{upcomingBookings.length}</div>
-                <div className="text-[11px] text-emerald-400 mt-1">Confirmed on Turf</div>
+                <div className="text-[12px] text-emerald-400 mt-1">Confirmed on Turf</div>
               </div>
               <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
                 <div className="text-xs text-slate-400">My Squads</div>
                 <div className="text-3xl font-black font-display text-white mt-1">{myTeams.length}</div>
-                <div className="text-[11px] text-slate-300 mt-1">{myTeams[0]?.name || 'No team yet'}</div>
+                <div className="text-[12px] text-slate-300 mt-1">{myTeams[0]?.name || 'No team yet'}</div>
               </div>
               <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
                 <div className="text-xs text-slate-400">Career Goals</div>
                 <div className="text-3xl font-black font-mono text-emerald-400 mt-1">{myGoalsCount}</div>
-                <div className="text-[11px] text-slate-300 mt-1">On Arena Leaderboard</div>
+                <div className="text-[12px] text-slate-300 mt-1">On Arena Leaderboard</div>
               </div>
               <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
                 <div className="text-xs text-slate-400">Preferred Position</div>
                 <div className="text-3xl font-black font-display text-white mt-1">{currentUser?.playingPosition || 'FWD'}</div>
-                <div className="text-[11px] text-emerald-400 mt-1">Player Profile</div>
+                <div className="text-[12px] text-emerald-400 mt-1">Player Profile</div>
               </div>
             </div>
 
@@ -327,7 +327,7 @@ export default function PlayerDashboard() {
                         <div className="text-xs text-slate-400 mt-0.5">
                           📅 {b.date} · ⏰ {b.displayTime}
                         </div>
-                        <div className="text-[11px] text-slate-300 mt-1">
+                        <div className="text-[12px] text-slate-300 mt-1">
                           Paid: ৳{b.advanceAmount.toLocaleString()} · Due: <strong className="text-amber-400">৳{b.dueAmount.toLocaleString()}</strong>
                         </div>
                       </div>
@@ -369,7 +369,7 @@ export default function PlayerDashboard() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono font-black text-emerald-400">{b.bookingCode}</span>
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isCancelled
+                          <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded-full ${isCancelled
                             ? 'bg-rose-500/20 text-rose-300'
                             : b.paymentStatus === 'paid_full'
                                 ? 'bg-emerald-500/20 text-emerald-300'
@@ -502,7 +502,7 @@ export default function PlayerDashboard() {
                           </span>
                           <div>
                             <div className="text-xs font-bold text-white">{p.name}</div>
-                            <div className="text-[10px] text-slate-400">{p.position} · {p.role}</div>
+                            <div className="text-[11px] text-slate-400">{p.position} · {p.role}</div>
                           </div>
                         </div>
                         <div className="text-xs font-mono font-bold text-emerald-400">
@@ -602,7 +602,7 @@ export default function PlayerDashboard() {
                   <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                     Match Events &amp; Goal Scorers
                   </div>
-                  <span className="text-[11px] text-slate-400">{matchEvents.length} Events Logged</span>
+                  <span className="text-[12px] text-slate-400">{matchEvents.length} Events Logged</span>
                 </div>
 
                 {/* Event Inputs */}
@@ -635,7 +635,7 @@ export default function PlayerDashboard() {
                         <div>
                           <span className="font-bold text-white">{ev.playerName}</span>
                           <span className="text-slate-400 ml-2">({ev.side === 'home' ? postHomeTeam : postAwayTeam})</span>
-                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-white/5 uppercase">{ev.type.replace('_', ' ')}</span>
+                          <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-white/5 uppercase">{ev.type.replace('_', ' ')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-emerald-400 font-bold">{ev.minute}&apos;</span>
@@ -769,11 +769,11 @@ export default function PlayerDashboard() {
 
               <div className="space-y-2.5 max-h-72 overflow-y-auto">
                 {smsLogs.slice(0, 6).map(log => (<div key={log.id} className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 text-xs">
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
                       <span>Gateway: {log.provider}</span>
                       <span className="font-mono">{log.sentAt.split('T')[0]}</span>
                     </div>
-                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                    <p className="text-slate-300 text-[12px] leading-relaxed">
                       {log.message}
                     </p>
                   </div>))}

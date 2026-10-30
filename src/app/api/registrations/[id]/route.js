@@ -1,8 +1,24 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/TournamentRegistration';
-import { Tournament } from '@/models/Tournament';
+import { normalizeStatus, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 
+export async function GET(_request, { params }) {
+    try {
+        await connectToDatabase();
+        const { id } = await params;
+        const reg = await TournamentRegistration.findById(id);
+        if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+        return NextResponse.json({ success: true, registration: reg.toJSON() });
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+/**
+ * PATCH /api/registrations/:id
+ * Admin edit of any registration field (team, captain, players, jersey, payment, notes, status).
+ */
 export async function PATCH(request, { params }) {
     try {
         await connectToDatabase();
@@ -15,23 +31,32 @@ export async function PATCH(request, { params }) {
         }
 
         const prevStatus = reg.status;
-        if (body.status) reg.status = body.status;
-        if (body.notes !== undefined) reg.notes = body.notes;
+        applyRegistrationEdits(reg, body);
+        if (body.status) reg.status = normalizeStatus(body.status);
 
         await reg.save();
-
-        // If status changed to confirmed, increment tournament registered count
-        if (body.status === 'confirmed' && prevStatus !== 'confirmed') {
-            await Tournament.findByIdAndUpdate(reg.tournamentId, { $inc: { registeredCount: 1 } });
-        } else if (body.status === 'rejected' && prevStatus === 'confirmed') {
-            await Tournament.findByIdAndUpdate(reg.tournamentId, { $inc: { registeredCount: -1 } });
-        }
+        await adjustRegisteredCount(reg.tournamentId, prevStatus, reg.status);
 
         return NextResponse.json({
             success: true,
-            message: 'Registration status updated',
+            message: 'Registration updated',
             registration: reg.toJSON()
         });
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+export async function DELETE(_request, { params }) {
+    try {
+        await connectToDatabase();
+        const { id } = await params;
+        const reg = await TournamentRegistration.findById(id);
+        if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+        const prevStatus = reg.status;
+        await reg.deleteOne();
+        await adjustRegisteredCount(reg.tournamentId, prevStatus, 'deleted');
+        return NextResponse.json({ success: true, message: 'Registration deleted' });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

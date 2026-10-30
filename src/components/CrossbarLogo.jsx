@@ -14,19 +14,19 @@ export const CrossbarLogo = ({ className = '', size = 'responsive', variant = 'f
       <defs>
         {/* Pitch green gradient */}
         <linearGradient id="grassLight" x1="100" y1="80" x2="100" y2="150" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#4ADE80"/>
-          <stop offset="1" stopColor="#16A34A"/>
+          <stop stopColor="#95e05a"/>
+          <stop offset="1" stopColor="#398f02"/>
         </linearGradient>
         <linearGradient id="grassDark" x1="100" y1="80" x2="100" y2="150" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#22C55E"/>
-          <stop offset="1" stopColor="#15803D"/>
+          <stop stopColor="#4cbf02"/>
+          <stop offset="1" stopColor="#2d7102"/>
         </linearGradient>
         <linearGradient id="streakGreen" x1="100" y1="40" x2="100" y2="90" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#4ADE80" stopOpacity="0.9"/>
-          <stop offset="1" stopColor="#15803D" stopOpacity="0.2"/>
+          <stop stopColor="#95e05a" stopOpacity="0.9"/>
+          <stop offset="1" stopColor="#2d7102" stopOpacity="0.2"/>
         </linearGradient>
         <filter id="glowBall" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#22C55E" floodOpacity="0.5"/>
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#4cbf02" floodOpacity="0.5"/>
         </filter>
       </defs>
 
@@ -49,16 +49,16 @@ export const CrossbarLogo = ({ className = '', size = 'responsive', variant = 'f
       <polygon points="152,145 128,88 148,88 182,145" fill="url(#grassLight)"/>
 
       {/* Field Boundary Base outline */}
-      <polygon points="18,145 52,88 148,88 182,145" fill="none" stroke="#22C55E" strokeWidth="1.5"/>
+      <polygon points="18,145 52,88 148,88 182,145" fill="none" stroke="#4cbf02" strokeWidth="1.5"/>
 
       {/* Turf Center Circle & Center Line in perspective */}
       <line x1="100" y1="88" x2="100" y2="145" stroke="#FFFFFF" strokeWidth="2.5" strokeOpacity="0.95"/>
       <ellipse cx="100" cy="94" rx="22" ry="7" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeOpacity="0.9"/>
 
       {/* Speed Streaks shooting down from the ball */}
-      <polygon points="94,44 95,84 92,84" fill="#22C55E"/>
-      <polygon points="99,44 101,96 99,96" fill="#4ADE80"/>
-      <polygon points="106,44 107,84 104,84" fill="#22C55E"/>
+      <polygon points="94,44 95,84 92,84" fill="#4cbf02"/>
+      <polygon points="99,44 101,96 99,96" fill="#95e05a"/>
+      <polygon points="106,44 107,84 104,84" fill="#4cbf02"/>
 
       {/* Soccer Ball hitting the Crossbar */}
       <g filter="url(#glowBall)">
@@ -88,14 +88,14 @@ export const CrossbarLogo = ({ className = '', size = 'responsive', variant = 'f
         {/* METRO with lateral green divider rules */}
         <div className="flex items-center gap-1 sm:gap-1.5 my-0.5">
           <span className="h-[2px] w-2 sm:w-4 bg-emerald-400"></span>
-          <span className="text-[10px] sm:text-[11px] md:text-xs font-black tracking-[0.2em] sm:tracking-[0.25em] text-emerald-400 uppercase font-mono">
+          <span className="text-[11px] sm:text-[12px] md:text-xs font-black tracking-[0.2em] sm:tracking-[0.25em] text-emerald-400 uppercase font-mono">
             METRO
           </span>
           <span className="h-[2px] w-2 sm:w-4 bg-emerald-400"></span>
         </div>
 
         {/* ARENA spaced */}
-        {showSubtitle && (<div className="text-[8px] sm:text-[9px] md:text-[10px] font-bold tracking-[0.28em] sm:tracking-[0.35em] text-slate-300 uppercase leading-none pl-0.5 hidden xs:block">
+        {showSubtitle && (<div className="text-[8px] sm:text-[10px] md:text-[11px] font-bold tracking-[0.28em] sm:tracking-[0.35em] text-slate-300 uppercase leading-none pl-0.5 hidden xs:block">
             ARENA · DHAKA
           </div>)}
       </div>

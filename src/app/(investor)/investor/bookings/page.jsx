@@ -146,44 +146,44 @@ export default function InvestorBookingsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                 {/* Slots booked */}
                 <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-xl p-3.5 sm:p-4 hover:border-emerald-500/35 transition-colors">
-                    <div className="text-[11px] sm:text-xs text-slate-400 font-medium">Slots booked</div>
+                    <div className="text-[12px] sm:text-xs text-slate-400 font-medium">Slots booked</div>
                     <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
                         {finance.slotsBooked}
                     </div>
-                    <div className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                    <div className="text-[11px] text-emerald-400 font-mono mt-0.5">
                         {finance.occupancyRate.toFixed(1)}% occupancy
                     </div>
                 </div>
 
                 {/* Booking amount */}
                 <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-xl p-3.5 sm:p-4 hover:border-emerald-500/35 transition-colors">
-                    <div className="text-[11px] sm:text-xs text-slate-400 font-medium">Booking amount</div>
+                    <div className="text-[12px] sm:text-xs text-slate-400 font-medium">Booking amount</div>
                     <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
                         ৳{Math.round((finance.bookingMoneyCollected + finance.dueAmountTotal) / 1000)}k
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                    <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                         {formatBDT(finance.bookingMoneyCollected + finance.dueAmountTotal)}
                     </div>
                 </div>
 
                 {/* Collected */}
                 <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-xl p-3.5 sm:p-4 hover:border-emerald-500/35 transition-colors">
-                    <div className="text-[11px] sm:text-xs text-slate-400 font-medium">Collected</div>
+                    <div className="text-[12px] sm:text-xs text-slate-400 font-medium">Collected</div>
                     <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400 mt-1">
                         ৳{Math.round(finance.bookingMoneyCollected / 1000)}k
                     </div>
-                    <div className="text-[10px] text-emerald-400/80 font-mono mt-0.5 truncate">
+                    <div className="text-[11px] text-emerald-400/80 font-mono mt-0.5 truncate">
                         {formatBDT(finance.bookingMoneyCollected)}
                     </div>
                 </div>
 
                 {/* Cancelled */}
                 <div className="bg-[#0c131a]/95 border border-emerald-500/15 rounded-xl p-3.5 sm:p-4 hover:border-emerald-500/35 transition-colors">
-                    <div className="text-[11px] sm:text-xs text-slate-400 font-medium">Cancelled</div>
+                    <div className="text-[12px] sm:text-xs text-slate-400 font-medium">Cancelled</div>
                     <div className="text-xl sm:text-2xl font-black font-mono text-rose-400 mt-1">
                         {finance.cancellationsCount}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                    <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                         {finance.cancellationsAmount > 0 ? formatBDT(finance.cancellationsAmount) : '0 refunds'}
                     </div>
                 </div>
@@ -197,7 +197,7 @@ export default function InvestorBookingsPage() {
                         <p className="text-xs text-slate-400 mt-0.5">Tap a bar to see daily volume</p>
                     </div>
                     <div className="text-right">
-                        <span className="text-[11px] font-mono text-slate-400">Total days: </span>
+                        <span className="text-[12px] font-mono text-slate-400">Total days: </span>
                         <span className="text-xs font-mono font-bold text-white">{dailyBookingsData.length}</span>
                     </div>
                 </div>
@@ -210,7 +210,7 @@ export default function InvestorBookingsPage() {
                                 Day {dailyBookingsData[activeDailyBar].day} ({dailyBookingsData[activeDailyBar].date}): {dailyBookingsData[activeDailyBar].count} slot{dailyBookingsData[activeDailyBar].count === 1 ? '' : 's'} booked · {formatBDT(dailyBookingsData[activeDailyBar].moneyCollected)}
                             </span>
                         ) : (
-                            <span className="text-[11px] text-slate-500 font-mono">Select any bar for details</span>
+                            <span className="text-[12px] text-slate-500 font-mono">Select any bar for details</span>
                         )}
                     </div>
 
@@ -243,7 +243,7 @@ export default function InvestorBookingsPage() {
                             </div>
 
                             {/* X-axis days markers */}
-                            <div className="relative h-6 mt-3 px-1 text-[11px] font-mono text-slate-400">
+                            <div className="relative h-6 mt-3 px-1 text-[12px] font-mono text-slate-400">
                                 <span className="absolute left-[1.5%] -translate-x-1/2">1</span>
                                 <span className="absolute left-[18%] -translate-x-1/2">6</span>
                                 <span className="absolute left-[35%] -translate-x-1/2">11</span>
@@ -276,7 +276,7 @@ export default function InvestorBookingsPage() {
                                 Slot {popularSlotsData[activeSlotBar].label}: {popularSlotsData[activeSlotBar].count} total booking{popularSlotsData[activeSlotBar].count === 1 ? '' : 's'}
                             </span>
                         ) : (
-                            <span className="text-[11px] text-slate-500 font-mono">Select any slot for details</span>
+                            <span className="text-[12px] text-slate-500 font-mono">Select any slot for details</span>
                         )}
                     </div>
 
@@ -303,7 +303,7 @@ export default function InvestorBookingsPage() {
                                                         : 'bg-slate-800/60 hover:bg-slate-700'
                                                 }`}
                                             />
-                                            <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 mt-3 whitespace-nowrap">
+                                            <span className="text-[10px] sm:text-[11px] font-mono text-slate-400 mt-3 whitespace-nowrap">
                                                 {slot.label}
                                             </span>
                                         </div>

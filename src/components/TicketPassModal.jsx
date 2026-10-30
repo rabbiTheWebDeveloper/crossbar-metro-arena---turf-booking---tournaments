@@ -37,14 +37,14 @@ export const TicketPassModal = ({ booking, onClose }) => {
           <div className="flex justify-center mb-2">
             <CrossbarLogo size="responsive"/>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[12px] sm:text-xs font-bold uppercase tracking-wider mb-2">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400"/>
             <span>Slot Booking Confirmed</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white font-display uppercase tracking-wide">
             Official Match Pass
           </h2>
-          <div className="text-[11px] sm:text-xs text-slate-300">
+          <div className="text-[12px] sm:text-xs text-slate-300">
             Show this pass upon arrival at Crossbar Metro Arena reception
           </div>
         </div>
@@ -58,11 +58,11 @@ export const TicketPassModal = ({ booking, onClose }) => {
           {/* Booking Code & Squad Display */}
           <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-white/[0.04] border border-white/10 gap-2">
             <div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-medium">Match Booking Code</div>
+              <div className="text-[11px] sm:text-[12px] uppercase tracking-wider text-slate-400 font-medium">Match Booking Code</div>
               <div className="text-xl sm:text-2xl font-black font-mono tracking-wider text-emerald-400">{booking.bookingCode}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-medium">Squad / Team</div>
+              <div className="text-[11px] sm:text-[12px] uppercase tracking-wider text-slate-400 font-medium">Squad / Team</div>
               <div className="text-base sm:text-lg font-bold text-white truncate max-w-[130px] sm:max-w-[180px]">{booking.teamName}</div>
             </div>
           </div>
@@ -70,7 +70,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
           {/* Match Details Grid */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
             <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/5">
-              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[11px]">
+              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[12px]">
                 <Calendar className="w-3 h-3 text-emerald-400"/>
                 <span>Match Date</span>
               </div>
@@ -78,7 +78,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
             </div>
 
             <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/5">
-              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[11px]">
+              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[12px]">
                 <Clock className="w-3 h-3 text-emerald-400"/>
                 <span>Kickoff Slot</span>
               </div>
@@ -86,7 +86,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
             </div>
 
             <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/5">
-              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[11px]">
+              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[12px]">
                 <Shield className="w-3 h-3 text-emerald-400"/>
                 <span>Pitch Assigned</span>
               </div>
@@ -94,12 +94,12 @@ export const TicketPassModal = ({ booking, onClose }) => {
             </div>
 
             <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.02] border border-white/5">
-              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[11px]">
+              <div className="text-slate-400 flex items-center gap-1 mb-1 text-[12px]">
                 <Users className="w-3 h-3 text-emerald-400"/>
                 <span>Captain / Contact</span>
               </div>
               <div className="text-white font-semibold text-xs sm:text-sm truncate">{booking.captainName}</div>
-              <div className="text-[10px] sm:text-[11px] text-slate-400 font-mono truncate">{booking.captainPhone}</div>
+              <div className="text-[11px] sm:text-[12px] text-slate-400 font-mono truncate">{booking.captainPhone}</div>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
           {booking.addOns.length > 0 && (<div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-xs">
               <div className="text-slate-300 font-medium mb-1">Equipment & Extras Included:</div>
               <div className="flex flex-wrap gap-1.5">
-                {booking.addOns.map((a) => (<span key={a.id} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-[11px]">
+                {booking.addOns.map((a) => (<span key={a.id} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-[12px]">
                     {a.name}
                   </span>))}
               </div>
@@ -120,7 +120,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
               <span className="text-base font-bold font-mono text-white">৳{booking.totalPrice.toLocaleString()}</span>
             </div>
             <div>
-              <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${booking.paymentStatus === 'paid_full' || booking.paymentStatus === 'paid_advance'
+              <span className={`px-2.5 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider ${booking.paymentStatus === 'paid_full' || booking.paymentStatus === 'paid_advance'
             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
             : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}`}>
                 {booking.paymentStatus === 'paid_full'
@@ -133,7 +133,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
           </div>
 
           {/* Venue Location footer */}
-          <div className="flex items-start gap-2 text-[11px] text-slate-400 bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
+          <div className="flex items-start gap-2 text-[12px] text-slate-400 bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
             <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"/>
             <div>
               <strong className="text-slate-200">Crossbar Metro Arena:</strong> Uttara Metro Center, Sector 17, Dhaka-1230.

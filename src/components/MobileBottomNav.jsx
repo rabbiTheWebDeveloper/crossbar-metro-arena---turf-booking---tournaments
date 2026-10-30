@@ -31,7 +31,7 @@ export const MobileBottomNav = () => {
             if (item.action) {
                 return (<button key={idx} type="button" onClick={item.action} className="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer">
                 <Icon className="w-5 h-5 mb-0.5"/>
-                <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+                <span className="text-[11px] font-bold tracking-tight">{item.label}</span>
               </button>);
             }
             if (item.highlight) {
@@ -41,14 +41,14 @@ export const MobileBottomNav = () => {
                         : 'bg-emerald-500 text-slate-950 shadow-emerald-500/25'}`}>
                   <Icon className="w-5 h-5 stroke-[2.5]"/>
                 </div>
-                <span className="text-[10px] font-black text-emerald-400 tracking-tight mt-0.5">
+                <span className="text-[11px] font-black text-emerald-400 tracking-tight mt-0.5">
                   {item.label}
                 </span>
               </Link>);
             }
             return (<Link key={idx} href={item.href} className={`flex flex-col items-center justify-center py-1 transition-colors ${item.isActive ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'}`}>
               <Icon className="w-5 h-5 mb-0.5 stroke-[1.8]"/>
-              <span className="text-[10px] tracking-tight">{item.label}</span>
+              <span className="text-[11px] tracking-tight">{item.label}</span>
             </Link>);
         })}
       </div>

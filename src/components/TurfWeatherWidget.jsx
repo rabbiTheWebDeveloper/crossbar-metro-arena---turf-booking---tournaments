@@ -139,7 +139,7 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
               </span>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[11px] text-slate-400">
               Sector 17, Dhaka · Live Turf Conditions ({lastRefreshedTime})
             </div>
           </div>
@@ -147,7 +147,7 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
 
         <button onClick={handleManualRefresh} disabled={refreshing} className="self-start xs:self-auto p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50" title="Refresh real-time weather">
           <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${refreshing ? 'animate-spin' : ''}`}/>
-          <span className="text-[11px] font-medium hidden sm:inline">Refresh</span>
+          <span className="text-[12px] font-medium hidden sm:inline">Refresh</span>
         </button>
       </div>
 
@@ -175,32 +175,32 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
         {/* Center: Sports Telemetry Metrics */}
         <div className="md:col-span-7 grid grid-cols-3 gap-2 text-center text-xs">
           <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-            <div className="text-slate-400 flex items-center justify-center gap-1 text-[10px] uppercase font-semibold">
+            <div className="text-slate-400 flex items-center justify-center gap-1 text-[11px] uppercase font-semibold">
               <Wind className="w-3 h-3 text-sky-400"/>
               <span>Wind</span>
             </div>
-            <div className="text-sm font-bold text-white mt-1 font-mono">{w.windSpeed} <span className="text-[10px] text-slate-400 font-normal">km/h</span></div>
-            <div className="text-[9px] text-emerald-400">Gentle breeze</div>
+            <div className="text-sm font-bold text-white mt-1 font-mono">{w.windSpeed} <span className="text-[11px] text-slate-400 font-normal">km/h</span></div>
+            <div className="text-[10px] text-emerald-400">Gentle breeze</div>
           </div>
 
           <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-            <div className="text-slate-400 flex items-center justify-center gap-1 text-[10px] uppercase font-semibold">
+            <div className="text-slate-400 flex items-center justify-center gap-1 text-[11px] uppercase font-semibold">
               <Droplets className="w-3 h-3 text-emerald-400"/>
               <span>Humidity</span>
             </div>
             <div className="text-sm font-bold text-white mt-1 font-mono">{w.humidity}%</div>
-            <div className="text-[9px] text-slate-400">Good for 7s</div>
+            <div className="text-[10px] text-slate-400">Good for 7s</div>
           </div>
 
           <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
-            <div className="text-slate-400 flex items-center justify-center gap-1 text-[10px] uppercase font-semibold">
+            <div className="text-slate-400 flex items-center justify-center gap-1 text-[11px] uppercase font-semibold">
               <ShieldCheck className="w-3 h-3 text-emerald-400"/>
               <span>Turf Pitch</span>
             </div>
             <div className="text-sm font-bold text-emerald-300 mt-1">
               {w.turfStatus === 'optimal' ? '100% Dry' : w.turfStatus === 'good' ? '95% Dry' : 'Playable'}
             </div>
-            <div className="text-[9px] text-emerald-400">Fast Ball Roll</div>
+            <div className="text-[10px] text-emerald-400">Fast Ball Roll</div>
           </div>
         </div>
       </div>
@@ -217,23 +217,23 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
       {/* Hourly Match Slot Forecast Strip */}
       <div className="pt-2 border-t border-white/10">
         <div className="flex items-center justify-between mb-2 text-xs">
-          <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+          <span className="text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
             Match Hours Forecast (Dhaka Time)
           </span>
-          <span className="text-[10px] text-emerald-400 font-medium">Evening Floodlight Hours</span>
+          <span className="text-[11px] text-emerald-400 font-medium">Evening Floodlight Hours</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {w.hourlyForecast.map((h, idx) => (<div key={idx} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
               <div>
-                <div className="text-slate-400 text-[10px] font-mono">{h.time}</div>
+                <div className="text-slate-400 text-[11px] font-mono">{h.time}</div>
                 <div className="font-bold text-white text-xs mt-0.5">{h.temp}°C</div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-semibold text-emerald-400 block">
+                <span className="text-[11px] font-semibold text-emerald-400 block">
                   {h.pop > 30 ? `${h.pop}% Rain` : 'Clear'}
                 </span>
-                <span className="text-[9px] text-slate-400">Ready</span>
+                <span className="text-[10px] text-slate-400">Ready</span>
               </div>
             </div>))}
         </div>

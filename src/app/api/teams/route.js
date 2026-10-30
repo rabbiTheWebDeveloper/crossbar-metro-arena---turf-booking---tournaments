@@ -37,7 +37,7 @@ export async function POST(request) {
             shortCode: shortCode || name.slice(0, 4).toUpperCase(),
             captainName: captainName.trim(),
             captainPhone: captainPhone.trim(),
-            homeColor: homeColor || '#10b981',
+            homeColor: homeColor || '#4cbf02',
             area: area || 'Uttara, Dhaka',
             stats: { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0, form: [] },
             players: players || []

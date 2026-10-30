@@ -25,7 +25,7 @@ export const InstallAppModal = () => {
               <Smartphone className="w-6 h-6"/>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                 Official Web & Mobile App
               </span>
               <h3 className="text-xl font-bold text-white font-display">
@@ -80,7 +80,7 @@ export const InstallAppModal = () => {
                 </button>
               </div>
 
-              <p className="text-[11px] text-center text-slate-400">
+              <p className="text-[12px] text-center text-slate-400">
                 Safe and backed up: secure logins, daily backups, payments checked with SSLCommerz.
               </p>
             </>)}

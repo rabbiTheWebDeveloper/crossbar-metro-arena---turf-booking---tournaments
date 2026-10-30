@@ -62,7 +62,7 @@ function PaymentNotificationBanner() {
                                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                                     SSLCommerz Sandbox Verified
                                 </span>
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                     Paid &amp; Confirmed
                                 </span>
                             </div>

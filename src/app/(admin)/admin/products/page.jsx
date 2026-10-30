@@ -81,7 +81,7 @@ export default function AdminProductsPage() {
                 <img src={prod.image || 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80'} alt={prod.name} className="w-full h-full object-cover" onError={(e) => {
                 e.target.src = 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=600&q=80';
             }}/>
-                <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono bg-black/70 text-lime-400 border border-lime-400/30">
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[11px] font-bold uppercase font-mono bg-black/70 text-lime-400 border border-lime-400/30">
                   {prod.category}
                 </span>
               </div>
@@ -91,7 +91,7 @@ export default function AdminProductsPage() {
                 <span className="font-mono text-lime-400 font-bold text-base">
                   ৳{prod.price.toLocaleString()}
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${prod.stock > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${prod.stock > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                   {prod.stock > 0 ? `${prod.stock} in stock` : 'Out of stock'}
                 </span>
               </div>
@@ -150,7 +150,7 @@ export default function AdminProductsPage() {
 
               <div>
                 <label className="block text-slate-300 mb-1">Image URL</label>
-                <input type="url" value={image} onChange={e => setImage(e.target.value)} placeholder="https://images.unsplash.com/..." className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-[11px]"/>
+                <input type="url" value={image} onChange={e => setImage(e.target.value)} placeholder="https://images.unsplash.com/..." className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-[12px]"/>
               </div>
 
               <div className="flex gap-2 pt-2">

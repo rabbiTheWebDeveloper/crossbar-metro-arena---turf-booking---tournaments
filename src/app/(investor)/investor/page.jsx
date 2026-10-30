@@ -135,7 +135,7 @@ export default function InvestorOverviewPage() {
         {/* Subtle Ambient Radial Highlight */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"/>
 
-        <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-emerald-400">
+        <div className="text-[12px] font-mono font-bold uppercase tracking-widest text-emerald-400">
           YOUR SHARE · {currentMonthObj.label}
         </div>
 
@@ -150,7 +150,7 @@ export default function InvestorOverviewPage() {
         {/* 3 Metrics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-5 mt-5 border-t border-emerald-500/15">
           <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <div className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">
               Paid this month
             </div>
             <div className="text-sm sm:text-base font-black font-mono text-white mt-1">
@@ -159,7 +159,7 @@ export default function InvestorOverviewPage() {
           </div>
 
           <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <div className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">
               Received to date
             </div>
             <div className="text-sm sm:text-base font-black font-mono text-white mt-1">
@@ -168,7 +168,7 @@ export default function InvestorOverviewPage() {
           </div>
 
           <div>
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <div className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">
               Invested
             </div>
             <div className="text-sm sm:text-base font-black font-mono text-white mt-1">
@@ -186,7 +186,7 @@ export default function InvestorOverviewPage() {
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
             {finance.slotsBooked}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+          <div className="text-[12px] text-slate-400 mt-1 font-mono truncate">
             {finance.occupancyRate.toFixed(0)}% occupancy
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function InvestorOverviewPage() {
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
             ৳{Math.round(finance.bookingMoneyCollected / 1000)}k
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+          <div className="text-[12px] text-slate-400 mt-1 font-mono truncate">
             {formatBDT(finance.bookingMoneyCollected)}
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function InvestorOverviewPage() {
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
             ৳{Math.round(totalRevenue / 1000)}k
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+          <div className="text-[12px] text-slate-400 mt-1 font-mono truncate">
             incl. other {formatBDT(otherTotal)}
           </div>
         </div>
@@ -219,7 +219,7 @@ export default function InvestorOverviewPage() {
           <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1">
             ৳{Math.round(totalExpenses / 1000)}k
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">
+          <div className="text-[12px] text-slate-400 mt-1 font-mono truncate">
             {formatBDT(totalExpenses)}
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function InvestorOverviewPage() {
                     if (foundIdx !== -1)
                         setSelectedMonthIndex(foundIdx);
                 }} className="flex-1 flex flex-col items-center justify-end h-full group cursor-pointer">
-                    <span className={`text-[10px] font-mono font-bold mb-2 transition-colors ${isSelected ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                    <span className={`text-[11px] font-mono font-bold mb-2 transition-colors ${isSelected ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-200'}`}>
                       {item.displayVal}
                     </span>
 

@@ -25,12 +25,12 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
       {/* 1. DYNAMIC ANIMATED STADIUM FLOODLIGHT BEAMS */}
       {/* Top-Left High-Mast Floodlight Beam */}
       <div className="absolute -top-12 -left-20 w-[450px] sm:w-[750px] h-[500px] sm:h-[750px] pointer-events-none animate-floodlight-left z-0">
-        <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(52,211,153,0.35)_0%,rgba(16,185,129,0.12)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
+        <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(95,216,15,0.35)_0%,rgba(76,191,2,0.12)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
       </div>
 
       {/* Top-Right High-Mast Floodlight Beam */}
       <div className="absolute -top-12 -right-20 w-[450px] sm:w-[750px] h-[500px] sm:h-[750px] pointer-events-none animate-floodlight-right z-0">
-        <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(34,197,94,0.32)_0%,rgba(16,185,129,0.10)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
+        <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(76,191,2,0.32)_0%,rgba(76,191,2,0.10)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
       </div>
 
       {/* Center Stadium Floodlight Halo & Volumetric Glow */}
@@ -54,16 +54,16 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-semibold backdrop-blur-md shadow-lg shadow-emerald-500/10">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="animate-radar-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-90"/>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_#34d399]"/>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_#4cbf02]"/>
             </span>
-            <span className="font-extrabold text-emerald-400 tracking-wider text-[11px] sm:text-xs uppercase">
+            <span className="font-extrabold text-emerald-400 tracking-wider text-[12px] sm:text-xs uppercase">
               12 DAILY SLOTS · 90 MINS EACH · ৳500 ADVANCE
             </span>
             <span className="text-slate-500 hidden xs:inline">·</span>
             <span className="text-slate-200 hidden sm:inline">bookcrossbar.com ⚽ 🏗️</span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[11px] sm:text-xs font-semibold backdrop-blur-md">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[12px] sm:text-xs font-semibold backdrop-blur-md">
             <Train className="w-3.5 h-3.5 text-emerald-400"/>
             <span>Uttara Metro Center · MRT Line-6</span>
           </div>
@@ -121,11 +121,11 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-white/10">
               <div className="text-center sm:text-left flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(76,191,2,0.3)]">
                   <Flame className="w-5 h-5 text-emerald-400 animate-pulse"/>
                 </div>
                 <div>
-                  <div className="text-[11px] sm:text-xs uppercase tracking-wider text-emerald-400 font-extrabold flex items-center gap-1.5 justify-center sm:justify-start">
+                  <div className="text-[12px] sm:text-xs uppercase tracking-wider text-emerald-400 font-extrabold flex items-center gap-1.5 justify-center sm:justify-start">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"/>
                     <span>Launch Phase 1</span>
                   </div>
@@ -137,22 +137,22 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
               <div className="flex items-center gap-1 sm:gap-1.5 font-mono">
                 <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-black/60 rounded-xl border border-white/10 min-w-[42px] sm:min-w-[52px] shadow-inner">
                   <span className="text-base sm:text-xl md:text-2xl font-black text-emerald-400">{timeLeft.days}</span>
-                  <span className="block text-[8px] sm:text-[10px] text-slate-400 uppercase font-sans font-bold">Days</span>
+                  <span className="block text-[8px] sm:text-[11px] text-slate-400 uppercase font-sans font-bold">Days</span>
                 </div>
                 <span className="text-emerald-400 font-bold text-sm sm:text-base">:</span>
                 <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-black/60 rounded-xl border border-white/10 min-w-[42px] sm:min-w-[52px] shadow-inner">
                   <span className="text-base sm:text-xl md:text-2xl font-black text-emerald-400">{String(timeLeft.hours).padStart(2, '0')}</span>
-                  <span className="block text-[8px] sm:text-[10px] text-slate-400 uppercase font-sans font-bold">Hours</span>
+                  <span className="block text-[8px] sm:text-[11px] text-slate-400 uppercase font-sans font-bold">Hours</span>
                 </div>
                 <span className="text-emerald-400 font-bold text-sm sm:text-base">:</span>
                 <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-black/60 rounded-xl border border-white/10 min-w-[42px] sm:min-w-[52px] shadow-inner">
                   <span className="text-base sm:text-xl md:text-2xl font-black text-emerald-400">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                  <span className="block text-[8px] sm:text-[10px] text-slate-400 uppercase font-sans font-bold">Mins</span>
+                  <span className="block text-[8px] sm:text-[11px] text-slate-400 uppercase font-sans font-bold">Mins</span>
                 </div>
                 <span className="text-emerald-400 font-bold text-sm sm:text-base">:</span>
                 <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-black/60 rounded-xl border border-white/10 min-w-[42px] sm:min-w-[52px] shadow-inner">
                   <span className="text-base sm:text-xl md:text-2xl font-black text-emerald-400">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                  <span className="block text-[8px] sm:text-[10px] text-slate-400 uppercase font-sans font-bold">Secs</span>
+                  <span className="block text-[8px] sm:text-[11px] text-slate-400 uppercase font-sans font-bold">Secs</span>
                 </div>
               </div>
             </div>
@@ -170,11 +170,11 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
                 </span>
               </div>
               <div className="w-full h-2.5 sm:h-3 bg-black/60 rounded-full overflow-hidden p-0.5 border border-white/10">
-                <div className="h-full bg-gradient-to-r from-emerald-500 via-green-400 to-lime-300 rounded-full w-[85%] transition-all duration-500 relative shadow-[0_0_12px_rgba(16,185,129,0.8)]">
+                <div className="h-full bg-gradient-to-r from-emerald-500 via-green-400 to-lime-300 rounded-full w-[85%] transition-all duration-500 relative shadow-[0_0_12px_rgba(76,191,2,0.8)]">
                   <div className="absolute top-0 right-0 bottom-0 w-2.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_#fff]"/>
                 </div>
               </div>
-              <div className="flex justify-between text-[10px] sm:text-xs text-slate-400 mt-2 font-medium">
+              <div className="flex justify-between text-[11px] sm:text-xs text-slate-400 mt-2 font-medium">
                 <span>Site Prep</span>
                 <span className="text-emerald-300 font-semibold">Fence &amp; LED Masts</span>
                 <span className="hidden sm:inline">FIFA Turf Carpet</span>

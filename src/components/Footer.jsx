@@ -106,7 +106,7 @@ export const Footer = () => {
                 </Link>
               </li>
               <li className="pt-2">
-                <span className="text-[11px] text-slate-500 block">
+                <span className="text-[12px] text-slate-500 block">
                   Rule: Income - Expenses = Net Profit. In a loss month, nobody gets a share.
                 </span>
               </li>
@@ -138,7 +138,7 @@ export const Footer = () => {
                 </a>
               </li>
               <li>
-                <div className="text-[11px] text-slate-400 leading-relaxed pt-1">
+                <div className="text-[12px] text-slate-400 leading-relaxed pt-1">
                   Sector 17, Uttara Metro Center, Dhaka, 1230
                 </div>
               </li>
@@ -148,7 +148,7 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-slate-400">
           <div className="flex items-center gap-2">
             <span>© 2026 Crossbar Metro Arena ({VENUE_INFO.website}). All rights reserved.</span>
           </div>

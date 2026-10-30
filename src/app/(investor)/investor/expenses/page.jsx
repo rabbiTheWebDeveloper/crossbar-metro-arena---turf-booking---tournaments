@@ -174,7 +174,7 @@ export default function InvestorExpensesPage() {
                             ITEMIZED VOUCHERS &amp; RECEIPTS
                         </span>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[12px] font-mono text-slate-400">
                         {itemizedExpensesList.length} entry{itemizedExpensesList.length === 1 ? '' : 'ies'}
                     </span>
                 </div>
@@ -189,7 +189,7 @@ export default function InvestorExpensesPage() {
                             <div key={item.id} className="py-3.5 sm:py-4 first:pt-2 last:pb-0 flex items-center justify-between text-xs gap-3">
                                 <div className="min-w-0">
                                     <div className="font-bold text-white text-xs truncate">{item.category}</div>
-                                    <div className="text-[11px] text-slate-400 mt-0.5 truncate">{item.detail}</div>
+                                    <div className="text-[12px] text-slate-400 mt-0.5 truncate">{item.detail}</div>
                                 </div>
                                 <div className="font-mono text-white font-bold text-xs shrink-0">
                                     {item.amount}

@@ -50,7 +50,7 @@ export default function LogoutPage() {
         </div>
 
         {/* Status Pill */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 mb-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 mb-3">
           <ShieldCheck className="w-3.5 h-3.5"/>
           <span>SESSION CLOSED SAFELY</span>
         </div>

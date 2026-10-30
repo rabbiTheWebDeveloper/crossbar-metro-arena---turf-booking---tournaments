@@ -37,7 +37,7 @@ export const PageHero = ({ eyebrow, eyebrowIcon: EyebrowIcon, title, highlight, 
 
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
           <div className="max-w-3xl page-enter-2">
-            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] mb-4 ${a.pill}`}>
+            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[12px] sm:text-xs font-bold uppercase tracking-[0.14em] mb-4 ${a.pill}`}>
               <EyebrowIcon className="w-3.5 h-3.5"/>
               <span>{eyebrow}</span>
             </div>
@@ -61,7 +61,7 @@ export const PageHero = ({ eyebrow, eyebrowIcon: EyebrowIcon, title, highlight, 
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-3 ${a.icon}`}>
                       <Icon className="w-4.5 h-4.5"/>
                     </div>
-                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-mono">{s.label}</div>
+                    <div className="text-[12px] uppercase tracking-wider text-slate-400 font-mono">{s.label}</div>
                     <div className="text-lg sm:text-xl font-black text-white font-display mt-0.5">{s.value}</div>
                   </div>);
             })}

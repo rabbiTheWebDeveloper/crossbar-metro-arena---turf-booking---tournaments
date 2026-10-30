@@ -13,8 +13,8 @@ export default function AuthLayout({ children, }) {
       {/* Dynamic Background Atmosphere */}
       <div className="fixed inset-0 pointer-events-none z-0" style={{
             backgroundImage: `
-            radial-gradient(1000px 600px at 50% -10%, rgba(16, 185, 129, 0.15), transparent 70%),
-            radial-gradient(800px 500px at 10% 40%, rgba(34, 197, 94, 0.08), transparent 60%),
+            radial-gradient(1000px 600px at 50% -10%, rgba(76, 191, 2, 0.16), transparent 70%),
+            radial-gradient(800px 500px at 10% 40%, rgba(76, 191, 2, 0.08), transparent 60%),
             radial-gradient(800px 500px at 90% 70%, rgba(163, 230, 53, 0.06), transparent 60%)
           `
         }}/>
@@ -74,7 +74,7 @@ export default function AuthLayout({ children, }) {
             <span>Secure 256-bit Encrypted Turf Access · Crossbar Metro Arena Dhaka</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px] text-slate-400">
+          <div className="flex items-center gap-4 text-[12px] text-slate-400">
             <span>bKash &amp; Nagad Verified</span>
             <span>·</span>
             <span>Helpline: {VENUE_INFO.phone}</span>

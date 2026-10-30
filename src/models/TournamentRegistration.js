@@ -33,17 +33,34 @@ const TournamentRegistrationSchema = new Schema({
         required: [true, 'Captain phone is required'],
         trim: true
     },
+    captainEmail: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: ''
+    },
+    jerseyColor: {
+        type: String,
+        trim: true,
+        default: ''
+    },
     playerCount: {
         type: Number,
         default: 10
     },
+    // Simple squad list as typed by the captain (one name per line on the public form)
+    playersList: {
+        type: [String],
+        default: []
+    },
+    // Structured roster (optional, used when numbers/positions are known)
     players: {
         type: [RegisteredPlayerSchema],
         default: []
     },
     paymentMethod: {
         type: String,
-        enum: ['bkash', 'nagad', 'bank', 'cash', 'pay_at_turf'],
+        enum: ['bkash', 'nagad', 'rocket', 'bank', 'card', 'cash', 'pay_at_turf'],
         default: 'bkash'
     },
     transactionId: {
@@ -54,7 +71,8 @@ const TournamentRegistrationSchema = new Schema({
     amount: {
         type: Number,
         required: true,
-        min: 0
+        min: 0,
+        default: 0
     },
     status: {
         type: String,

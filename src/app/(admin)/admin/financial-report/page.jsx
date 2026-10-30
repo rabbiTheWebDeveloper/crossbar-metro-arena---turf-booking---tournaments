@@ -71,44 +71,44 @@ export default function AdminFinancialReportPage() {
         
         {/* Total Revenue */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Total revenue</div>
+          <div className="text-[12px] text-slate-400">Total revenue</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             ৳{financeReport.totalRevenue.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
             Bookings ৳{financeReport.bookingMoneyCollected.toLocaleString()} + other ৳{financeReport.otherIncomeTotal.toLocaleString()}
           </div>
         </div>
 
         {/* Total Expenses */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Total expenses</div>
+          <div className="text-[12px] text-slate-400">Total expenses</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             ৳{financeReport.totalExpenses.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             Rent, staff, utilities &amp; maintenance
           </div>
         </div>
 
         {/* Net Profit */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Net profit</div>
+          <div className="text-[12px] text-slate-400">Net profit</div>
           <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
             {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit).toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             {financeReport.profitMargin.toFixed(0)}% margin
           </div>
         </div>
 
         {/* Slots Booked */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 shadow-lg">
-          <div className="text-[11px] text-slate-400">Slots booked</div>
+          <div className="text-[12px] text-slate-400">Slots booked</div>
           <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">
             {financeReport.slotsBooked}
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[11px] text-slate-500 mt-0.5">
             {financeReport.occupancyRate.toFixed(0)}% occupancy · {financeReport.cancellationsCount} cancelled
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function AdminFinancialReportPage() {
             <h3 className="text-xs font-bold text-white uppercase tracking-wider">
               Money collected per day
             </h3>
-            <p className="text-[10px] text-slate-500">Tap a bar to see the value</p>
+            <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
           </div>
 
           <div className="h-32 flex items-end gap-1 pt-4">
@@ -134,14 +134,14 @@ export default function AdminFinancialReportPage() {
             return (<div key={d.date} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                   <div style={{ height: `${heightPct}%` }} className="w-full bg-lime-400 hover:brightness-125 rounded-t-sm transition-all cursor-pointer"/>
                   {/* Tooltip */}
-                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[9px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[10px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
                     {d.date.slice(8)} Oct: ৳{d.moneyCollected.toLocaleString()}
                   </div>
                 </div>);
         })}
           </div>
 
-          <div className="flex justify-between text-[9px] font-mono text-slate-500 pt-1 border-t border-white/5">
+          <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-white/5">
             <span>1</span>
             <span>5</span>
             <span>11</span>
@@ -158,7 +158,7 @@ export default function AdminFinancialReportPage() {
             <h3 className="text-xs font-bold text-white uppercase tracking-wider">
               Most popular slots
             </h3>
-            <p className="text-[10px] text-slate-500">Tap a bar to see the value</p>
+            <p className="text-[11px] text-slate-500">Tap a bar to see the value</p>
           </div>
 
           <div className="h-32 flex items-end gap-1.5 pt-4">
@@ -166,7 +166,7 @@ export default function AdminFinancialReportPage() {
             const heightPct = Math.min(100, Math.max(10, (s.count / 28) * 100));
             return (<div key={s.time} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                   <div style={{ height: `${heightPct}%` }} className="w-full bg-lime-400 hover:brightness-125 rounded-t-sm transition-all cursor-pointer"/>
-                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[9px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
+                  <div className="opacity-0 group-hover:opacity-100 absolute -top-8 bg-slate-900 border border-white/10 text-white text-[10px] font-mono py-1 px-1.5 rounded pointer-events-none z-10 whitespace-nowrap shadow-lg">
                     {s.time}: {s.count} matches
                   </div>
                 </div>);
@@ -263,7 +263,7 @@ export default function AdminFinancialReportPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[10px] text-slate-500 uppercase border-b border-white/5">
+              <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
                 <tr>
                   <th className="pb-2">Investor</th>
                   <th className="pb-2">Share</th>
@@ -272,7 +272,7 @@ export default function AdminFinancialReportPage() {
                   <th className="pb-2">Balance</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+              <tbody className="divide-y divide-white/5 font-mono text-[12px]">
                 {financeReport.investorShares && financeReport.investorShares.map(item => (
                   <tr key={item.investor.id}>
                     <td className="py-2.5 font-sans font-medium text-slate-300">{item.investor.name}</td>
@@ -295,7 +295,7 @@ export default function AdminFinancialReportPage() {
             </table>
           </div>
 
-          <div className="text-[11px] text-amber-400">
+          <div className="text-[12px] text-amber-400">
             {financeReport.isLossMonth 
               ? 'This month shows a loss or breakeven so far, so there is no net dividend to distribute.'
               : 'Net dividends distributed according to registered equity ownership percentages.'}
@@ -312,7 +312,7 @@ export default function AdminFinancialReportPage() {
             {expenses.slice(0, 4).map(e => (<div key={e.id} className="p-3 rounded-2xl bg-[#080d12] border border-white/5 flex items-center justify-between text-xs">
                 <div>
                   <div className="font-bold text-white">{e.title}</div>
-                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  <div className="text-[11px] text-slate-500 font-mono mt-0.5">
                     {e.date} · {e.category.replace('_', ' ')}
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function AdminFinancialReportPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] text-slate-500 uppercase border-b border-white/5">
+            <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
               <tr>
                 <th className="py-2">DATE</th>
                 <th className="py-2 text-center">BOOKINGS</th>
@@ -348,7 +348,7 @@ export default function AdminFinancialReportPage() {
                 <th className="py-2 text-right">NET</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+            <tbody className="divide-y divide-white/5 font-mono text-[12px]">
               {financeReport.dailyBreakdown.slice(0, 15).map(day => (<tr key={day.date} className="hover:bg-white/[0.02]">
                   <td className="py-2 font-sans text-slate-300">{day.date}</td>
                   <td className="py-2 text-center text-slate-400">{day.slotsBooked}</td>

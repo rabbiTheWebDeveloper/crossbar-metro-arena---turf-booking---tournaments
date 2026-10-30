@@ -61,7 +61,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Header */}
         {!hideHeading && (<div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[12px] sm:text-xs font-semibold uppercase tracking-wider mb-2.5 sm:mb-3">
               <MapPin className="w-3.5 h-3.5"/>
               <span>Prime Uttara Location</span>
             </div>
@@ -77,7 +77,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
         <div className="mb-8 sm:mb-12 p-4 sm:p-6 md:p-8 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-[#0e1620] border border-emerald-500/30 relative overflow-hidden">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 sm:gap-6 relative z-10">
             <div className="space-y-2.5 sm:space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
                 <Train className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400"/>
                 <span>Dhaka Metro Rail (MRT Line-6)</span>
               </div>
@@ -109,7 +109,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
               <CloudSun className="w-4 h-4 text-emerald-400"/>
               <span>Matchday Weather & Turf Playability Telemetry</span>
             </div>
-            <span className="text-[11px] text-emerald-400 font-mono hidden sm:inline">Uttara, Dhaka (23.8762°N, 90.3792°E)</span>
+            <span className="text-[12px] text-emerald-400 font-mono hidden sm:inline">Uttara, Dhaka (23.8762°N, 90.3792°E)</span>
           </div>
 
           <TurfWeatherWidget onBookSlotClick={onBookSlotClick}/>
@@ -125,7 +125,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                       <Icon className="w-5 h-5"/>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10 font-mono">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/10 font-mono">
                       {item.badge}
                     </span>
                   </div>
@@ -160,7 +160,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <MapPin className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                 <div>
-                  <div className="text-slate-400 text-[11px] uppercase font-semibold">Location & Address</div>
+                  <div className="text-slate-400 text-[12px] uppercase font-semibold">Location & Address</div>
                   <div className="text-white font-medium mt-0.5">{VENUE_INFO.address}</div>
                   <div className="text-emerald-400 text-xs mt-0.5 font-medium">{VENUE_INFO.metroDetails}</div>
                 </div>
@@ -169,7 +169,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <Phone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                 <div>
-                  <div className="text-slate-400 text-[11px] uppercase font-semibold">Hotline & Bookings</div>
+                  <div className="text-slate-400 text-[12px] uppercase font-semibold">Hotline & Bookings</div>
                   <a href={`tel:${VENUE_INFO.phone}`} className="text-white font-bold text-base hover:text-emerald-400 transition-colors">
                     {VENUE_INFO.phone}
                   </a>
@@ -180,7 +180,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <Mail className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                 <div>
-                  <div className="text-slate-400 text-[11px] uppercase font-semibold">Email Enquiries</div>
+                  <div className="text-slate-400 text-[12px] uppercase font-semibold">Email Enquiries</div>
                   <a href={`mailto:${VENUE_INFO.email}`} className="text-white font-medium hover:text-emerald-400 transition-colors">
                     {VENUE_INFO.email}
                   </a>
@@ -190,7 +190,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
                 <Globe className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                 <div>
-                  <div className="text-slate-400 text-[11px] uppercase font-semibold">Web & Social</div>
+                  <div className="text-slate-400 text-[12px] uppercase font-semibold">Web & Social</div>
                   <div className="text-white font-medium flex items-center gap-3 mt-1">
                     <span className="text-emerald-300 font-mono">{VENUE_INFO.website}</span>
                     <span>·</span>
@@ -254,7 +254,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                 </form>)}
             </div>
 
-            <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between text-[11px] text-slate-400">
+            <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between text-[12px] text-slate-400">
               <span>Operating Hours: 06:00 AM - 02:00 AM Daily</span>
               <span className="text-emerald-400 font-medium">24/7 Power Backup</span>
             </div>

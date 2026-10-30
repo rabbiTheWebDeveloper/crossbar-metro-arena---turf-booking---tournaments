@@ -95,7 +95,7 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
                 {bookings.map((b) => (<div key={b.id} className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-slate-900/80 to-[#0c1218] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold">
+                        <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold">
                           {b.courtName}
                         </span>
                         <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -123,10 +123,10 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
                     </div>
 
                     <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-mono text-[11px]">
+                      <span className="text-slate-400 font-mono text-[12px]">
                         Ref: {b.bookingCode}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-[12px]">
                         <CheckCircle className="w-3.5 h-3.5"/>
                         <span>Confirmed Slot</span>
                       </span>
@@ -154,10 +154,10 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
                 <div key={c.id} className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-[#0c141d] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
                         {c.lookingFor}
                       </span>
-                      <span className="text-[11px] font-medium text-slate-400">{c.level} Level</span>
+                      <span className="text-[12px] font-medium text-slate-400">{c.level} Level</span>
                     </div>
 
                     <h4 className="text-lg font-bold text-white font-display uppercase mb-1">

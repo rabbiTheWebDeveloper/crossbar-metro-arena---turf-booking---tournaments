@@ -118,10 +118,10 @@ export default function ShopPage() {
               return (<div key={p.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                      <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
                         {p.category?.toUpperCase()}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.stock > 0
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.stock > 0
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                       : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
                         {p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}
@@ -168,7 +168,7 @@ export default function ShopPage() {
             </button>
 
             <div className="p-6 border-b border-white/10 bg-slate-900/90">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                 {selectedProduct.category} · Stock: {selectedProduct.stock} Units
               </span>
               <h3 className="text-xl font-black text-white font-display mt-1">
@@ -191,7 +191,7 @@ export default function ShopPage() {
                     Show your reservation code at Crossbar reception. Pay cash, bKash or card at desk.
                   </p>
                   <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/40 text-center font-mono">
-                    <div className="text-[10px] text-slate-400 uppercase">Pickup Pass Code</div>
+                    <div className="text-[11px] text-slate-400 uppercase">Pickup Pass Code</div>
                     <div className="text-2xl font-black text-emerald-400 mt-1">{confirmedReservation.reservationCode}</div>
                   </div>
                   <button type="button" onClick={() => setSelectedProduct(null)} className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase cursor-pointer">

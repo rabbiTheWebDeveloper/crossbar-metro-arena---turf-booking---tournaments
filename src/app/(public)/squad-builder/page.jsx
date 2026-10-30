@@ -127,11 +127,11 @@ export default function SquadBuilderPage() {
               <div className="relative z-10 flex items-center justify-between bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10">
                 <div className="truncate">
                   <div className="text-xs font-extrabold text-white uppercase truncate">{teamName}</div>
-                  <div className="text-[10px] text-emerald-400 font-mono truncate">{matchTag}</div>
+                  <div className="text-[11px] text-emerald-400 font-mono truncate">{matchTag}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[10px] font-bold text-slate-300 uppercase">{format}</div>
-                  <div className="text-[10px] text-emerald-400 font-mono">{formation}</div>
+                  <div className="text-[11px] font-bold text-slate-300 uppercase">{format}</div>
+                  <div className="text-[11px] text-emerald-400 font-mono">{formation}</div>
                 </div>
               </div>
 
@@ -148,7 +148,7 @@ export default function SquadBuilderPage() {
                       <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${currentKit.bg} ${currentKit.border} border-2 shadow-lg flex items-center justify-center font-black ${currentKit.text} font-mono text-xs sm:text-sm`}>
                         {p.number}
                       </div>
-                      <div className="mt-1 bg-black/80 px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold text-white whitespace-nowrap border border-white/20 shadow">
+                      <div className="mt-1 bg-black/80 px-2 py-0.5 rounded text-[11px] sm:text-xs font-bold text-white whitespace-nowrap border border-white/20 shadow">
                         {p.name} <span className="text-emerald-400">({p.role})</span>
                       </div>
                     </div>);
@@ -157,7 +157,7 @@ export default function SquadBuilderPage() {
 
               {/* Pitch Bottom Footer */}
               <div className="relative z-10 text-center">
-                <span className="text-[10px] font-medium text-white/70 bg-black/50 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+                <span className="text-[11px] font-medium text-white/70 bg-black/50 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
                   Click any player node to edit name &amp; number
                 </span>
               </div>

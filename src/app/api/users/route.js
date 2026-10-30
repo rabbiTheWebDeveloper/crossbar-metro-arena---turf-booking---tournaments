@@ -10,7 +10,8 @@ export async function GET(request) {
         const role = searchParams.get('role');
         const search = searchParams.get('q');
 
-        const query = { disabled: false };
+        const includeDisabled = searchParams.get('includeDisabled') === '1' || searchParams.get('all') === '1';
+        const query = includeDisabled ? {} : { disabled: false };
         if (role) {
             query.role = role;
         }
@@ -24,7 +25,7 @@ export async function GET(request) {
         const users = await User.find(query)
             .select('-password')
             .sort({ createdAt: -1 })
-            .limit(50);
+            .limit(includeDisabled ? 500 : 50);
 
         return NextResponse.json({
             success: true,

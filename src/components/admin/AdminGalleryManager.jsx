@@ -237,7 +237,7 @@ export default function AdminGalleryManager() {
           <div className="text-2xl sm:text-3xl font-black font-mono text-white mt-2">
             {totalPhotosCount}
           </div>
-          <div className="text-[11px] font-mono text-emerald-400 mt-1 flex items-center gap-1">
+          <div className="text-[12px] font-mono text-emerald-400 mt-1 flex items-center gap-1">
             <Zap className="w-3 h-3 text-emerald-400"/>
             <span>Active in Cloud CDN</span>
           </div>
@@ -252,7 +252,7 @@ export default function AdminGalleryManager() {
           <div className="text-2xl sm:text-3xl font-black font-mono text-amber-400 mt-2">
             {featuredCount}
           </div>
-          <div className="text-[11px] font-mono text-slate-400 mt-1">
+          <div className="text-[12px] font-mono text-slate-400 mt-1">
             Pinned to Public Home &amp; Feed
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function AdminGalleryManager() {
           <div className="text-2xl sm:text-3xl font-black font-mono text-white mt-2">
             {albumCount}
           </div>
-          <div className="text-[11px] font-mono text-emerald-400 mt-1">
+          <div className="text-[12px] font-mono text-emerald-400 mt-1">
             Categorized &amp; Filterable
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function AdminGalleryManager() {
           <div className="text-xl sm:text-2xl font-black font-display text-white mt-2 truncate">
             400-Lux Pro
           </div>
-          <div className="text-[11px] font-mono text-slate-400 mt-1">
+          <div className="text-[12px] font-mono text-slate-400 mt-1">
             Stadium LED Night Spec
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function AdminGalleryManager() {
                     ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
                     : 'bg-slate-900 text-slate-300 hover:bg-white/5 border border-white/10'}`}>
                 <span>{album}</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isSelected ? 'bg-slate-950/30 text-slate-950 font-black' : 'bg-white/10 text-slate-400'}`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[11px] font-mono ${isSelected ? 'bg-slate-950/30 text-slate-950 font-black' : 'bg-white/10 text-slate-400'}`}>
                   {count}
                 </span>
               </button>);
@@ -367,7 +367,7 @@ export default function AdminGalleryManager() {
                 {/* Top Badges */}
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1 pointer-events-auto">
                   {/* Album Badge */}
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold tracking-wider uppercase backdrop-blur-md bg-black/60 text-emerald-400 border border-emerald-500/30">
+                  <span className="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase backdrop-blur-md bg-black/60 text-emerald-400 border border-emerald-500/30">
                     {photo.album}
                   </span>
 
@@ -403,7 +403,7 @@ export default function AdminGalleryManager() {
                 </div>
 
                 {/* Bottom Overlay Info on Thumbnail */}
-                <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-slate-300 pointer-events-none">
+                <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-slate-300 pointer-events-none">
                   <span className="truncate">{photo.photographer || 'Admin Desk'}</span>
                   <span className="uppercase text-emerald-400 font-bold">{photo.aspect || 'wide'}</span>
                 </div>
@@ -421,14 +421,14 @@ export default function AdminGalleryManager() {
                 </div>
 
                 {/* Tags & Date Footer */}
-                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[12px] text-slate-400">
                   <div className="flex items-center gap-1 truncate max-w-[65%]">
-                    {photo.tags && photo.tags.length > 0 ? (photo.tags.slice(0, 2).map(tag => (<span key={tag} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
+                    {photo.tags && photo.tags.length > 0 ? (photo.tags.slice(0, 2).map(tag => (<span key={tag} className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300">
                           #{tag}
-                        </span>))) : (<span className="text-[10px] font-mono text-slate-500">No tags</span>)}
+                        </span>))) : (<span className="text-[11px] font-mono text-slate-500">No tags</span>)}
                   </div>
 
-                  <span className="text-[10px] font-mono text-slate-500">
+                  <span className="text-[11px] font-mono text-slate-500">
                     {photo.uploadedAt || '2026-10'}
                   </span>
                 </div>
@@ -439,7 +439,7 @@ export default function AdminGalleryManager() {
         /* TABLE VIEW */
         <div className="overflow-x-auto rounded-3xl border border-white/10 bg-[#0c131a]">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-white/5 text-[10px] font-bold uppercase text-slate-400 border-b border-white/10">
+            <thead className="bg-white/5 text-[11px] font-bold uppercase text-slate-400 border-b border-white/10">
               <tr>
                 <th className="py-3 px-4">Thumbnail</th>
                 <th className="py-3 px-4">Title &amp; Caption</th>
@@ -459,17 +459,17 @@ export default function AdminGalleryManager() {
                   </td>
                   <td className="py-3 px-4 max-w-xs">
                     <div className="font-bold text-white truncate">{photo.title}</div>
-                    <div className="text-[11px] text-slate-400 truncate">{photo.caption}</div>
+                    <div className="text-[12px] text-slate-400 truncate">{photo.caption}</div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
                       {photo.album}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono text-[11px]">
+                  <td className="py-3 px-4 font-mono text-[12px]">
                     {photo.photographer || 'Admin Desk'}
                   </td>
-                  <td className="py-3 px-4 uppercase text-[10px] font-mono text-slate-400">
+                  <td className="py-3 px-4 uppercase text-[11px] font-mono text-slate-400">
                     {photo.aspect || 'wide'}
                   </td>
                   <td className="py-3 px-4 text-center">
@@ -513,7 +513,7 @@ export default function AdminGalleryManager() {
                   <h3 className="text-lg font-black text-white font-display">
                     {editingPhoto ? 'Edit Arena Photo' : 'Upload & Add Pitch Photo'}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[12px] text-slate-400">
                     Store high-definition photographs in the arena gallery repository.
                   </p>
                 </div>
@@ -526,12 +526,12 @@ export default function AdminGalleryManager() {
 
             {/* Quick Presets Picker */}
             {!editingPhoto && (<div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                <label className="text-[12px] font-bold text-slate-300 flex items-center gap-1.5">
                   <Zap className="w-3 h-3 text-amber-400"/>
                   <span>Quick Presets (1-Click Fill High-Res Arena Photo):</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  {PRESET_IMAGE_TEMPLATES.map(preset => (<button key={preset.title} type="button" onClick={() => applyPreset(preset)} className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left text-[10px] text-slate-300 hover:text-emerald-400 truncate transition-colors cursor-pointer">
+                  {PRESET_IMAGE_TEMPLATES.map(preset => (<button key={preset.title} type="button" onClick={() => applyPreset(preset)} className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left text-[11px] text-slate-300 hover:text-emerald-400 truncate transition-colors cursor-pointer">
                       {preset.title}
                     </button>))}
                 </div>
@@ -574,7 +574,7 @@ export default function AdminGalleryManager() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between font-bold text-slate-300">
                   <span>Image Source (URL or File) *</span>
-                  <label className="text-[10px] text-emerald-400 hover:underline cursor-pointer flex items-center gap-1">
+                  <label className="text-[11px] text-emerald-400 hover:underline cursor-pointer flex items-center gap-1">
                     <Upload className="w-3 h-3"/>
                     <span>Upload from device</span>
                     <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden"/>
@@ -585,7 +585,7 @@ export default function AdminGalleryManager() {
 
               {/* Image Live Preview */}
               {formUrl && (<div className="p-2.5 rounded-2xl bg-black/60 border border-white/10 space-y-1">
-                  <div className="text-[10px] font-mono text-slate-400">Live Image Preview:</div>
+                  <div className="text-[11px] font-mono text-slate-400">Live Image Preview:</div>
                   <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-900 border border-white/5">
                     <img src={formUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80';
@@ -619,7 +619,7 @@ export default function AdminGalleryManager() {
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400"/>
                     <span>Pin to Featured Highlights</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[11px] text-slate-400">
                     Display prominently on the public homepage and header reel.
                   </div>
                 </div>
@@ -668,10 +668,10 @@ export default function AdminGalleryManager() {
             }}/>
             <div className="text-left bg-slate-900/90 p-4 rounded-2xl border border-white/10 max-w-2xl mx-auto space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400">
                   {filteredPhotos[lightboxIndex].album} Album · Photo {lightboxIndex + 1} of {filteredPhotos.length}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-[11px] font-mono text-slate-400">
                   Credit: {filteredPhotos[lightboxIndex].photographer || 'Admin Desk'}
                 </span>
               </div>

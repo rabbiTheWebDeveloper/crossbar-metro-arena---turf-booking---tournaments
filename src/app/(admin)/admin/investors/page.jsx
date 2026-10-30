@@ -96,7 +96,7 @@ export default function AdminInvestorsPage() {
           <div className="text-2xl sm:text-3xl font-black font-mono text-white">
             {totalInvestorPct}%
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[12px] text-slate-500">
             Owners keep {100 - totalInvestorPct}%
           </div>
         </div>
@@ -107,7 +107,7 @@ export default function AdminInvestorsPage() {
           <div className={`text-2xl sm:text-3xl font-black font-mono ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
             {financeReport.isLossMonth ? '-' : ''}৳{Math.abs(financeReport.netProfit).toLocaleString()}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[12px] text-slate-500">
             {new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function AdminInvestorsPage() {
                   <div className="font-bold text-white text-sm truncate">
                     {inv.name}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[12px] text-slate-400 font-mono mt-0.5">
                     {inv.sharePercentage}% · invested ৳{(inv.capitalInvested / 1000).toLocaleString()}k
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export default function AdminInvestorsPage() {
               <div className="flex items-center justify-between sm:justify-end gap-4 pl-12 sm:pl-0">
                 <div className="text-right font-mono">
                   <div className="text-white font-bold text-sm">৳{expectedShare.toLocaleString()}</div>
-                  <div className="text-[10px] text-slate-500">paid ৳{inv.payoutsPaid.toLocaleString()}</div>
+                  <div className="text-[11px] text-slate-500">paid ৳{inv.payoutsPaid.toLocaleString()}</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -151,14 +151,14 @@ export default function AdminInvestorsPage() {
                         const updated = investors.map(i => i.id === inv.id ? { ...i, sharePercentage: Number(newP) } : i);
                         handleSaveInvestors(updated);
                     }
-                }} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold">
+                }} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[12px] font-bold">
                     Edit %
                   </button>
 
                   <button type="button" onClick={() => {
                     setPayoutInvestor(inv);
                     setPayoutAmount(expectedShare || 10000);
-                }} className="px-3 py-1.5 rounded-lg bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 text-[11px] font-bold border border-lime-400/20">
+                }} className="px-3 py-1.5 rounded-lg bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 text-[12px] font-bold border border-lime-400/20">
                     Payout
                   </button>
                 </div>

@@ -41,7 +41,7 @@ export const MyPassesDrawer = ({ bookings, onClose, onSelectBooking, onBookMore 
                   <span className="font-mono font-bold text-xs text-emerald-400">
                     {b.bookingCode}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 uppercase font-semibold">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 uppercase font-semibold">
                     {b.paymentStatus === 'paid_full' ? 'Paid' : 'Confirmed'}
                   </span>
                 </div>

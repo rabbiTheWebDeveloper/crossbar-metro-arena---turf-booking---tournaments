@@ -852,6 +852,105 @@ export const ArenaProvider = ({ children }) => {
         }
     }, []);
 
+
+    // ---- Admin: recurring / bulk bookings (weekly fixed slots) ----
+    const refreshBookings = useCallback(async () => {
+        try {
+            const res = await fetch('/api/bookings');
+            const data = await res.json();
+            if (res.ok && Array.isArray(data.bookings)) {
+                setBookings(data.bookings);
+                if (typeof window !== 'undefined') {
+                    try { localStorage.setItem('cma_bookings_v3', JSON.stringify(data.bookings)); } catch { /* ignore */ }
+                }
+            }
+        } catch (e) {
+            console.warn('refreshBookings error:', e);
+        }
+    }, []);
+
+    const handleCreateRecurringBookings = useCallback(async (payload) => {
+        const res = await fetch('/api/bookings/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const err = new Error(data.error || 'Failed to create bookings');
+            err.data = data;
+            throw err;
+        }
+        if (!payload.dryRun && Array.isArray(data.bookings) && data.bookings.length) {
+            setBookings(prev => {
+                const codes = new Set(data.bookings.map(b => b.bookingCode));
+                return [...data.bookings, ...prev.filter(b => !codes.has(b.bookingCode))];
+            });
+            const first = data.bookings[0];
+            const smsText = `Crossbar Metro: ${data.bookings.length} fixed slots confirmed for ${first.teamName} (${first.displayTime}) from ${data.summary?.firstDate} to ${data.summary?.lastDate}. Series ${data.seriesId}.`;
+            sendSMSNotification(first.captainPhone, smsText, 'booking_confirmed');
+        }
+        return data;
+    }, [sendSMSNotification]);
+
+    const handleCancelSeries = useCallback(async (seriesId, scope = 'upcoming') => {
+        const res = await fetch(`/api/bookings/bulk?seriesId=${encodeURIComponent(seriesId)}&scope=${scope}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to cancel series');
+        await refreshBookings();
+        return data;
+    }, [refreshBookings]);
+
+    // ---- Admin: edit tournament registration data ----
+    const handleUpdateRegistration = useCallback(async (id, patch) => {
+        const res = await fetch(`/api/registrations/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update registration');
+        setRegistrations(prev => prev.map(r => (r.id === id ? data.registration : r)));
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = JSON.parse(localStorage.getItem('cma_tournament_registrations_v3') || '[]');
+                localStorage.setItem('cma_tournament_registrations_v3', JSON.stringify(stored.map(r => (r.id === id ? data.registration : r))));
+            } catch { /* ignore */ }
+        }
+        return data.registration;
+    }, []);
+
+    const handleDeleteRegistration = useCallback(async (id) => {
+        const res = await fetch(`/api/registrations/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to delete registration');
+        setRegistrations(prev => prev.filter(r => r.id !== id));
+        return data;
+    }, []);
+
+    // ---- Admin: view / edit registered player accounts ----
+    const refreshUsers = useCallback(async () => {
+        try {
+            const res = await fetch('/api/users?includeDisabled=1');
+            const data = await res.json();
+            if (res.ok && Array.isArray(data.users)) setUsers(data.users);
+        } catch (e) {
+            console.warn('refreshUsers error:', e);
+        }
+    }, []);
+
+    const handleAdminUpdateUser = useCallback(async (id, patch) => {
+        const res = await fetch(`/api/users/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update player');
+        setUsers(prev => prev.map(u => (u.id === id ? data.user : u)));
+        return data.user;
+    }, []);
+
     const handleSaveTournament = useCallback(async (tournament) => {
         try {
             const res = await fetch('/api/events', {
@@ -1082,6 +1181,13 @@ export const ArenaProvider = ({ children }) => {
             handleSaveShopReservation,
             handleUpdateShopReservationStatus,
             handleRegistrationSuccess,
+            handleUpdateRegistration,
+            handleDeleteRegistration,
+            handleCreateRecurringBookings,
+            handleCancelSeries,
+            refreshBookings,
+            refreshUsers,
+            handleAdminUpdateUser,
             handleSaveTournament,
             handleAddChallenge,
             handleSavePhoto,

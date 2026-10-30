@@ -68,7 +68,7 @@ export const SquadBuilderModal = ({ onClose }) => {
               <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400"/>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider">
                 <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5"/>
                 <span>Tag Your Match Squad</span>
               </div>
@@ -112,14 +112,14 @@ export const SquadBuilderModal = ({ onClose }) => {
 
               {/* Crossbar Metro Arena watermark on pitch */}
               <div className="absolute bottom-14 sm:bottom-16 left-0 right-0 text-center opacity-30 pointer-events-none">
-                <div className="text-[10px] sm:text-[12px] font-black tracking-widest text-white uppercase font-display">
+                <div className="text-[11px] sm:text-[12px] font-black tracking-widest text-white uppercase font-display">
                   CROSSBAR METRO ARENA
                 </div>
               </div>
 
               {/* Team Name Header Bar on pitch */}
               <div className="relative z-10 text-center bg-black/60 backdrop-blur-sm py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-full border border-white/20 mx-auto max-w-[85%] truncate">
-                <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-emerald-300 font-display truncate block">
+                <span className="text-[12px] sm:text-xs font-black uppercase tracking-wider text-emerald-300 font-display truncate block">
                   {teamName}
                 </span>
               </div>
@@ -135,7 +135,7 @@ export const SquadBuilderModal = ({ onClose }) => {
                     </div>
 
                     {/* Player Name Pill */}
-                    <div className="mt-0.5 sm:mt-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-black/85 backdrop-blur-sm border border-white/30 text-[9px] sm:text-[11px] font-bold text-white max-w-[65px] sm:max-w-[85px] truncate block group-hover:bg-black">
+                    <div className="mt-0.5 sm:mt-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded bg-black/85 backdrop-blur-sm border border-white/30 text-[10px] sm:text-[12px] font-bold text-white max-w-[65px] sm:max-w-[85px] truncate block group-hover:bg-black">
                       {p.name}
                     </div>
                   </button>);
@@ -143,12 +143,12 @@ export const SquadBuilderModal = ({ onClose }) => {
 
               {/* Bottom tag on pitch */}
               <div className="relative z-10 text-center">
-                <span className="text-[9px] sm:text-[10px] font-semibold text-white/90 bg-emerald-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-white/90 bg-emerald-950/80 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                   {formation} · Uttara Metro Center
                 </span>
               </div>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-2 text-center">
+            <p className="text-[12px] sm:text-xs text-slate-400 mt-2 text-center">
               💡 Tap any player on pitch to rename or edit jersey number
             </p>
           </div>
@@ -190,11 +190,11 @@ export const SquadBuilderModal = ({ onClose }) => {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2">
-                    <label className="text-[10px] text-slate-400 uppercase">Player Name</label>
+                    <label className="text-[11px] text-slate-400 uppercase">Player Name</label>
                     <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-2.5 py-1.5 rounded bg-black/60 border border-white/20 text-white text-xs font-semibold"/>
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 uppercase">Number</label>
+                    <label className="text-[11px] text-slate-400 uppercase">Number</label>
                     <input type="number" value={editNumber} onChange={(e) => setEditNumber(Number(e.target.value))} className="w-full px-2.5 py-1.5 rounded bg-black/60 border border-white/20 text-white text-xs font-mono font-bold"/>
                   </div>
                 </div>
@@ -219,7 +219,7 @@ export const SquadBuilderModal = ({ onClose }) => {
                       <span className="w-5 text-center font-mono font-bold text-emerald-400">#{p.number}</span>
                       <span className="text-white font-medium">{p.name}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">{p.role}</span>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase">{p.role}</span>
                   </div>))}
               </div>
             </div>

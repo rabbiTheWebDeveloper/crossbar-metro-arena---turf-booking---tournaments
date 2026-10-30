@@ -91,19 +91,19 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
         {/* Quick Stats Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 sm:px-6 bg-black/30 border-b border-white/5">
           <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-            <div className="text-[11px] text-slate-400 uppercase">Confirmed Bookings</div>
+            <div className="text-[12px] text-slate-400 uppercase">Confirmed Bookings</div>
             <div className="text-2xl font-bold font-mono text-white mt-0.5">{bookings.length}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-            <div className="text-[11px] text-slate-400 uppercase">Booked Revenue</div>
+            <div className="text-[12px] text-slate-400 uppercase">Booked Revenue</div>
             <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">৳{totalRevenue.toLocaleString()}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-            <div className="text-[11px] text-slate-400 uppercase">Tournament Squads</div>
+            <div className="text-[12px] text-slate-400 uppercase">Tournament Squads</div>
             <div className="text-2xl font-bold font-mono text-amber-400 mt-0.5">{registrations.length}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-            <div className="text-[11px] text-slate-400 uppercase">Venue Status</div>
+            <div className="text-[12px] text-slate-400 uppercase">Venue Status</div>
             <div className="text-sm font-bold text-emerald-300 flex items-center gap-1.5 mt-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Turf Active</span>
@@ -151,7 +151,7 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                     {filteredBookings.map((b) => (<div key={b.id} className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-mono font-bold text-xs text-emerald-400">{b.bookingCode}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${b.paymentStatus === 'paid_full'
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${b.paymentStatus === 'paid_full'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                         : b.paymentStatus === 'paid_advance'
                             ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
@@ -176,9 +176,9 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                         </div>
 
                         <div className="flex items-center justify-between pt-1">
-                          <span className="text-[10px] text-slate-400">{b.courtName}</span>
+                          <span className="text-[11px] text-slate-400">{b.courtName}</span>
                           <div className="flex gap-1.5">
-                            {b.paymentStatus !== 'paid_full' && (<button onClick={() => onUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black font-semibold text-[10px]">
+                            {b.paymentStatus !== 'paid_full' && (<button onClick={() => onUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black font-semibold text-[11px]">
                                 Mark Paid
                               </button>)}
                             <button onClick={() => onCancelBooking(b.id)} className="p-1 rounded text-rose-400 hover:bg-rose-500/20">
@@ -192,7 +192,7 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                   {/* Desktop Table View (>= md) */}
                   <div className="hidden md:block overflow-x-auto border border-white/10 rounded-xl">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-white/[0.03] text-slate-400 uppercase tracking-wider text-[10px] border-b border-white/10">
+                      <thead className="bg-white/[0.03] text-slate-400 uppercase tracking-wider text-[11px] border-b border-white/10">
                         <tr>
                           <th className="p-3">Code</th>
                           <th className="p-3">Date & Time</th>
@@ -211,14 +211,14 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                             </td>
                             <td className="p-3">
                               <div className="text-white font-medium">{b.date}</div>
-                              <div className="text-[11px] text-slate-400">{b.displayTime}</div>
+                              <div className="text-[12px] text-slate-400">{b.displayTime}</div>
                             </td>
                             <td className="p-3 text-slate-300">
                               {b.courtName}
                             </td>
                             <td className="p-3">
                               <div className="font-bold text-white">{b.teamName}</div>
-                              <div className="text-slate-400 text-[11px]">{b.captainName}</div>
+                              <div className="text-slate-400 text-[12px]">{b.captainName}</div>
                             </td>
                             <td className="p-3 text-slate-300 font-mono">
                               {b.captainPhone}
@@ -227,7 +227,7 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                               ৳{b.totalPrice.toLocaleString()}
                             </td>
                             <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${b.paymentStatus === 'paid_full'
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${b.paymentStatus === 'paid_full'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                         : b.paymentStatus === 'paid_advance'
                             ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
@@ -236,7 +236,7 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                               </span>
                             </td>
                             <td className="p-3 text-right space-x-1">
-                              {b.paymentStatus !== 'paid_full' && (<button onClick={() => onUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black font-semibold text-[10px] transition-colors" title="Mark Paid">
+                              {b.paymentStatus !== 'paid_full' && (<button onClick={() => onUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black font-semibold text-[11px] transition-colors" title="Mark Paid">
                                   Mark Paid
                                 </button>)}
                               <button onClick={() => onCancelBooking(b.id)} className="p-1 rounded text-rose-400 hover:bg-rose-500/20 transition-colors" title="Cancel / Delete Booking">
@@ -257,10 +257,10 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                 </div>) : (<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {registrations.map((reg) => (<div key={reg.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase text-amber-400">
+                        <span className="text-[12px] font-bold uppercase text-amber-400">
                           {reg.tournamentTitle}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                           Roster Registered
                         </span>
                       </div>
@@ -273,9 +273,9 @@ export const ArenaManagerModal = ({ bookings, registrations, onClose, onUpdateBo
                       <div className="text-xs text-slate-400">
                         Jersey: {reg.jerseyColor} · Pay: {reg.paymentMethod.toUpperCase()} {reg.transactionId ? `(Trx: ${reg.transactionId})` : ''}
                       </div>
-                      <div className="pt-2 border-t border-white/5 text-[11px] text-slate-400">
+                      <div className="pt-2 border-t border-white/5 text-[12px] text-slate-400">
                         <strong>Roster ({reg.playersList.length} players):</strong>
-                        <div className="line-clamp-2 mt-1 font-mono text-[10px]">
+                        <div className="line-clamp-2 mt-1 font-mono text-[11px]">
                           {reg.playersList.join(', ')}
                         </div>
                       </div>

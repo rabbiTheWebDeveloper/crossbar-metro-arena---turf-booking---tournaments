@@ -83,7 +83,7 @@ export default function InvestorPayoutsPage() {
                     </div>
                     {activeInvestor.capitalInvested > 0 && (
                         <div className="text-right">
-                            <span className="text-[10px] text-slate-400 uppercase font-mono block">Capital Invested</span>
+                            <span className="text-[11px] text-slate-400 uppercase font-mono block">Capital Invested</span>
                             <span className="text-xs font-mono font-bold text-white">{formatBDT(activeInvestor.capitalInvested)}</span>
                         </div>
                     )}
@@ -96,7 +96,7 @@ export default function InvestorPayoutsPage() {
                     <div className="py-10 text-center space-y-2">
                         <CreditCard className="w-8 h-8 text-slate-600 mx-auto" />
                         <div className="text-xs text-slate-400 font-medium">No payout distributions recorded yet</div>
-                        <div className="text-[11px] text-slate-600 font-mono">
+                        <div className="text-[12px] text-slate-600 font-mono">
                             Dividends are disbursed at the start of each month following monthly reconciliation.
                         </div>
                     </div>
@@ -113,12 +113,12 @@ export default function InvestorPayoutsPage() {
                                         <div className="text-xs font-bold text-white truncate flex items-center gap-2">
                                             <span>{formatMonthDisplay(pay.month)}</span>
                                             {pay.paymentMethod && (
-                                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-slate-400 font-normal">
+                                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/5 border border-white/10 text-slate-400 font-normal">
                                                     {formatMethod(pay.paymentMethod)}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                        <div className="text-[12px] text-slate-400 mt-0.5 truncate">
                                             {formatPaidDate(pay.datePaid)}
                                             {pay.transactionNote ? ` · ${pay.transactionNote}` : ''}
                                         </div>

@@ -207,7 +207,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
                 <span>Refreshes in:</span>
                 <span className="font-mono font-bold text-emerald-400">{refreshCountdown}s</span>
               </div>
-              <button type="button" onClick={handleManualRefresh} className="text-[11px] font-bold text-slate-400 hover:text-white underline cursor-pointer">
+              <button type="button" onClick={handleManualRefresh} className="text-[12px] font-bold text-slate-400 hover:text-white underline cursor-pointer">
                 Refresh Now
               </button>
             </div>
@@ -236,9 +236,9 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
             return (<button key={d.iso} type="button" onClick={() => setSelectedDate(d.iso)} className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${isSelected
                     ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-lg shadow-emerald-500/25 scale-[1.02]'
                     : 'bg-white/[0.03] border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'}`}>
-                      <span className="text-[11px] font-bold uppercase">{d.dayName}</span>
+                      <span className="text-[12px] font-bold uppercase">{d.dayName}</span>
                       <span className="text-lg font-black font-display leading-tight">{d.dayNum}</span>
-                      <span className="text-[10px] opacity-80">{d.monthName}</span>
+                      <span className="text-[11px] opacity-80">{d.monthName}</span>
                       {d.isWeekend && !isSelected && (<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1"></span>)}
                     </button>);
         })}
@@ -263,7 +263,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
               <span className="text-xs font-bold uppercase tracking-wider text-white">
                 {new Date(calendarMonth.year, calendarMonth.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </span>
-              <div className="flex items-center gap-2 text-[10px]">
+              <div className="flex items-center gap-2 text-[11px]">
                 <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Many
                 </span>
@@ -277,7 +277,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
             </div>
 
             {/* Mini Calendar Weekday Header */}
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-500 mb-1">
+            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-500 mb-1">
               <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
             </div>
 
@@ -290,7 +290,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
             return (<button key={d.iso} type="button" onClick={() => setSelectedDate(d.iso)} className={`h-7 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer ${isSelected
                     ? 'bg-emerald-500 text-slate-950 font-black'
                     : 'text-slate-300 hover:bg-white/10'}`}>
-                    <span className="text-[11px] leading-none">{d.dayNum}</span>
+                    <span className="text-[12px] leading-none">{d.dayNum}</span>
                     <span className={`w-1 h-1 rounded-full ${dotColor} mt-0.5`}></span>
                   </button>);
         })}
@@ -339,7 +339,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
                     <span className="text-xs font-mono font-bold text-slate-400">
                       Slot #{slot.slotNumber}
                     </span>
-                    <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${isAvail
+                    <span className={`text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-full ${isAvail
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : isHold
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
@@ -360,18 +360,18 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
 
                   {/* Status Banner / Booked Team Name */}
                   {isBooked && (<div className="mt-3 p-2.5 rounded-xl bg-white/5 border border-white/5 text-xs">
-                      <div className="text-[10px] uppercase text-slate-400 font-semibold">Booked by Squad:</div>
+                      <div className="text-[11px] uppercase text-slate-400 font-semibold">Booked by Squad:</div>
                       <div className="text-white font-bold truncate mt-0.5">
                         {slot.bookedTeam || 'Confirmed Squad'}
                       </div>
                     </div>)}
 
                   {isHold && (<div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                      <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-300">
                         <Timer className="w-3 h-3"/>
                         <span>Holding for Payment</span>
                       </div>
-                      <div className="text-[11px] mt-0.5 font-medium">Slot frees if payment is not finished.</div>
+                      <div className="text-[12px] mt-0.5 font-medium">Slot frees if payment is not finished.</div>
                     </div>)}
 
                   {isBlocked && (<div className="mt-3 p-2 rounded-xl bg-rose-500/10 text-rose-300 text-xs">
@@ -386,7 +386,7 @@ export const BookingSection = ({ bookings, onBookingSuccess, hideHeading = false
                 {/* Slot Footer: Price & CTA */}
                 <div className="pt-5 mt-4 border-t border-white/10 flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-medium">
                       {isWeekendSelected ? 'Weekend Rate' : 'Weekday Rate'}
                     </div>
                     <div className="text-lg font-black text-emerald-400 font-mono">

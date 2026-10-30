@@ -72,7 +72,7 @@ export default function InvestorDashboardLayout({ children, }) {
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#080d12]/95 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-2 group">
           <CrossbarLogo size="sm" showSubtitle={false}/>
-          <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+          <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
             INVESTOR
           </span>
         </Link>
@@ -97,7 +97,7 @@ export default function InvestorDashboardLayout({ children, }) {
               <CrossbarLogo size="sm" showSubtitle={false}/>
               <div className="pl-10 -mt-1 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-[9px] font-mono tracking-[0.22em] text-emerald-400 uppercase font-black">
+                <span className="text-[10px] font-mono tracking-[0.22em] text-emerald-400 uppercase font-black">
                   INVESTOR PORTAL
                 </span>
               </div>
@@ -167,7 +167,7 @@ export default function InvestorDashboardLayout({ children, }) {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#070b0e] bg-[radial-gradient(900px_500px_at_15%_-5%,rgba(16,185,129,0.08),transparent_60%)] overflow-y-auto">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#070b0e] bg-[radial-gradient(900px_500px_at_15%_-5%,rgba(76,191,2,0.08),transparent_60%)] overflow-y-auto">
         
         {/* TOP BAR WITH BRAND COLOR SYSTEM */}
         <header className="px-4 sm:px-8 lg:px-10 py-4 sm:py-5 flex items-center justify-between border-b border-emerald-500/15 bg-[#080d12]/50 backdrop-blur-sm sticky top-0 z-30">
@@ -184,7 +184,7 @@ export default function InvestorDashboardLayout({ children, }) {
                       {inv.name} ({inv.sharePercentage}%)
                     </option>))}
                 </select>
-                <button className="flex items-center gap-1 text-[11px] text-emerald-300 hover:text-emerald-200 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 cursor-pointer">
+                <button className="flex items-center gap-1 text-[12px] text-emerald-300 hover:text-emerald-200 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 cursor-pointer">
                   <span>({activeInvestor.sharePercentage || 0}%)</span>
                   <ChevronDown className="w-3 h-3 text-emerald-400"/>
                 </button>
@@ -193,7 +193,7 @@ export default function InvestorDashboardLayout({ children, }) {
 
           {/* Right Role Badge & Avatar matching main site */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <span className="px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold tracking-wider text-emerald-300 border border-emerald-500/40 bg-emerald-500/10">
+            <span className="px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-mono font-bold tracking-wider text-emerald-300 border border-emerald-500/40 bg-emerald-500/10">
               INVESTOR
             </span>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-md shadow-emerald-400/25">

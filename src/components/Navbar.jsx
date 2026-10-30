@@ -51,16 +51,16 @@ export const Navbar = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
             </span>
-            <span className="text-emerald-300 font-bold text-[11px] sm:text-xs truncate">
+            <span className="text-emerald-300 font-bold text-[12px] sm:text-xs truncate">
               Uttara Metro Center, Sec 17
             </span>
-            <span className="hidden md:inline text-slate-400 text-[11px] font-normal">
+            <span className="hidden md:inline text-slate-400 text-[12px] font-normal">
               · 2 Min from MRT Line-6
             </span>
           </Link>
 
           {/* Three Dashboards Switcher & Quick Demo */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-[11px] sm:text-xs">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-[12px] sm:text-xs">
             {/* Install App Quick Prompt */}
             <button type="button" onClick={() => setShowInstallModal(true)} className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold transition-colors cursor-pointer">
               <Smartphone className="w-3 h-3 text-emerald-400 shrink-0"/>
@@ -128,7 +128,7 @@ export const Navbar = () => {
             {/* Cart Button */}
             <button type="button" onClick={() => setShowCartDrawer(true)} className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer" title="Arena Gear Bag">
               <ShoppingBag className="w-4 h-4"/>
-              {totalCartCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
+              {totalCartCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center">
                   {totalCartCount}
                 </span>)}
             </button>
@@ -139,7 +139,7 @@ export const Navbar = () => {
                 <span className="font-bold text-white max-w-[90px] sm:max-w-[130px] truncate">
                   {currentUser.name}
                 </span>
-                <span className="text-[10px] uppercase font-bold text-slate-400 px-1 py-0.2 rounded bg-black/40">
+                <span className="text-[11px] uppercase font-bold text-slate-400 px-1 py-0.2 rounded bg-black/40">
                   {currentUser.role}
                 </span>
                 <button type="button" onClick={logout} className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Log out">
@@ -181,7 +181,7 @@ export const Navbar = () => {
 
           {/* Quick Dashboards in Drawer */}
           <div className="pt-3 border-t border-white/10 space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dashboards</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dashboards</div>
             <div className="grid grid-cols-3 gap-2 text-xs text-center font-bold">
               <Link href="/player" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white hover:border-emerald-500/40">
                 ⚽ Player

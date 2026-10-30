@@ -119,7 +119,7 @@ export default function ResultsPage() {
             {/* Date Filters Row */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3.5 rounded-2xl border border-white/10">
               <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-slate-400 uppercase tracking-wider text-[11px] mr-1">Filter by:</span>
+                <span className="text-slate-400 uppercase tracking-wider text-[12px] mr-1">Filter by:</span>
                 {[
                 { id: 'all', label: 'All Results' },
                 { id: 'today', label: 'Today' },
@@ -156,7 +156,7 @@ export default function ResultsPage() {
                         <span>·</span>
                         <span>{match.courtName}</span>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-slate-300 uppercase">
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300 uppercase">
                         {match.matchType}
                       </span>
                     </div>
@@ -180,7 +180,7 @@ export default function ResultsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       {/* Scorers */}
                       <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                        <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 flex items-center gap-1">
+                        <div className="text-[11px] uppercase font-bold text-slate-400 mb-1.5 flex items-center gap-1">
                           <Target className="w-3.5 h-3.5 text-emerald-400"/>
                           <span>Goal Scorers</span>
                         </div>
@@ -198,11 +198,11 @@ export default function ResultsPage() {
                             <Award className="w-4 h-4 text-amber-400"/>
                             <span>Player of the Match: <strong>{match.playerOfTheMatch}</strong></span>
                           </div>)}
-                        <div className="flex items-center gap-4 text-slate-400 text-[11px]">
+                        <div className="flex items-center gap-4 text-slate-400 text-[12px]">
                           <span>🟨 Yellow Cards: <strong className="text-white">{match.yellowCards || 0}</strong></span>
                           <span>🟥 Red Cards: <strong className="text-white">{match.redCards || 0}</strong></span>
                         </div>
-                        {match.matchReport && (<p className="text-[11px] text-slate-300 italic border-t border-white/5 pt-1.5">
+                        {match.matchReport && (<p className="text-[12px] text-slate-300 italic border-t border-white/5 pt-1.5">
                             &quot;{match.matchReport}&quot;
                           </p>)}
                       </div>
@@ -234,7 +234,7 @@ export default function ResultsPage() {
 
               <div className="overflow-x-auto rounded-3xl border border-white/10 bg-slate-900/60">
                 <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="bg-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
+                  <thead className="bg-white/5 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
                     <tr>
                       <th className="py-3 px-4">Pos</th>
                       <th className="py-3 px-4">Team</th>
@@ -284,7 +284,7 @@ export default function ResultsPage() {
                             <td className="py-3.5 px-4">
                               <div className="flex items-center justify-center gap-1">
                                 {form.slice(0, 5).map((f, i) => (
-                                  <span key={i} className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${
+                                  <span key={i} className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] ${
                                     f === 'W'
                                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                                       : f === 'D'
@@ -357,7 +357,7 @@ export default function ResultsPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-black font-mono text-emerald-400">{goalsCount}</div>
-                          <div className="text-[10px] text-slate-400 uppercase font-medium">Goals</div>
+                          <div className="text-[11px] text-slate-400 uppercase font-medium">Goals</div>
                         </div>
                       </div>
                     );
@@ -400,7 +400,7 @@ export default function ResultsPage() {
                   <div key={c.id} className="p-5 rounded-3xl bg-slate-900/80 border border-white/10 flex flex-col justify-between space-y-4 hover:border-emerald-500/40 transition-all">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                        <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
                           {c.lookingFor}
                         </span>
                         <span className="text-xs font-bold text-slate-400">{c.level}</span>
@@ -420,7 +420,7 @@ export default function ResultsPage() {
 
                     <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                       <div className="text-xs">
-                        <div className="text-[10px] text-slate-400">Captain:</div>
+                        <div className="text-[11px] text-slate-400">Captain:</div>
                         <div className="font-bold text-white">{c.captainName}</div>
                       </div>
 

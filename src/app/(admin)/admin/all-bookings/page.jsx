@@ -66,7 +66,7 @@ export default function AdminAllBookingsPage() {
                 {/* Left: Date Circle & Info */}
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center font-mono shrink-0">
-                    <span className="text-[9px] text-slate-400 uppercase leading-none">
+                    <span className="text-[10px] text-slate-400 uppercase leading-none">
                       {b.date ? new Date(b.date).toLocaleDateString('en-US', { month: 'short' }) : 'OCT'}
                     </span>
                     <span className="text-xs font-black text-white leading-none mt-0.5">
@@ -82,12 +82,12 @@ export default function AdminAllBookingsPage() {
                       {b.teamName && (<span className="text-slate-400 truncate hidden sm:inline text-xs">
                           · {b.teamName}
                         </span>)}
-                      <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                      <span className="text-[11px] font-mono text-slate-500 shrink-0">
                         ({b.bookingCode})
                       </span>
                     </div>
 
-                    <div className="text-[11px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
+                    <div className="text-[12px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
                       <span>{b.displayTime || `${b.startTime} - ${b.endTime}`}</span>
                       <span>·</span>
                       <span className="text-emerald-400 font-bold">
@@ -102,17 +102,17 @@ export default function AdminAllBookingsPage() {
 
                 {/* Right: Status Pill & Actions */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {isPlayed && (<span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                  {isPlayed && (<span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                       <span>Played</span>
                     </span>)}
 
-                  {isConfirmed && (<span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  {isConfirmed && (<span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       <span>Confirmed</span>
                     </span>)}
 
-                  {isCancelled && (<span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-500/30">
+                  {isCancelled && (<span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-rose-950/60 text-rose-300 border border-rose-500/30">
                       Cancelled
                     </span>)}
 
@@ -120,12 +120,12 @@ export default function AdminAllBookingsPage() {
                   {b.dueAmount && b.dueAmount > 0 && !isCancelled ? (<button type="button" onClick={() => {
                         setCollectingBooking(b);
                         setCollectAmount(b.dueAmount || 0);
-                    }} className="px-2 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[11px] font-bold border border-amber-400/20 transition-colors cursor-pointer">
+                    }} className="px-2 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer">
                       Collect
                     </button>) : null}
 
                   {/* Mark played button */}
-                  {isConfirmed && (<button type="button" onClick={() => handleUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-bold transition-colors cursor-pointer" title="Mark Played">
+                  {isConfirmed && (<button type="button" onClick={() => handleUpdateBookingStatus(b.id, 'paid_full')} className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[12px] font-bold transition-colors cursor-pointer" title="Mark Played">
                       Played
                     </button>)}
 

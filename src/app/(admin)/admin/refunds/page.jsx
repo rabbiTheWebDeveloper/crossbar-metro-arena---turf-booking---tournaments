@@ -43,15 +43,15 @@ export default function AdminRefundsPage() {
             {pendingRefunds.map(ref => (<div key={ref.id} className="p-4 rounded-2xl bg-[#0c131a] border border-amber-400/30 space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-white">{ref.bookingCode}</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-400/20 text-amber-300">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-amber-400/20 text-amber-300">
                     Pending
                   </span>
                 </div>
 
                 <div>
                   <div className="font-bold text-white">{ref.customerName}</div>
-                  <div className="font-mono text-slate-400 text-[11px]">{ref.customerPhone}</div>
-                  <div className="text-[11px] text-slate-400 mt-1 capitalize">
+                  <div className="font-mono text-slate-400 text-[12px]">{ref.customerPhone}</div>
+                  <div className="text-[12px] text-slate-400 mt-1 capitalize">
                     Reason: {ref.reason.replace(/_/g, ' ')}
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export default function AdminRefundsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] text-slate-500 uppercase border-b border-white/5">
+            <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
               <tr>
                 <th className="py-2 px-3">Date</th>
                 <th className="py-2 px-3">Booking Code</th>
@@ -90,7 +90,7 @@ export default function AdminRefundsPage() {
                 <th className="py-2 px-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+            <tbody className="divide-y divide-white/5 font-mono text-[12px]">
               {completedRefunds.map(ref => (<tr key={ref.id}>
                   <td className="py-2.5 px-3 text-slate-400">{ref.refundedDate || ref.requestDate}</td>
                   <td className="py-2.5 px-3 text-white font-bold">{ref.bookingCode}</td>
@@ -98,7 +98,7 @@ export default function AdminRefundsPage() {
                   <td className="py-2.5 px-3 text-emerald-400 font-bold">৳{ref.amount.toLocaleString()}</td>
                   <td className="py-2.5 px-3 text-slate-400">{ref.refundMethod} ({ref.transactionRef})</td>
                   <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-300">
                       Paid
                     </span>
                   </td>

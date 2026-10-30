@@ -249,7 +249,7 @@ export const AuthModal = () => {
                     </span>
                     <input type="tel" required placeholder="01XXXXXXXXX" value={phone} onChange={e => setPhone(e.target.value)} className="w-full pl-16 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1.5">
+                  <p className="text-[12px] text-slate-400 mt-1.5">
                     A 4-digit SMS OTP code will be dispatched to this number via SSLWireless Gateway.
                   </p>
                 </div>
@@ -260,7 +260,7 @@ export const AuthModal = () => {
               </form>) : (<form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
                   <div className="font-bold">SMS Dispatched!</div>
-                  <div className="text-[11px] mt-0.5">
+                  <div className="text-[12px] mt-0.5">
                     Sandbox Verification OTP: <span className="font-mono font-bold text-emerald-400 text-sm">{simulatedOtp}</span>
                   </div>
                 </div>
@@ -289,9 +289,9 @@ export const AuthModal = () => {
               <div>
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <span>Visitor (No Account)</span>
-                  {currentUser?.role === 'visitor' && <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
+                  {currentUser?.role === 'visitor' && <span className="px-2 py-0.5 text-[11px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
                 </div>
-                <div className="text-[11px] text-slate-400">Browse slots, shop, and public matches</div>
+                <div className="text-[12px] text-slate-400">Browse slots, shop, and public matches</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-400"/>
             </button>
@@ -301,9 +301,9 @@ export const AuthModal = () => {
               <div>
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <span>Player / Captain (Siam Chowdhury)</span>
-                  {currentUser?.role === 'player' && <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
+                  {currentUser?.role === 'player' && <span className="px-2 py-0.5 text-[11px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
                 </div>
-                <div className="text-[11px] text-slate-400">Book slots, manage Uttara Metro FC, post scores</div>
+                <div className="text-[12px] text-slate-400">Book slots, manage Uttara Metro FC, post scores</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-400"/>
             </button>
@@ -314,9 +314,9 @@ export const AuthModal = () => {
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400"/>
                   <span>Arena Admin (Abid Hasan)</span>
-                  {currentUser?.role === 'admin' && <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
+                  {currentUser?.role === 'admin' && <span className="px-2 py-0.5 text-[11px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
                 </div>
-                <div className="text-[11px] text-slate-400">Walk-ins, 24 prices, monthly reports, expenses</div>
+                <div className="text-[12px] text-slate-400">Walk-ins, 24 prices, monthly reports, expenses</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-400"/>
             </button>
@@ -327,9 +327,9 @@ export const AuthModal = () => {
                 <div className="text-sm font-bold text-white flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-sky-400"/>
                   <span>Investor (Rafiqul Islam · 20%)</span>
-                  {currentUser?.role === 'investor' && <span className="px-2 py-0.5 text-[10px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
+                  {currentUser?.role === 'investor' && <span className="px-2 py-0.5 text-[11px] rounded bg-emerald-500 text-slate-950 font-bold">Active</span>}
                 </div>
-                <div className="text-[11px] text-slate-400">Read-only profit share &amp; dividend reports</div>
+                <div className="text-[12px] text-slate-400">Read-only profit share &amp; dividend reports</div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-400"/>
             </button>

@@ -56,6 +56,10 @@ const BookingSchema = new Schema({
     transactionId: { type: String, trim: true },
     holdExpiresAt: { type: Number },
     isWalkIn: { type: Boolean, default: false },
+    // Recurring / bulk bookings created from the admin panel (weekly fixed slots)
+    isRecurring: { type: Boolean, default: false },
+    seriesId: { type: String, trim: true, index: true },
+    seriesLabel: { type: String, trim: true },
     notes: { type: String, trim: true }
 }, {
     timestamps: true,

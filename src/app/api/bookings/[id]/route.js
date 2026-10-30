@@ -32,13 +32,25 @@ export async function PATCH(request, { params }) {
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
-        if (body.paymentStatus) {
-            booking.paymentStatus = body.paymentStatus;
-            if (body.paymentStatus === 'paid_full') {
+        // The admin UI sends `status` + `collectedCash`; public callers send `paymentStatus`.
+        const nextStatus = body.paymentStatus || body.status;
+        if (body.collectedCash && Number(body.collectedCash) > 0) {
+            booking.advanceAmount = (booking.advanceAmount || 0) + Number(body.collectedCash);
+            booking.dueAmount = Math.max(0, (booking.totalPrice || 0) - booking.advanceAmount);
+        }
+        if (nextStatus) {
+            booking.paymentStatus = nextStatus;
+            if (nextStatus === 'paid_full') {
+                booking.advanceAmount = booking.totalPrice;
                 booking.dueAmount = 0;
             }
         }
         if (body.dueAmount !== undefined) booking.dueAmount = body.dueAmount;
+        if (body.advanceAmount !== undefined) booking.advanceAmount = body.advanceAmount;
+        if (body.captainName) booking.captainName = String(body.captainName).trim();
+        if (body.captainPhone) booking.captainPhone = String(body.captainPhone).trim();
+        if (body.teamName) booking.teamName = String(body.teamName).trim();
+        if (body.paymentMethod) booking.paymentMethod = body.paymentMethod;
         if (body.notes !== undefined) booking.notes = body.notes;
         if (body.transactionId) booking.transactionId = body.transactionId;
 

@@ -60,25 +60,25 @@ export default function AdminSlotPricingPage() {
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Advance Booking Deposit (৳)</label>
               <input type="number" value={advanceAmount} onChange={e => setAdvanceAmount(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
-              <span className="text-[10px] text-slate-500">Player advance payment</span>
+              <span className="text-[11px] text-slate-500">Player advance payment</span>
             </div>
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Slot Hold Lock (Minutes)</label>
               <input type="number" value={holdMinutes} onChange={e => setHoldMinutes(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
-              <span className="text-[10px] text-slate-500">Auto-expires unpaid locks</span>
+              <span className="text-[11px] text-slate-500">Auto-expires unpaid locks</span>
             </div>
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Booking Window (Days)</label>
               <input type="number" value={bookingWindowDays} onChange={e => setBookingWindowDays(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
-              <span className="text-[10px] text-slate-500">How far ahead players can book</span>
+              <span className="text-[11px] text-slate-500">How far ahead players can book</span>
             </div>
 
             <div>
               <label className="block text-slate-300 font-semibold mb-1">Cancellation Cutoff (Hours)</label>
               <input type="number" value={cancellationHours} onChange={e => setCancellationHours(Number(e.target.value))} className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"/>
-              <span className="text-[10px] text-slate-500">Advance refund eligible before kickoff</span>
+              <span className="text-[11px] text-slate-500">Advance refund eligible before kickoff</span>
             </div>
           </div>
         </div>
@@ -90,12 +90,12 @@ export default function AdminSlotPricingPage() {
               <Clock className="w-4 h-4 text-lime-400"/>
               <span>12 Slot Schedule Matrix (All 24 Rates)</span>
             </h3>
-            <span className="text-[10px] font-mono text-slate-500">Weekday: Sun-Thu · Weekend: Fri-Sat</span>
+            <span className="text-[11px] font-mono text-slate-500">Weekday: Sun-Thu · Weekend: Fri-Sat</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[10px] text-slate-500 uppercase border-b border-white/5">
+              <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
                 <tr>
                   <th className="py-2.5 px-3">Slot</th>
                   <th className="py-2.5 px-3">Time Window</th>
@@ -112,7 +112,7 @@ export default function AdminSlotPricingPage() {
                     <td className="py-2 px-3 text-slate-300">
                       {slot.displayTime}
                     </td>
-                    <td className="py-2 px-3 uppercase text-[10px] text-slate-400 font-sans">
+                    <td className="py-2 px-3 uppercase text-[11px] text-slate-400 font-sans">
                       {slot.period}
                     </td>
                     <td className="py-2 px-3">

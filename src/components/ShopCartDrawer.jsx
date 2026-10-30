@@ -75,7 +75,7 @@ export const ShopCartDrawer = () => {
                 Show this pickup code upon arrival at Crossbar reception. Pay cash, bKash or card at desk.
               </p>
               <div className="p-4 rounded-xl bg-slate-950 border border-emerald-500/40 text-center">
-                <div className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Pickup Pass Code</div>
+                <div className="text-[11px] text-slate-400 uppercase font-mono tracking-wider">Pickup Pass Code</div>
                 <div className="text-2xl font-black font-mono text-emerald-400 mt-1">{reservationConfirmed.reservationCode}</div>
                 <div className="text-xs text-white font-bold mt-1">Total Payable: ৳{reservationConfirmed.price.toLocaleString()}</div>
               </div>

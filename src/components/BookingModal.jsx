@@ -195,7 +195,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
                   <Users className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
                   <input type="text" required placeholder="e.g. Uttara Metro FC" value={teamName} onChange={e => setTeamName(e.target.value)} className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500"/>
                 </div>
-                {captainTeams.length > 0 && (<div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-400">
+                {captainTeams.length > 0 && (<div className="flex items-center gap-1.5 mt-1.5 text-[12px] text-slate-400">
                     <span>Quick select:</span>
                     {captainTeams.map(t => (<button key={t.id} type="button" onClick={() => setTeamName(t.name)} className="text-emerald-400 hover:underline font-bold">
                         {t.name}
@@ -231,7 +231,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
                     : 'bg-white/[0.02] border-white/10 text-slate-300 hover:bg-white/5'}`}>
                     <div>
                       <div className="text-xs font-bold">{addon.name}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{addon.description}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{addon.description}</div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
                       <div className="text-xs font-mono font-bold text-emerald-400">+৳{addon.price}</div>
@@ -250,7 +250,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
               <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                 3. Payment Lock-In Option (bKash / Nagad / Cards)
               </h4>
-              <span className="text-[11px] text-slate-400 font-semibold">
+              <span className="text-[12px] text-slate-400 font-semibold">
                 Total Price: <strong className="text-white font-mono">৳{totalPrice.toLocaleString()}</strong>
               </span>
             </div>
@@ -269,7 +269,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
                 <div className="text-xl font-black font-mono text-emerald-400">
                   ৳{defaultAdvance.toLocaleString()}
                 </div>
-                <div className="text-[11px] text-slate-300 mt-1">
+                <div className="text-[12px] text-slate-300 mt-1">
                   Pay remaining <strong className="text-white font-mono">৳{dueAmount.toLocaleString()}</strong> in cash/bKash at turf reception upon arrival.
                 </div>
               </div>
@@ -287,7 +287,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
                 <div className="text-xl font-black font-mono text-emerald-400">
                   ৳{totalPrice.toLocaleString()}
                 </div>
-                <div className="text-[11px] text-slate-300 mt-1">
+                <div className="text-[12px] text-slate-300 mt-1">
                   Clear 100% online. Zero balance due on matchday; walk straight onto turf!
                 </div>
               </div>
@@ -300,7 +300,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose, onBookingConf
               <Shield className="w-3.5 h-3.5 text-emerald-400"/>
               <span>Official Arena Cancellation Policy</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[12px] text-slate-400 leading-relaxed">
               Cancellations allowed up to <strong>24 hours</strong> before kickoff from your Player Portal. Advance money goes to refund queue. Later than that, call arena hotline.
             </p>
           </div>

@@ -90,7 +90,7 @@ export default function ArenaHomePage() {
                 <strong className="text-emerald-400 font-bold">{nextFreeSlot.displayTime}</strong>
                 <span className="text-white/30">·</span>
                 <span className="text-emerald-300 font-mono font-bold">৳{nextFreeSlot.price.toLocaleString()}</span>
-                <Link href="/booking" className="ml-1 text-[11px] font-bold text-emerald-400 hover:underline flex items-center">
+                <Link href="/booking" className="ml-1 text-[12px] font-bold text-emerald-400 hover:underline flex items-center">
                   Book <ArrowRight className="w-3 h-3 ml-0.5"/>
                 </Link>
               </div>) : (<span className="text-xs text-amber-400 font-bold">All slots booked today! Check tomorrow.</span>)}
@@ -105,10 +105,10 @@ export default function ArenaHomePage() {
             const isPast = s.status === 'past';
             if (isAvail) {
                 return (<Link key={s.slotNumber} href="/booking" className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-center transition-all group cursor-pointer" title={`Slot #${s.slotNumber} (${s.displayTime}) - ৳${s.price.toLocaleString()}`}>
-                    <div className="text-[10px] font-bold text-slate-400 font-mono">#{s.slotNumber}</div>
-                    <div className="text-[11px] font-bold text-emerald-300 truncate">{s.startTime}</div>
-                    <div className="text-[10px] font-mono text-emerald-400 font-extrabold">৳{s.price}</div>
-                    <div className="text-[9px] font-bold text-emerald-400 uppercase mt-0.5">Free</div>
+                    <div className="text-[11px] font-bold text-slate-400 font-mono">#{s.slotNumber}</div>
+                    <div className="text-[12px] font-bold text-emerald-300 truncate">{s.startTime}</div>
+                    <div className="text-[11px] font-mono text-emerald-400 font-extrabold">৳{s.price}</div>
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase mt-0.5">Free</div>
                   </Link>);
             }
             return (<div key={s.slotNumber} className={`p-2 rounded-xl border text-center transition-opacity ${isBooked
@@ -116,9 +116,9 @@ export default function ArenaHomePage() {
                     : isHold
                         ? 'bg-amber-500/10 border-amber-500/30 opacity-90'
                         : 'bg-black/30 border-white/5 opacity-40'}`} title={`Slot #${s.slotNumber} (${s.displayTime})`}>
-                  <div className="text-[10px] font-mono text-slate-500">#{s.slotNumber}</div>
-                  <div className="text-[11px] font-semibold text-slate-300 truncate">{s.startTime}</div>
-                  <div className="text-[9px] font-bold uppercase mt-1 truncate">
+                  <div className="text-[11px] font-mono text-slate-500">#{s.slotNumber}</div>
+                  <div className="text-[12px] font-semibold text-slate-300 truncate">{s.startTime}</div>
+                  <div className="text-[10px] font-bold uppercase mt-1 truncate">
                     {isBooked ? (s.bookedTeam ? s.bookedTeam.slice(0, 7) : 'Booked') : isHold ? 'Hold' : 'Passed'}
                   </div>
                 </div>);
@@ -182,7 +182,7 @@ export default function ArenaHomePage() {
                 <Award className="w-4 h-4"/>
                 <span>Golden Boot · Top 5 Scorers</span>
               </div>
-              <Link href="/results" className="text-[11px] text-slate-400 hover:text-white underline">
+              <Link href="/results" className="text-[12px] text-slate-400 hover:text-white underline">
                 View All
               </Link>
             </div>
@@ -196,12 +196,12 @@ export default function ArenaHomePage() {
                 top5Scorers.map((scorer, idx) => (
                   <div key={scorer.id || idx} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2.5">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${idx === 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-white/10 text-slate-300'}`}>
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[11px] ${idx === 0 ? 'bg-amber-400 text-slate-950 font-black' : 'bg-white/10 text-slate-300'}`}>
                         {idx + 1}
                       </span>
                       <div>
                         <div className="font-bold text-white">{scorer.name}</div>
-                        <div className="text-[10px] text-slate-400">{scorer.teamName}</div>
+                        <div className="text-[11px] text-slate-400">{scorer.teamName}</div>
                       </div>
                     </div>
                     <div className="font-mono font-black text-emerald-400 text-sm">
@@ -250,7 +250,7 @@ export default function ArenaHomePage() {
               <div key={prod.id} className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3">
                 <div>
                   {prod.badge && (
-                    <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 mb-2">
+                    <span className="inline-block text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 mb-2">
                       {prod.badge}
                     </span>
                   )}
@@ -260,7 +260,7 @@ export default function ArenaHomePage() {
 
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-slate-400">Counter Price</div>
+                    <div className="text-[11px] text-slate-400">Counter Price</div>
                     <div className="text-base font-black text-emerald-400 font-mono">
                       ৳{(prod.salePrice || prod.price).toLocaleString()}
                     </div>
@@ -299,7 +299,7 @@ export default function ArenaHomePage() {
               <Link key={item.id || idx} href="/gallery" className="group relative rounded-2xl overflow-hidden aspect-[4/3] border border-white/10">
                 <img src={item.url} alt={item.title || 'Crossbar Arena'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase">{item.album || 'Arena'}</span>
+                  <span className="text-[11px] text-emerald-400 font-bold uppercase">{item.album || 'Arena'}</span>
                   <span className="text-xs font-bold text-white truncate">{item.title}</span>
                 </div>
               </Link>

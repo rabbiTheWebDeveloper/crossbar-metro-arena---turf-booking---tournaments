@@ -55,7 +55,7 @@ export default function AdminEventsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {tournaments.map(t => (<div key={t.id || t._id} className="p-5 rounded-3xl bg-[#0c131a] border border-white/5 space-y-3 hover:border-lime-400/30 transition-all text-xs">
             <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-lg bg-lime-400/10 text-lime-400 border border-lime-400/20 font-bold uppercase font-mono text-[10px]">
+              <span className="px-2.5 py-1 rounded-lg bg-lime-400/10 text-lime-400 border border-lime-400/20 font-bold uppercase font-mono text-[11px]">
                 {t.category}
               </span>
               <span className="font-mono text-white font-bold">
@@ -70,16 +70,16 @@ export default function AdminEventsPage() {
 
             <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#080d12] border border-white/5 font-mono">
               <div>
-                <span className="text-slate-500 text-[10px] block">Entry Fee</span>
+                <span className="text-slate-500 text-[11px] block">Entry Fee</span>
                 <span className="font-bold text-white">৳{(t.entryFee || 0).toLocaleString()}</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] block">Prize Pool</span>
+                <span className="text-slate-500 text-[11px] block">Prize Pool</span>
                 <span className="font-bold text-lime-400">৳{(t.prizePool || 0).toLocaleString()}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-slate-400 text-[11px] pt-2 border-t border-white/5">
+            <div className="flex items-center justify-between text-slate-400 text-[12px] pt-2 border-t border-white/5">
               <span>Dates: {t.dates}</span>
               <span className="capitalize text-emerald-400 font-bold">{t.status?.replace('_', ' ') || 'open'}</span>
             </div>

@@ -60,7 +60,7 @@ export const TournamentModal = ({ tournament, onClose, onRegisterSuccess }) => {
                     particleCount: 100,
                     spread: 80,
                     origin: { y: 0.5 },
-                    colors: ['#f59e0b', '#22c55e', '#38bdf8', '#ffffff']
+                    colors: ['#f59e0b', '#4cbf02', '#38bdf8', '#ffffff']
                 });
             }
             catch {
@@ -105,19 +105,19 @@ export const TournamentModal = ({ tournament, onClose, onRegisterSuccess }) => {
           {/* Tournament Overview strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase">Format</span>
+              <span className="text-slate-400 block text-[11px] uppercase">Format</span>
               <span className="text-white font-semibold">{tournament.format}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase">Entry Fee</span>
+              <span className="text-slate-400 block text-[11px] uppercase">Entry Fee</span>
               <span className="text-amber-400 font-bold font-mono">৳{tournament.entryFee.toLocaleString()}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase">Slots Left</span>
+              <span className="text-slate-400 block text-[11px] uppercase">Slots Left</span>
               <span className="text-emerald-400 font-semibold">{tournament.maxTeams - tournament.registeredCount} spots open</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase">Venue</span>
+              <span className="text-slate-400 block text-[11px] uppercase">Venue</span>
               <span className="text-slate-200">Uttara Metro Arena</span>
             </div>
           </div>
@@ -167,7 +167,7 @@ export const TournamentModal = ({ tournament, onClose, onRegisterSuccess }) => {
                 <Users className="w-4 h-4 text-emerald-400"/>
                 <span>Squad Roster (Enter 1 player per line) *</span>
               </label>
-              <span className="text-[11px] text-slate-400">Min 5 · Max 12 Players</span>
+              <span className="text-[12px] text-slate-400">Min 5 · Max 12 Players</span>
             </div>
             <textarea rows={4} required placeholder="1. Samiul Haque (GK)&#10;2. Tanvir Ahmed (CB - Captain)&#10;3. Siam Hossain (CM)&#10;4. Naimur Rahman (LW)&#10;5. Fahim Shakil (ST)&#10;6. Shakib Al Hasan (Sub)&#10;7. Rayhan Kabir (Sub)" value={playersText} onChange={(e) => setPlayersText(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500 font-mono text-xs leading-relaxed"></textarea>
           </div>
@@ -179,7 +179,7 @@ export const TournamentModal = ({ tournament, onClose, onRegisterSuccess }) => {
                 <DollarSign className="w-4 h-4 text-amber-400"/>
                 <span>Registration Entry Fee (৳{tournament.entryFee.toLocaleString()})</span>
               </label>
-              <span className="text-[11px] text-emerald-400 font-semibold">Includes Match Balls & Hydration</span>
+              <span className="text-[12px] text-emerald-400 font-semibold">Includes Match Balls & Hydration</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -187,28 +187,28 @@ export const TournamentModal = ({ tournament, onClose, onRegisterSuccess }) => {
             ? 'bg-[#E2136E]/20 border-[#E2136E] text-white'
             : 'bg-white/[0.03] border-white/10 text-slate-300'}`}>
                 <div className="text-xs font-bold text-[#E2136E]">bKash</div>
-                <div className="text-[10px] text-slate-400">Send Money / Pay</div>
+                <div className="text-[11px] text-slate-400">Send Money / Pay</div>
               </button>
 
               <button type="button" onClick={() => setPaymentMethod('nagad')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${paymentMethod === 'nagad'
             ? 'bg-[#F7941D]/20 border-[#F7941D] text-white'
             : 'bg-white/[0.03] border-white/10 text-slate-300'}`}>
                 <div className="text-xs font-bold text-[#F7941D]">Nagad</div>
-                <div className="text-[10px] text-slate-400">Mobile Wallet</div>
+                <div className="text-[11px] text-slate-400">Mobile Wallet</div>
               </button>
 
               <button type="button" onClick={() => setPaymentMethod('arena_counter')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${paymentMethod === 'arena_counter'
             ? 'bg-emerald-950/60 border-emerald-500 text-white'
             : 'bg-white/[0.03] border-white/10 text-slate-300'}`}>
                 <div className="text-xs font-bold text-white">Turf Counter</div>
-                <div className="text-[10px] text-slate-400">Cash at Desk</div>
+                <div className="text-[11px] text-slate-400">Cash at Desk</div>
               </button>
 
               <button type="button" onClick={() => setPaymentMethod('bank_transfer')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${paymentMethod === 'bank_transfer'
             ? 'bg-emerald-950/60 border-emerald-500 text-white'
             : 'bg-white/[0.03] border-white/10 text-slate-300'}`}>
                 <div className="text-xs font-bold text-white">Bank Transfer</div>
-                <div className="text-[10px] text-slate-400">EFT / Fast Pay</div>
+                <div className="text-[11px] text-slate-400">EFT / Fast Pay</div>
               </button>
             </div>
 

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useArena } from '../../context/ArenaContext';
 import { CrossbarLogo } from '../../components/CrossbarLogo';
 import { SCHEDULE_SLOTS_DEFINITION } from '../../data/initialData';
-import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Globe, UserCheck, RotateCcw, LogOut, Menu, X, Plus } from 'lucide-react';
+import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Globe, UserCheck, RotateCcw, LogOut, Menu, X, Plus, Repeat, UsersRound } from 'lucide-react';
 export default function AdminLayout({ children, }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -34,6 +34,7 @@ export default function AdminLayout({ children, }) {
         { label: 'Today', href: '/admin', icon: Clock },
         { label: 'Schedule', href: '/admin/schedule', icon: Calendar },
         { label: 'All bookings', href: '/admin/all-bookings', altHref: '/admin/bookings', icon: Layers },
+        { label: 'Fixed slots (bulk)', href: '/admin/recurring', icon: Repeat },
         { label: 'Financial report', href: '/admin/financial-report', icon: TrendingUp },
         { label: 'Investors', href: '/admin/investors', icon: Users },
         { label: 'Slot pricing', href: '/admin/slot-pricing', icon: Tag },
@@ -41,6 +42,7 @@ export default function AdminLayout({ children, }) {
         { label: 'Shop orders', href: '/admin/shop-orders', icon: ShoppingBag, badge: pendingOrdersCount },
         { label: 'Products', href: '/admin/products', icon: Package },
         { label: 'Registrations', href: '/admin/registrations', icon: ClipboardCheck, badge: pendingRegistrationsCount },
+        { label: 'Players', href: '/admin/players', icon: UsersRound },
         { label: 'Events', href: '/admin/events', icon: Trophy },
         { label: 'Match results', href: '/admin/match-results', icon: Award, badge: pendingResultsCount },
         { label: 'Gallery', href: '/admin/gallery', icon: Camera },
@@ -58,6 +60,10 @@ export default function AdminLayout({ children, }) {
             return 'SCHEDULE';
         if (pathname.includes('/all-bookings') || pathname.includes('/bookings'))
             return 'All bookings';
+        if (pathname.includes('/recurring'))
+            return 'Fixed weekly slots · Bulk booking';
+        if (pathname.includes('/players'))
+            return 'Registered players';
         if (pathname.includes('/financial-report'))
             return `Financial report · ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
         if (pathname.includes('/investors'))
@@ -133,7 +139,7 @@ export default function AdminLayout({ children, }) {
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#080d12]/95 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-2 group">
           <CrossbarLogo size="sm" showSubtitle={false}/>
-          <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+          <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
             ADMIN
           </span>
         </Link>
@@ -158,7 +164,7 @@ export default function AdminLayout({ children, }) {
               <CrossbarLogo size="sm" showSubtitle={false}/>
               <div className="pl-10 -mt-1 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-                <span className="text-[9px] font-mono tracking-[0.2em] text-lime-400 uppercase font-black">
+                <span className="text-[10px] font-mono tracking-[0.2em] text-lime-400 uppercase font-black">
                   ADMIN PANEL
                 </span>
               </div>
@@ -180,7 +186,7 @@ export default function AdminLayout({ children, }) {
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  {item.badge ? (<span className={`w-4 h-4 rounded-full text-[10px] font-mono font-bold flex items-center justify-center shrink-0 ${isActive ? 'bg-slate-950 text-lime-400' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                  {item.badge ? (<span className={`w-4 h-4 rounded-full text-[11px] font-mono font-bold flex items-center justify-center shrink-0 ${isActive ? 'bg-slate-950 text-lime-400' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
                       {item.badge}
                     </span>) : null}
                 </Link>);
@@ -238,7 +244,7 @@ export default function AdminLayout({ children, }) {
             </button>
 
             {/* ADMIN Role Badge */}
-            <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-black tracking-wider text-slate-950 bg-[#f59e0b]">
+            <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-black tracking-wider text-slate-950 bg-[#f59e0b]">
               ADMIN
             </span>
 
@@ -266,7 +272,7 @@ export default function AdminLayout({ children, }) {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white font-display">Create Walk-In Booking</h3>
-                  <p className="text-[10px] text-slate-400">Lock turf slot at arena counter desk.</p>
+                  <p className="text-[11px] text-slate-400">Lock turf slot at arena counter desk.</p>
                 </div>
               </div>
 

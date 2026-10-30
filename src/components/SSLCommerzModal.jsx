@@ -148,11 +148,11 @@ export const SSLCommerzModal = () => {
                         <div>
                             <div className="text-sm font-black text-white flex items-center gap-2">
                                 <span>SSLCOMMERZ</span>
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
+                                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
                                     Sandbox Live
                                 </span>
                             </div>
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[12px] text-slate-400">
                                 Store ID: <strong className="font-mono text-emerald-400">fajra6aa249a39ddb2</strong>
                             </div>
                         </div>
@@ -230,7 +230,7 @@ export const SSLCommerzModal = () => {
                         {/* Divider */}
                         <div className="relative flex items-center justify-center">
                             <div className="border-t border-white/10 w-full"></div>
-                            <span className="bg-[#0c131c] px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                            <span className="bg-[#0c131c] px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
                                 or instant in-modal test
                             </span>
                         </div>
@@ -344,7 +344,7 @@ export const SSLCommerzModal = () => {
 
                         {/* In-Modal Quick Action Controls */}
                         <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
-                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <div className="text-[12px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                                 <Info className="w-3.5 h-3.5 text-emerald-400" />
                                 <span>Quick In-Modal Test Actions</span>
                             </div>

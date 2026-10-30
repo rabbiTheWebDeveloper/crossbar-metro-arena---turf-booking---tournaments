@@ -87,7 +87,7 @@ function RegisterForm() {
 
         {/* Card Header */}
         <div className="text-center space-y-2 mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30">
             <Trophy className="w-3 h-3 text-emerald-400"/>
             <span>JOIN CROSSBAR METRO ARENA</span>
           </div>
@@ -135,7 +135,7 @@ function RegisterForm() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
               <span>Mobile Number</span>
-              <span className="text-[10px] font-mono text-emerald-400 font-normal">Bangladesh (+880)</span>
+              <span className="text-[11px] font-mono text-emerald-400 font-normal">Bangladesh (+880)</span>
             </label>
 
             <div className="relative flex items-center">
@@ -152,7 +152,7 @@ function RegisterForm() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
               <span>Playing Position</span>
-              <span className="text-[10px] text-slate-400">Shown on squad cards</span>
+              <span className="text-[11px] text-slate-400">Shown on squad cards</span>
             </label>
 
             <div className="grid grid-cols-4 gap-2">
@@ -167,7 +167,7 @@ function RegisterForm() {
                     ? 'bg-emerald-400 text-slate-950 border-emerald-400 shadow-md shadow-emerald-400/20'
                     : 'bg-[#080d12] text-slate-400 border-white/10 hover:text-white hover:border-white/20'}`}>
                     <div>{pos.label}</div>
-                    <div className={`text-[9px] font-sans font-normal ${isSelected ? 'text-slate-900' : 'text-slate-400'}`}>
+                    <div className={`text-[10px] font-sans font-normal ${isSelected ? 'text-slate-900' : 'text-slate-400'}`}>
                       {pos.desc}
                     </div>
                   </button>);
