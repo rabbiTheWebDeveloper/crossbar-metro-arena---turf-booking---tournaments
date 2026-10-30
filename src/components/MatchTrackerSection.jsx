@@ -1,45 +1,100 @@
 'use client';
-import React, { useState } from 'react';
-import { Calendar, Clock, Users, Phone, Shield, Plus, MessageSquare, Flame, CheckCircle } from 'lucide-react';
-export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBookSlotClick, hideHeading = false }) => {
+import React, { useState, useMemo } from 'react';
+import { Calendar, Clock, Users, Shield, Plus, Flame, CheckCircle, Swords, AlertCircle, X, Phone } from 'lucide-react';
+import { useArena, todayDhaka } from '../context/ArenaContext';
+import { SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+
+const CONFIRMED_STATES = ['confirmed_unpaid', 'paid_advance', 'paid_full'];
+
+/** Upcoming confirmed fixtures (today onwards, ascending). Only team name and time are shown publicly. */
+export const upcomingFixtures = (bookings, today = todayDhaka()) => (bookings || [])
+    .filter(b => CONFIRMED_STATES.includes(b.paymentStatus) && b.date >= today)
+    .sort((a, b) => (a.date === b.date ? (Number(a.slotNumber) || 0) - (Number(b.slotNumber) || 0) : a.date.localeCompare(b.date)));
+
+const LEVELS = ['Casual', 'Semi-Pro', 'Competitive', 'Pro'];
+const FORMATS = ['7 vs 7 Friendly Match', '5 vs 5 Friendly Match', '6 vs 6 Friendly Match'];
+const LOOKING_FOR = ['Opponent Team', '1-2 Players Needed', 'Goalkeeper Needed'];
+const COST_SHARES = ['50/50 Split', 'We pay the slot', 'Opponent pays the slot'];
+
+export const MatchTrackerSection = ({ bookings, challenges, onBookSlotClick, hideHeading = false }) => {
+    const arena = useArena();
+    const { isVisitor, setShowAuthModal, setAuthModalInitialTab, handleAddChallenge, handleUpdateChallenge, myChallenges, showNotice, currentUser, pricing } = arena;
+    const bookingList = bookings || arena.bookings;
+    const challengeList = challenges || arena.challenges;
+    const today = todayDhaka();
+
     const [activeTab, setActiveTab] = useState('fixtures');
     const [showPostChallengeModal, setShowPostChallengeModal] = useState(false);
-    // Form states for posting challenge
     const [teamName, setTeamName] = useState('');
-    const [captainName, setCaptainName] = useState('');
-    const [captainPhone, setCaptainPhone] = useState('');
-    const [courtName, setCourtName] = useState('Crossbar Metro Arena (Main Turf)');
-    const [matchDate, setMatchDate] = useState(() => new Date().toISOString().split('T')[0]);
-    const [timeSlot, setTimeSlot] = useState('07:30 PM – 09:00 PM');
-    const [level, setLevel] = useState('Semi-Pro');
-    const [lookingFor, setLookingFor] = useState('Opponent Team');
-    const [costShare, setCostShare] = useState('50/50 Split (৳1,500 each)');
+    const [matchDate, setMatchDate] = useState(today);
+    const [timeSlot, setTimeSlot] = useState(SCHEDULE_SLOTS_DEFINITION[9]?.displayTime || SCHEDULE_SLOTS_DEFINITION[0].displayTime);
+    const [format, setFormat] = useState(FORMATS[0]);
+    const [level, setLevel] = useState('Casual');
+    const [lookingFor, setLookingFor] = useState(LOOKING_FOR[0]);
+    const [costShare, setCostShare] = useState(COST_SHARES[0]);
     const [notes, setNotes] = useState('');
-    const handlePostChallenge = (e) => {
-        e.preventDefault();
-        if (!teamName || !captainName || !captainPhone)
-            return;
-        const newChallenge = {
-            id: `challenge-${Date.now()}`,
-            teamName,
-            captainName,
-            captainPhone,
-            courtName,
-            date: matchDate,
-            timeSlot,
-            format: courtName.includes('7v7') ? '7 vs 7' : '5 vs 5',
-            level,
-            lookingFor,
-            costShare,
-            notes: notes || 'Looking for an exciting match at Crossbar Metro Arena!'
-        };
-        onAddChallenge(newChallenge);
-        setShowPostChallengeModal(false);
-        setActiveTab('challenges');
+    const [formError, setFormError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [acceptingId, setAcceptingId] = useState(null);
+    const [acceptResult, setAcceptResult] = useState(null); // { id, message }
+
+    const fixtures = useMemo(() => upcomingFixtures(bookingList, today), [bookingList, today]);
+    const openChallenges = useMemo(() => (challengeList || []).filter(c => (c.status || 'open') === 'open'), [challengeList]);
+    const slotOptions = (pricing?.slotPrices?.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION).map(s => s.displayTime);
+    const myIds = useMemo(() => new Set((myChallenges || []).map(c => c.id)), [myChallenges]);
+
+    const requireLogin = () => {
+        if (!isVisitor) return true;
+        setAuthModalInitialTab('login');
+        setShowAuthModal(true);
+        showNotice('info', 'Please log in to post or accept a squad challenge.');
+        return false;
     };
+
+    const openPostModal = () => {
+        if (!requireLogin()) return;
+        setFormError('');
+        setShowPostChallengeModal(true);
+    };
+
+    const handlePostChallenge = async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        if (!requireLogin()) return;
+        if (!teamName.trim()) { setFormError('Please enter your squad name.'); return; }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(matchDate) || matchDate < today) { setFormError('Pick a match date from today onwards.'); return; }
+        if (!timeSlot) { setFormError('Pick a time slot.'); return; }
+        setFormError('');
+        setIsSubmitting(true);
+        const res = await handleAddChallenge({ teamName: teamName.trim(), date: matchDate, timeSlot, format, level, lookingFor, costShare, notes: notes.trim() });
+        setIsSubmitting(false);
+        if (res.ok) {
+            setShowPostChallengeModal(false);
+            setTeamName(''); setNotes('');
+            setActiveTab('challenges');
+            showNotice('success', 'Your challenge is live. Other captains can now accept it.');
+        }
+        else {
+            setFormError(res.error || 'Could not post the challenge. Please try again.');
+        }
+    };
+
+    const handleAccept = async (c) => {
+        if (!requireLogin()) return;
+        setAcceptingId(c.id);
+        const res = await handleUpdateChallenge(c.id, { action: 'accept' });
+        setAcceptingId(null);
+        if (res.ok) setAcceptResult({ id: c.id, message: res.message, teamName: c.teamName });
+    };
+
+    const handleCloseOwn = async (c) => {
+        setAcceptingId(c.id);
+        await handleUpdateChallenge(c.id, { status: 'closed' });
+        setAcceptingId(null);
+    };
+
     return (<section id="schedule" className="py-14 md:py-24 bg-[#090e13] border-t border-white/5 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Heading */}
         {!hideHeading && (<div className="text-center max-w-3xl mx-auto mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
               <Flame className="w-3.5 h-3.5 text-emerald-400"/>
@@ -49,238 +104,186 @@ export const MatchTrackerSection = ({ bookings, challenges, onAddChallenge, onBo
               Upcoming Matches &amp; Squad Challenges
             </h2>
             <p className="text-slate-400 text-sm sm:text-base mt-2">
-              Track live arena schedule, discover booked kickoffs, or challenge local Dhaka squads for an intense friendly.
+              See which slots are booked, or challenge other Dhaka squads to a friendly on the Crossbar turf.
             </p>
           </div>)}
 
-        {/* Tab Switcher */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-          <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl">
-            <button onClick={() => setActiveTab('fixtures')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'fixtures'
-            ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-            : 'text-slate-400 hover:text-white'}`}>
+          <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl" role="tablist">
+            <button type="button" role="tab" aria-selected={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'fixtures' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}`}>
               <Calendar className="w-4 h-4"/>
-              <span>Confirmed Fixtures ({bookings.length})</span>
+              <span>Confirmed Fixtures ({fixtures.length})</span>
             </button>
-
-            <button onClick={() => setActiveTab('challenges')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'challenges'
-            ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-            : 'text-slate-400 hover:text-white'}`}>
+            <button type="button" role="tab" aria-selected={activeTab === 'challenges'} onClick={() => setActiveTab('challenges')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeTab === 'challenges' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}`}>
               <Users className="w-4 h-4"/>
-              <span>Squad Challenges ({challenges.length})</span>
+              <span>Squad Challenges ({openChallenges.length})</span>
             </button>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {activeTab === 'challenges' ? (<button onClick={() => setShowPostChallengeModal(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer">
+            {activeTab === 'challenges' ? (<button type="button" onClick={openPostModal} className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer">
                 <Plus className="w-4 h-4"/>
                 <span>Post Match Challenge</span>
-              </button>) : (<button onClick={onBookSlotClick} className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 border border-white/10 transition-all cursor-pointer">
+              </button>) : (<button type="button" onClick={onBookSlotClick} className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 border border-white/10 transition-all cursor-pointer">
                 <Clock className="w-4 h-4 text-emerald-400"/>
-                <span>Reserve Next Open Slot</span>
+                <span>Book a Slot</span>
               </button>)}
           </div>
         </div>
 
-        {/* Tab 1: Confirmed Fixtures */}
         {activeTab === 'fixtures' && (<div className="space-y-3">
-            {bookings.length === 0 ? (<div className="p-8 text-center bg-white/[0.02] border border-white/10 rounded-2xl">
+            {fixtures.length === 0 ? (<div className="p-8 text-center bg-white/[0.02] border border-white/10 rounded-2xl">
                 <Calendar className="w-8 h-8 text-slate-500 mx-auto mb-2"/>
-                <div className="text-white font-bold text-sm">No booked fixtures yet for this window</div>
-                <p className="text-slate-400 text-xs mt-1">Be the first squad to book a slot at Crossbar Metro Arena!</p>
-                <button onClick={onBookSlotClick} className="mt-4 px-4 py-2 rounded-lg bg-emerald-500 text-black font-bold text-xs">
-                  Book Playing Slot
-                </button>
+                <div className="text-white font-bold text-sm">No confirmed fixtures in the booking window yet</div>
+                <p className="text-slate-400 text-xs mt-1">Be the first squad to book a slot at Crossbar Metro Arena.</p>
+                <button type="button" onClick={onBookSlotClick} className="mt-4 px-4 py-2 rounded-lg bg-emerald-500 text-black font-bold text-xs cursor-pointer">Book Playing Slot</button>
               </div>) : (<div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {bookings.map((b) => (<div key={b.id} className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-slate-900/80 to-[#0c1218] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between">
+                {fixtures.slice(0, 12).map((b) => (<div key={b.id} className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-slate-900/80 to-[#0c1218] border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold">
-                          {b.courtName}
-                        </span>
+                        <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold">Slot #{b.slotNumber}</span>
                         <span className="text-xs text-slate-400 flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-emerald-400"/>
-                          <span>{b.date}</span>
+                          <span>{b.date === today ? 'Today' : b.date}</span>
                         </span>
                       </div>
-
-                      <div className="flex items-baseline justify-between gap-2 mb-2">
-                        <h4 className="text-base sm:text-lg font-bold text-white font-display">
-                          {b.teamName}
-                        </h4>
-                        <span className="text-xs font-mono font-bold text-emerald-400">
-                          {b.displayTime}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mb-3">
-                        <span>Captain: <strong className="text-slate-200">{b.captainName}</strong></span>
-                        <span>·</span>
-                        <span className="capitalize">{b.matchType} Match</span>
-                        <span>·</span>
-                        <span>{b.playerCount} Players</span>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <h4 className="text-base sm:text-lg font-bold text-white font-display truncate">{b.teamName || 'Reserved'}</h4>
+                        <span className="text-xs font-mono font-bold text-emerald-400 shrink-0">{b.displayTime}</span>
                       </div>
                     </div>
-
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 font-mono text-[12px]">
-                        Ref: {b.bookingCode}
-                      </span>
+                    <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-end text-xs">
                       <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-[12px]">
                         <CheckCircle className="w-3.5 h-3.5"/>
-                        <span>Confirmed Slot</span>
+                        <span>Confirmed</span>
                       </span>
                     </div>
                   </div>))}
               </div>)}
+            {fixtures.length > 12 && (<p className="text-center text-xs text-slate-400">Showing the next 12 of {fixtures.length} confirmed fixtures. Open the booking calendar for the full schedule.</p>)}
           </div>)}
 
-        {/* Tab 2: Community Challenges */}
-        {activeTab === 'challenges' && (
-          challenges.length === 0 ? (
-            <div className="p-12 text-center bg-white/[0.02] border border-white/10 rounded-2xl max-w-lg mx-auto space-y-2">
+        {activeTab === 'challenges' && (openChallenges.length === 0 ? (<div className="p-12 text-center bg-white/[0.02] border border-white/10 rounded-2xl max-w-lg mx-auto space-y-2">
               <Users className="w-8 h-8 text-slate-500 mx-auto mb-2"/>
-              <div className="text-white font-bold text-sm">No Open Challenges Right Now</div>
-              <p className="text-slate-400 text-xs">
-                Post your squad match challenge or recruit guest players to connect with local Dhaka squads.
-              </p>
-              <button onClick={() => setShowPostChallengeModal(true)} className="mt-3 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
-                Post A Match Challenge
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {challenges.map((c) => (
-                <div key={c.id} className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-[#0c141d] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+              <div className="text-white font-bold text-sm">No open challenges right now</div>
+              <p className="text-slate-400 text-xs">Post your squad&apos;s challenge or ask for guest players and other Dhaka captains can accept it.</p>
+              <button type="button" onClick={openPostModal} className="mt-3 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">Post a Match Challenge</button>
+            </div>) : (<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {openChallenges.map((c) => {
+                const own = myIds.has(c.id);
+                const accepted = acceptResult && acceptResult.id === c.id;
+                return (<div key={c.id} className="p-5 rounded-2xl bg-gradient-to-b from-slate-900/90 to-[#0c141d] border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        {c.lookingFor}
-                      </span>
-                      <span className="text-[12px] font-medium text-slate-400">{c.level} Level</span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">{c.lookingFor}</span>
+                      <span className="text-[12px] font-medium text-slate-400">{c.level} level</span>
                     </div>
-
-                    <h4 className="text-lg font-bold text-white font-display uppercase mb-1">
-                      {c.teamName}
-                    </h4>
+                    <h4 className="text-lg font-bold text-white font-display uppercase mb-1">{c.teamName}</h4>
                     <div className="text-xs text-emerald-400 font-semibold mb-3 flex items-center gap-1">
                       <Shield className="w-3.5 h-3.5"/>
-                      <span>{c.courtName}</span>
+                      <span>{c.format}</span>
+                      {own && <span className="ml-auto text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">Your challenge</span>}
                     </div>
-
                     <div className="space-y-1.5 text-xs text-slate-300 mb-4 bg-white/[0.03] p-3 rounded-lg border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400"/>
-                        <span>{c.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-slate-400"/>
-                        <span className="text-white font-mono font-medium">{c.timeSlot}</span>
-                      </div>
-                      <div className="flex items-center gap-2 pt-1 border-t border-white/5">
-                        <span className="text-slate-400">Turf Fee Split:</span>
-                        <strong className="text-emerald-300">{c.costShare}</strong>
-                      </div>
+                      <div className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5 text-slate-400"/><span>{c.date}</span></div>
+                      <div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-slate-400"/><span className="text-white font-mono font-medium">{c.timeSlot}</span></div>
+                      <div className="flex items-center gap-2 pt-1 border-t border-white/5"><span className="text-slate-400">Turf fee:</span><strong className="text-emerald-300">{c.costShare}</strong></div>
+                      <div className="flex items-center gap-2"><span className="text-slate-400">Captain:</span><span className="text-white">{c.captainName}</span>{c.captainPhone && <span className="font-mono text-slate-400 ml-auto">{c.captainPhone}</span>}</div>
                     </div>
-
-                    <p className="text-xs text-slate-400 italic mb-4">
-                      &quot;{c.notes}&quot;
-                    </p>
+                    {c.notes && (<p className="text-xs text-slate-400 italic mb-4">&quot;{c.notes}&quot;</p>)}
                   </div>
 
-                  <div className="pt-3 border-t border-white/10 flex items-center gap-2">
-                    <a href={`https://wa.me/88${(c.captainPhone || '').replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(c.captainName)}%2C%20we%20saw%20your%20challenge%20for%20${encodeURIComponent(c.timeSlot)}%20at%20Crossbar%20Metro%20Arena%20and%20want%20to%20play!`} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 px-3 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
-                      <MessageSquare className="w-3.5 h-3.5"/>
-                      <span>Accept on WhatsApp</span>
-                    </a>
-
-                    <a href={`tel:${c.captainPhone}`} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10" title={`Call ${c.captainName}`}>
-                      <Phone className="w-3.5 h-3.5"/>
-                    </a>
+                  <div className="pt-3 border-t border-white/10">
+                    {accepted ? (<div className="p-3 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-xs text-emerald-200 flex items-start gap-2">
+                        <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"/>
+                        <span>{acceptResult.message || 'Challenge accepted. The captain will be in touch.'}</span>
+                      </div>) : own ? (<button type="button" disabled={acceptingId === c.id} onClick={() => handleCloseOwn(c)} className="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50">
+                        <X className="w-3.5 h-3.5"/>
+                        <span>{acceptingId === c.id ? 'Closing...' : 'Close my challenge'}</span>
+                      </button>) : (<button type="button" disabled={acceptingId === c.id} onClick={() => handleAccept(c)} className="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50">
+                        <Swords className="w-3.5 h-3.5"/>
+                        <span>{acceptingId === c.id ? 'Accepting...' : 'Accept challenge'}</span>
+                      </button>)}
+                    {!own && !accepted && <p className="text-[11px] text-slate-500 mt-1.5 text-center">Accepting shares your name and number with the poster and reveals theirs to you.</p>}
                   </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
+                </div>);
+              })}
+            </div>))}
       </div>
 
-      {/* Post Challenge Modal */}
-      {showPostChallengeModal && (<div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      {showPostChallengeModal && (<div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="post-challenge-title">
           <div className="bg-[#0c131a] border border-white/15 rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div>
-                <h3 className="text-lg font-bold text-white font-display uppercase">
-                  Post Squad Match Challenge
-                </h3>
-                <p className="text-xs text-slate-400">Find an opponent squad or players for your slot</p>
+                <h3 id="post-challenge-title" className="text-lg font-bold text-white font-display uppercase">Post Squad Match Challenge</h3>
+                <p className="text-xs text-slate-400">Posting as <strong className="text-white">{currentUser?.name}</strong>. Your number is shared only with the captain who accepts.</p>
               </div>
-              <button onClick={() => setShowPostChallengeModal(false)} className="text-slate-400 hover:text-white p-1">
-                ✕
-              </button>
+              <button type="button" onClick={() => setShowPostChallengeModal(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close"><X className="w-4 h-4"/></button>
             </div>
 
             <form onSubmit={handlePostChallenge} className="space-y-3.5 text-xs">
+              {formError && (<div role="alert" className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300">
+                  <AlertCircle className="w-4 h-4 shrink-0"/>
+                  <span>{formError}</span>
+                </div>)}
+
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Squad Name *</label>
-                <input type="text" required placeholder="e.g. Uttara Strikers" value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
+                <label htmlFor="ch-team" className="block text-slate-300 font-semibold mb-1">Squad Name *</label>
+                <input id="ch-team" type="text" required maxLength={60} placeholder="e.g. Uttara Strikers" value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Captain Name *</label>
-                  <input type="text" required placeholder="e.g. Tanvir" value={captainName} onChange={(e) => setCaptainName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
+                  <label htmlFor="ch-date" className="block text-slate-300 font-semibold mb-1">Match Date *</label>
+                  <input id="ch-date" type="date" required min={today} value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">WhatsApp Phone *</label>
-                  <input type="tel" required placeholder="01796-337133" value={captainPhone} onChange={(e) => setCaptainPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Pitch</label>
-                  <select value={courtName} onChange={(e) => setCourtName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
-                    <option value="Crossbar Metro Arena (Main Turf)">Crossbar Metro Arena (Main Turf)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Looking For</label>
-                  <select value={lookingFor} onChange={(e) => setLookingFor(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
-                    <option value="Opponent Team">Opponent Team</option>
-                    <option value="1-2 Players">1-2 Players Needed</option>
-                    <option value="Goalkeeper Needed">Goalkeeper Needed</option>
+                  <label htmlFor="ch-slot" className="block text-slate-300 font-semibold mb-1">Time Slot *</label>
+                  <select id="ch-slot" value={timeSlot} onChange={(e) => setTimeSlot(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
+                    {slotOptions.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Target Date</label>
-                  <input type="text" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} placeholder="e.g. This Friday" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
+                  <label htmlFor="ch-format" className="block text-slate-300 font-semibold mb-1">Format</label>
+                  <select id="ch-format" value={format} onChange={(e) => setFormat(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
+                    {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Time Slot</label>
-                  <input type="text" value={timeSlot} onChange={(e) => setTimeSlot(e.target.value)} placeholder="08:00 PM - 09:00 PM" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
+                  <label htmlFor="ch-level" className="block text-slate-300 font-semibold mb-1">Level</label>
+                  <select id="ch-level" value={level} onChange={(e) => setLevel(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
+                    {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="ch-looking" className="block text-slate-300 font-semibold mb-1">Looking For</label>
+                  <select id="ch-looking" value={lookingFor} onChange={(e) => setLookingFor(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
+                    {LOOKING_FOR.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="ch-cost" className="block text-slate-300 font-semibold mb-1">Turf Fee</label>
+                  <select id="ch-cost" value={costShare} onChange={(e) => setCostShare(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#111a24] border border-white/10 text-white text-xs">
+                    {COST_SHARES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Cost Split</label>
-                <input type="text" value={costShare} onChange={(e) => setCostShare(e.target.value)} placeholder="50/50 Split (৳1,500 each)" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Notes / Playing Style</label>
-                <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Friendly passing game, looking for competitive 7s squad!" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
+                <label htmlFor="ch-notes" className="block text-slate-300 font-semibold mb-1">Notes / Playing Style</label>
+                <input id="ch-notes" type="text" maxLength={300} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Friendly passing game, looking for a competitive 7s squad" className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-xs"/>
               </div>
 
               <div className="pt-3 flex gap-2">
-                <button type="button" onClick={() => setShowPostChallengeModal(false)} className="w-1/3 py-2.5 rounded-lg border border-white/15 text-slate-300 font-semibold">
-                  Cancel
-                </button>
-                <button type="submit" className="w-2/3 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
-                  Post Challenge
+                <button type="button" onClick={() => setShowPostChallengeModal(false)} disabled={isSubmitting} className="w-1/3 py-2.5 rounded-lg border border-white/15 text-slate-300 font-semibold cursor-pointer disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="w-2/3 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isSubmitting ? 'Posting...' : 'Post Challenge'}
                 </button>
               </div>
             </form>
