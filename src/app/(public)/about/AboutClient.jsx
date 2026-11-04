@@ -2,6 +2,8 @@
 import React from 'react';
 import { PageHero } from '../../../components/PageHero';
 import { VenueLocationSection } from '../../../components/VenueLocationSection';
+import { ArenaFaq } from '../../../components/ArenaFaq';
+import { ABOUT_FAQ } from '../../../data/faq';
 import { useArena } from '../../../context/ArenaContext';
 import { Info, MapPin, Train, ShieldCheck, Clock, CheckCircle2, Calendar } from 'lucide-react';
 import Link from 'next/link';
@@ -127,5 +129,7 @@ export default function AboutPage() {
         {/* Venue Location Section */}
         <VenueLocationSection />
       </div>
+
+      <ArenaFaq items={ABOUT_FAQ} eyebrow="Arena FAQ" title="Everything about the turf, in one place" intro="Location, hours, pitch size, prices and tournaments. Still have a question? Call or WhatsApp the arena desk."/>
     </>);
 }

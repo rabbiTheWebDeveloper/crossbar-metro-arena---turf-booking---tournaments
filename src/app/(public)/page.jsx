@@ -1,8 +1,22 @@
-import { buildMetadata } from '../../lib/seo';
+import { buildMetadata, siteConfig, webPageSchema, bookingServiceSchema } from '../../lib/seo';
+import { JsonLd } from '../../components/JsonLd';
 import HomeClient from './HomeClient';
 
-export const metadata = buildMetadata({ absoluteTitle: 'Crossbar Metro Arena | Floodlit Football Turf in Uttara, Dhaka', description: 'Book floodlit 90-minute football turf slots beside Uttara Metro Center, Dhaka. Pay the advance online, join tournaments and post match results.', path: '/' });
+const description = 'Book floodlit 90-minute football turf slots online beside Uttara Center Metro Station, Dhaka. 12 slots a day from 6 AM to midnight, pay with bKash, Nagad or card, join 7v7 tournaments and track match results.';
+
+export const metadata = buildMetadata({
+    absoluteTitle: siteConfig.defaultTitle,
+    description,
+    path: '/',
+    keywords: ['book turf online dhaka', 'turf near uttara metro', 'football turf sector 17 uttara', 'night football turf dhaka']
+});
 
 export default function HomePage() {
-    return <HomeClient />;
+    return (<>
+      <JsonLd id="home" data={[
+            webPageSchema({ path: '/', description, type: 'WebPage' }),
+            bookingServiceSchema()
+        ]}/>
+      <HomeClient />
+    </>);
 }

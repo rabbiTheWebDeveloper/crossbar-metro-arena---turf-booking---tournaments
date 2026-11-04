@@ -29,8 +29,13 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/(.*)', headers: securityHeaders },
-      // API responses must never be cached by the browser or a CDN
-      { source: '/api/(.*)', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+      // API responses must never be cached by the browser or a CDN, and never indexed
+      { source: '/api/(.*)', headers: [{ key: 'Cache-Control', value: 'no-store' }, { key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      // Private portals and auth pages: keep them out of search results at the HTTP level too
+      ...['/admin/:path*', '/investor/:path*', '/player/:path*', '/login', '/register', '/signup', '/logout'].map(source => ({
+        source,
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }]
+      })),
       // Static brand assets can be cached for a year
       { source: '/brand/(.*)', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
     ];

@@ -4,6 +4,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useArena, cleanPhone } from '../../../context/ArenaContext';
 import { BookingSection } from '../../../components/BookingSection';
 import { TurfWeatherWidget } from '../../../components/TurfWeatherWidget';
+import { ArenaFaq } from '../../../components/ArenaFaq';
+import { BOOKING_FAQ } from '../../../data/faq';
 import { PageHero } from '../../../components/PageHero';
 import { weekendDaysLabel, BD_PHONE_REGEX } from '../../../lib/dateUtils';
 import { Zap, Clock, Shield, Footprints, Calendar, CheckCircle2, AlertTriangle, X, Loader2, Search, Ticket, MessageCircle } from 'lucide-react';
@@ -312,6 +314,8 @@ export default function BookingPage() {
                     </div>
                 </div>
             </section>
+
+            <ArenaFaq items={BOOKING_FAQ} eyebrow="Booking FAQ" title="Booking questions, answered" ctaHref="/about" ctaLabel="Full price table"/>
         </>
     );
 }

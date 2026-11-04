@@ -89,3 +89,25 @@ Open [http://localhost:3000](http://localhost:3000) to view the arena platform.
 npm run build
 npm start
 ```
+
+---
+
+## 🔎 SEO & Google Search setup
+
+Everything on-page is already wired up (see `src/lib/seo.js`):
+
+- `<title>` / description / canonical / Open Graph / Twitter cards on every public page via `buildMetadata()`
+- 1200x630 social card generated at `/opengraph-image` (`src/app/opengraph-image.jsx`)
+- JSON-LD graph: `Organization` + `WebSite` + `SportsActivityLocation`/`LocalBusiness` (root layout), plus per page `WebPage`, `BreadcrumbList`, `FAQPage` (about, booking), `Service`/`OfferCatalog` (booking), `SportsEvent` list (events), `Product` list (shop) and `ImageGallery` (gallery). Event, product and gallery schema is read from MongoDB and revalidated every 10 minutes.
+- `/robots.txt`, `/sitemap.xml` (real `lastmod` from the database) and `/manifest.webmanifest`
+- Admin, investor, player, API and auth routes are `noindex` (meta tag + `X-Robots-Tag` header)
+- `/tournaments` → `/events` and `/signup` → `/register` are 308 permanent redirects
+
+One-time launch checklist (cannot be done from code):
+
+1. Set `NEXT_PUBLIC_BASE_URL=https://bookcrossbar.com` in production so canonicals, sitemap and JSON-LD use the live domain.
+2. **Google Search Console** → add property `bookcrossbar.com` → choose *HTML tag* → paste the `content` value into `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, redeploy, click *Verify*. Then submit `https://bookcrossbar.com/sitemap.xml` under *Sitemaps* and request indexing for `/`, `/booking`, `/events`.
+3. **Bing Webmaster Tools** → same flow with `NEXT_PUBLIC_BING_SITE_VERIFICATION` (or import from Search Console).
+4. **Google Business Profile** → create/claim "Crossbar Metro Arena", category *Soccer field* / *Sports complex*, address Uttara Metro Center, Sector 17, Dhaka 1230, phone +880 1796-337133, website `https://bookcrossbar.com`, hours 6:00 AM–12:00 AM daily. Add photos and ask players for reviews — this is the biggest ranking lever for "turf near me" searches.
+5. Optional: `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXX` enables Google Analytics 4.
+6. Validate with https://search.google.com/test/rich-results and https://validator.schema.org after deploy.

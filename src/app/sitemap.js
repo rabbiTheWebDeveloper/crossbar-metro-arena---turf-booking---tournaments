@@ -1,25 +1,33 @@
 import { getCanonicalUrl } from '../lib/seo';
+import { fetchLastModified } from '../lib/seoData';
 
-const PUBLIC_ROUTES = [
-    { path: '/', priority: 1, changeFrequency: 'daily' },
-    { path: '/booking', priority: 0.9, changeFrequency: 'hourly' },
-    { path: '/events', priority: 0.8, changeFrequency: 'weekly' },
-    { path: '/results', priority: 0.8, changeFrequency: 'daily' },
-    { path: '/matches', priority: 0.7, changeFrequency: 'daily' },
-    { path: '/shop', priority: 0.6, changeFrequency: 'weekly' },
-    { path: '/gallery', priority: 0.5, changeFrequency: 'weekly' },
-    { path: '/about', priority: 0.6, changeFrequency: 'monthly' },
-    { path: '/venue', priority: 0.6, changeFrequency: 'monthly' },
-    { path: '/squad-builder', priority: 0.4, changeFrequency: 'monthly' },
-    { path: '/login', priority: 0.3, changeFrequency: 'yearly' },
-    { path: '/register', priority: 0.3, changeFrequency: 'yearly' }
-];
+// Re-generate at most once an hour so <lastmod> follows real content changes without hammering the DB.
+export const revalidate = 3600;
 
-export default function sitemap() {
-    const lastModified = new Date();
-    return PUBLIC_ROUTES.map(r => ({
+/** Bump this when evergreen copy (about, venue, squad builder) changes. */
+const EVERGREEN_UPDATED = new Date('2026-11-04T00:00:00Z');
+
+export default async function sitemap() {
+    const now = new Date();
+    const mod = await fetchLastModified();
+    const latest = (...dates) => dates.filter(Boolean).sort((a, b) => b - a)[0] || EVERGREEN_UPDATED;
+
+    const routes = [
+        { path: '/', lastModified: now, priority: 1, changeFrequency: 'daily' },
+        { path: '/booking', lastModified: now, priority: 0.9, changeFrequency: 'hourly' },
+        { path: '/events', lastModified: latest(mod.events), priority: 0.8, changeFrequency: 'weekly' },
+        { path: '/results', lastModified: now, priority: 0.8, changeFrequency: 'daily' },
+        { path: '/matches', lastModified: now, priority: 0.7, changeFrequency: 'daily' },
+        { path: '/shop', lastModified: latest(mod.products), priority: 0.6, changeFrequency: 'weekly' },
+        { path: '/gallery', lastModified: latest(mod.gallery), priority: 0.5, changeFrequency: 'weekly' },
+        { path: '/about', lastModified: EVERGREEN_UPDATED, priority: 0.7, changeFrequency: 'monthly' },
+        { path: '/venue', lastModified: EVERGREEN_UPDATED, priority: 0.6, changeFrequency: 'monthly' },
+        { path: '/squad-builder', lastModified: EVERGREEN_UPDATED, priority: 0.4, changeFrequency: 'monthly' }
+    ];
+
+    return routes.map(r => ({
         url: getCanonicalUrl(r.path),
-        lastModified,
+        lastModified: r.lastModified,
         changeFrequency: r.changeFrequency,
         priority: r.priority
     }));

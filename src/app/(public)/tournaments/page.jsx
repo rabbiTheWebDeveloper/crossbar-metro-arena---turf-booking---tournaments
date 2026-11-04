@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
-/** Tournaments live on /events; keep the old URL working. */
+/** Tournaments live on /events; keep the old URL working with a 308 so search engines transfer ranking signals. */
 export default function TournamentsPage() {
-    redirect('/events');
+    permanentRedirect('/events');
 }

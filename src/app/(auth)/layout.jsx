@@ -3,13 +3,6 @@ import Link from 'next/link';
 import { CrossbarLogo } from '@/components/CrossbarLogo';
 import { ArrowLeft, ShieldCheck, MapPin } from 'lucide-react';
 import { VENUE_INFO } from '@/data/initialData';
-import { buildMetadata } from '@/lib/seo';
-
-export const metadata = buildMetadata({
-    title: 'Sign In or Register',
-    description: 'Log in or create a player account to book floodlit 90-minute turf slots, manage your team and post match results at Crossbar Metro Arena, Dhaka.',
-    path: '/login'
-});
 
 export default function AuthLayout({ children }) {
     return (<div className="min-h-screen bg-[#070b0e] text-slate-100 flex flex-col font-sans relative overflow-x-hidden selection:bg-emerald-500 selection:text-slate-950">
