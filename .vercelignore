@@ -1,0 +1,2 @@
+# The React Native app is built separately (see mobile/README.md); keep it out of web deployments
+mobile
