@@ -1,11 +1,13 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { Phone, Mail, Train, ArrowUp, Smartphone, MessageSquare, Facebook, Instagram, Clock, MapPin } from 'lucide-react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
 
 export const Footer = () => {
+    const pathname = usePathname();
     const { setShowInstallModal, siteSettings, pricing, isVisitor, isAdmin, isInvestor } = useArena();
     const scrollToTop = () => {
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -17,6 +19,9 @@ export const Footer = () => {
         ...(isAdmin ? [{ href: '/admin', label: 'Admin Panel (bookings, pricing, expenses)' }] : []),
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor Dashboard (monthly reports)' }] : [])
     ];
+
+    // The home page renders its own footer (src/components/home/InfoSections.jsx)
+    if (pathname === '/') return null;
 
     return (<footer className="bg-[#05080b] border-t border-white/10 pt-12 pb-24 md:pb-8 text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -289,3 +289,67 @@ html::-webkit-scrollbar { width: 10px; }
 html::-webkit-scrollbar-track { background: #070b0e; }
 html::-webkit-scrollbar-thumb { background: #1b2a33; border-radius: 9999px; border: 2px solid #070b0e; }
 html::-webkit-scrollbar-thumb:hover { background: #4cbf02; }
+
+/* =====================================================================
+   Home page v2 ("Home — Desktop 1440" design)
+   Tokens below are used by src/components/home/*. The page wrapper carries
+   the class `home-v2`; while it is on screen the shared modals, toasts and
+   the mobile tab bar pick up the same accent colour through :has().
+   ===================================================================== */
+@theme {
+  --color-ink: #0a120e;
+  --color-panel: #111c16;
+  --color-moss: #18271f;
+  --color-hairline: #25382e;
+  --color-neon: #d4ff3a;
+  --color-neon-dim: #c6f036;
+  --color-paper: #f2f5ec;
+  --color-sage: #d5dccd;
+  --color-sage-deep: #c3cdb8;
+  --color-pitch: #1e8a4d;
+  --color-pitch-deep: #0f4a2a;
+  --color-ember: #f6a93b;
+
+  --font-bigs: var(--font-home-display, 'Big Shoulders'), 'Arial Narrow', 'Impact', sans-serif;
+  --font-body2: var(--font-home-body, 'Manrope'), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-code: var(--font-home-mono, 'DM Mono'), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+html:has(.home-v2) {
+  --color-emerald-300: #e3ff7d;
+  --color-emerald-400: #d4ff3a;
+  --color-emerald-500: #c6f036;
+  --color-emerald-600: #a8cf22;
+  --color-lime-300: #e3ff7d;
+  --color-lime-400: #d4ff3a;
+  --color-lime-500: #c6f036;
+  --color-green-400: #d4ff3a;
+  --color-green-500: #c6f036;
+}
+html:has(.home-v2) body {
+  background-color: #0a120e;
+  background-image: none;
+}
+
+.home-v2 {
+  font-family: var(--font-body2);
+  color: #f2f5ec;
+  background-color: #0a120e;
+}
+.home-v2 h1,
+.home-v2 h2,
+.home-v2 h3 {
+  font-family: var(--font-bigs);
+  letter-spacing: 0;
+}
+.home-v2 :focus-visible {
+  outline: 2px solid #d4ff3a;
+  outline-offset: 2px;
+}
+.home-v2 ::selection {
+  background: #d4ff3a;
+  color: #0a120e;
+}
+/* horizontal scrollers (date strip) without a visible scrollbar */
+.home-v2 .no-scrollbar { scrollbar-width: none; }
+.home-v2 .no-scrollbar::-webkit-scrollbar { display: none; }

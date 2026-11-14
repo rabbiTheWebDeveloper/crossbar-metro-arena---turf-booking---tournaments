@@ -73,6 +73,9 @@ export const Navbar = () => {
     ];
     const openLogin = () => { setAuthModalInitialTab('login'); setShowAuthModal(true); };
 
+    // The home page renders its own header (src/components/home/HomeHeader.jsx)
+    if (pathname === '/') return null;
+
     return (<header className={`sticky top-0 z-40 w-full transition-all duration-300 ${scrolled
             ? 'bg-[#070b0f]/95 backdrop-blur-md shadow-xl shadow-black/50 border-b border-emerald-500/20'
             : 'bg-[#080d12]/95 backdrop-blur-sm border-b border-white/10'}`}>
