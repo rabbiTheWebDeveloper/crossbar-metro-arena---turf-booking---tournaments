@@ -165,6 +165,8 @@ export const BookingSection = ({ hideHeading = false }) => {
                 durationMinutes: 90,
                 period: def.period,
                 price,
+                // regular ("actual") price while an offer is running on this slot, otherwise 0
+                actualPrice: (() => { const actual = Number(isWeekendSelected ? def.weekendActualPrice : def.weekdayActualPrice) || 0; return actual > price ? actual : 0; })(),
                 weekdayPrice: Number(def.weekdayPrice),
                 weekendPrice: Number(def.weekendPrice),
                 isPeak: def.period === 'evening',
@@ -203,7 +205,7 @@ export const BookingSection = ({ hideHeading = false }) => {
                 Book a Slot · <span className="text-emerald-400">Fixed 90 Mins</span>
               </h2>
               <p className="text-sm text-slate-300 mt-2 max-w-2xl">
-                12 fixed slots daily from 6:00 AM to 12:00 AM Midnight. No double bookings. Secure online with a ৳{Number(pricing.advanceAmount || 500).toLocaleString()} advance or full payment via bKash / Nagad / Cards.
+                12 fixed 90-minute slots daily, {(Array.isArray(pricing.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION)[0].displayTime.split(' – ')[0]} to {(Array.isArray(pricing.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION)[11].displayTime.split(' – ')[1]}. No double bookings. Secure online with a ৳{Number(pricing.advanceAmount || 500).toLocaleString()} advance or full payment via bKash / Nagad / Cards.
               </p>
             </div>
           </div>)}
@@ -397,6 +399,7 @@ export const BookingSection = ({ hideHeading = false }) => {
                       {isWeekendSelected ? `Weekend rate (${weekendLabel})` : 'Weekday rate'}
                     </div>
                     <div className="text-lg font-black text-emerald-400 font-mono">
+                      {slot.actualPrice > 0 && (<s className="mr-1.5 text-xs font-bold text-slate-500">৳{Number(slot.actualPrice).toLocaleString()}</s>)}
                       ৳{Number(slot.price || 0).toLocaleString()}
                     </div>
                   </div>

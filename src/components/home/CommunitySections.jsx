@@ -7,6 +7,7 @@ import { useArena, todayDhaka } from '../../context/ArenaContext';
 import { tournamentAvailability } from '../TournamentSection';
 import { Container, Eyebrow, SectionTitle, Button } from './ui';
 import { bdt } from './slots';
+import { ProductCard } from './ProductCard';
 
 const TournamentModal = dynamic(() => import('../TournamentModal').then(m => m.TournamentModal), { ssr: false });
 
@@ -227,14 +228,8 @@ export function ShopStrip() {
                 </div>
                 <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {items.map(p => (
-                        <li key={p.id} className="flex flex-col rounded-2xl border border-hairline bg-panel p-5">
-                            {p.badge ? <span className="self-start rounded-md bg-moss px-2 py-1 font-code text-[11px] uppercase tracking-[0.1em] text-neon">{p.badge}</span> : null}
-                            <h3 className="mt-3 !font-body2 text-[16px] font-semibold leading-snug text-paper line-clamp-2">{p.name}</h3>
-                            <p className="mt-1.5 text-[14px] leading-[1.45] text-paper/55 line-clamp-2">{p.description}</p>
-                            <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                                <span className="font-code text-[16px] text-paper">{bdt(p.salePrice || p.price)}</span>
-                                <button type="button" onClick={() => addToCart(p, p.sizes?.[0])} className="h-10 rounded-lg bg-neon px-4 text-[14px] font-semibold text-ink hover:bg-neon-dim transition-colors cursor-pointer">Reserve</button>
-                            </div>
+                        <li key={p.id}>
+                            <ProductCard product={p} compact actionLabel="Reserve" onSelect={(product) => addToCart(product, product.sizes?.[0])} />
                         </li>
                     ))}
                 </ul>

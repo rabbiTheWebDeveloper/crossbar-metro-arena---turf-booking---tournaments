@@ -16,7 +16,7 @@ export default function MatchesPage() {
             { label: 'Confirmed Fixtures', value: `${upcomingFixtures}`, icon: Ticket },
             { label: 'Open Challenges', value: `${challenges.length}`, icon: Swords },
             { label: 'Turf', value: '1 Floodlit Pitch', icon: Users },
-            { label: 'Kickoff Window', value: (siteSettings.openingHours || '6 AM – 12 AM').replace(/s*(Midnight)/i, '').replace(/ Every Day/i, ''), icon: Calendar }
+            { label: 'Kickoff Window', value: (siteSettings.openingHours || '6:30 AM – 12:30 AM').replace(/s*(Midnight)/i, '').replace(/ Every Day/i, ''), icon: Calendar }
         ]} actions={<>
             <Link href="/booking" className="btn-volt inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm">
               <Calendar className="w-4 h-4"/>

@@ -48,7 +48,7 @@ export default function GalleryPage() {
                     { label: 'Lighting', value: '400-Lux Pro LED', icon: Zap },
                     { label: 'Turf Spec', value: '50mm Monofilament', icon: Layers },
                     { label: 'Skyline', value: 'MRT Line-6 View', icon: Eye },
-                    { label: 'Hours', value: '6 AM – 12 AM Midnight', icon: Moon }
+                    { label: 'Hours', value: '6:30 AM – 12:30 AM', icon: Moon }
                 ]}
             />
 

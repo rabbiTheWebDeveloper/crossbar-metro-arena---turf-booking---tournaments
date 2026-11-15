@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useArena, cleanPhone } from '../../context/ArenaContext';
 import { isStandaloneDisplay } from '../Navbar';
@@ -34,6 +35,11 @@ export function HomeHeader() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [canInstall, setCanInstall] = useState(false);
+    // The section links scroll on the home page and lead back to it from any other page
+    const pathname = usePathname() || '/';
+    const router = useRouter();
+    const onHome = pathname === '/';
+    const sectionHref = (id) => (onHome ? `#${id}` : `/#${id}`);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 12);
@@ -57,7 +63,11 @@ export function HomeHeader() {
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor dashboard' }] : [])
     ];
 
-    const goSection = (id) => { setMenuOpen(false); scrollToId(id); };
+    const goSection = (id) => {
+        setMenuOpen(false);
+        if (onHome) scrollToId(id);
+        else router.push(`/#${id}`);
+    };
 
     return (
         <header className={`sticky top-0 z-40 transition-colors duration-200 ${scrolled || menuOpen ? 'bg-ink/95 backdrop-blur-md border-b border-hairline' : 'bg-transparent border-b border-transparent'}`}>
@@ -72,7 +82,7 @@ export function HomeHeader() {
 
                 <nav className="hidden lg:flex items-center gap-9" aria-label="Sections">
                     {SECTION_LINKS.map(link => (
-                        <a key={link.id} href={`#${link.id}`} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="text-[15px] font-medium text-paper/90 hover:text-neon transition-colors">
+                        <a key={link.id} href={sectionHref(link.id)} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="text-[15px] font-medium text-paper/90 hover:text-neon transition-colors">
                             {link.label}
                         </a>
                     ))}
@@ -110,11 +120,11 @@ export function HomeHeader() {
                 <div className="border-t border-hairline bg-ink max-h-[calc(100dvh-76px)] overflow-y-auto">
                     <Container className="pt-6 pb-28 md:pb-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="lg:hidden">
-                            <div className="font-code text-[12px] uppercase tracking-[0.18em] text-paper/50 mb-3">On this page</div>
+                            <div className="font-code text-[12px] uppercase tracking-[0.18em] text-paper/50 mb-3">{onHome ? 'On this page' : 'Home page'}</div>
                             <ul className="space-y-1">
                                 {SECTION_LINKS.map(link => (
                                     <li key={link.id}>
-                                        <a href={`#${link.id}`} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="block py-2 font-bigs text-[26px] uppercase leading-none text-paper hover:text-neon">{link.label}</a>
+                                        <a href={sectionHref(link.id)} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="block py-2 font-bigs text-[26px] uppercase leading-none text-paper hover:text-neon">{link.label}</a>
                                     </li>
                                 ))}
                             </ul>

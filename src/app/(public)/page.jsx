@@ -2,7 +2,7 @@ import { buildMetadata, siteConfig, webPageSchema, bookingServiceSchema } from '
 import { JsonLd } from '../../components/JsonLd';
 import HomeClient from './HomeClient';
 
-const description = 'Book floodlit 90-minute football turf slots online beside Uttara Center Metro Station, Dhaka. 12 slots a day from 6 AM to midnight, pay with bKash, Nagad or card, join 7v7 tournaments and track match results.';
+const description = 'Book floodlit 90-minute football turf slots online beside Uttara Center Metro Station, Dhaka. 12 slots a day from 6:30 AM to 12:30 AM, pay with bKash, Nagad or card, join 7v7 tournaments and track match results.';
 
 export const metadata = buildMetadata({
     absoluteTitle: siteConfig.defaultTitle,

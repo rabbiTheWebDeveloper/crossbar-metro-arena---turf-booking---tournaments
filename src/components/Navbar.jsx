@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { Calendar, Trophy, ShieldCheck, Menu, X, ShoppingBag, Camera, Info, Smartphone, TrendingUp, User, Shield, BookOpen, LogOut, MapPin } from 'lucide-react';
 import { useArena } from '../context/ArenaContext';
+import { usesMainDesign } from './home/routes';
 
 // ---- PWA install prompt capture -------------------------------------------------
 // `beforeinstallprompt` fires once, early, on Chromium browsers. The Navbar module is
@@ -73,8 +74,8 @@ export const Navbar = () => {
     ];
     const openLogin = () => { setAuthModalInitialTab('login'); setShowAuthModal(true); };
 
-    // The home page renders its own header (src/components/home/HomeHeader.jsx)
-    if (pathname === '/') return null;
+    // Pages in the main design render their own header (src/components/home/HomeHeader.jsx)
+    if (usesMainDesign(pathname)) return null;
 
     return (<header className={`sticky top-0 z-40 w-full transition-all duration-300 ${scrolled
             ? 'bg-[#070b0f]/95 backdrop-blur-md shadow-xl shadow-black/50 border-b border-emerald-500/20'

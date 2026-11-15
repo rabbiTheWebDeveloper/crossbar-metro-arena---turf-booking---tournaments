@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import { useArena } from '../../context/ArenaContext';
 import { addDaysIso, nowDhakaMinutes } from '../../lib/dateUtils';
 import { Container, Button } from './ui';
-import { PERIODS, PRIMARY_COURT, dayParts, openingWindow, periodSummary } from './slots';
+import { PERIODS, PRIMARY_COURT, bdt, dayParts, maxDiscount, openingWindow, periodSummary } from './slots';
 
 /** Photo behind the header and hero, faded into the page colour. Rendered once at the top of the page. */
 export function HeroBackdrop() {
@@ -49,7 +49,10 @@ export function HeroSection({ availability, ready, onCheck, onViewPricing }) {
     const hours = useMemo(() => openingWindow(pricing), [pricing]);
     const ranges = useMemo(() => periodSummary(pricing), [pricing]);
     const freeToday = todaySlots.filter(s => s.status === 'available').length;
-    const isOpenNow = ready ? (nowDhakaMinutes() >= hours.open && nowDhakaMinutes() < hours.close) : false;
+    const nowMins = nowDhakaMinutes();
+    // after midnight the arena may still be finishing yesterday's last slot
+    const isOpenNow = ready ? ((nowMins >= hours.open && nowMins < hours.close) || nowMins + 1440 < hours.close) : false;
+    const discount = useMemo(() => maxDiscount(pricing), [pricing]);
     const hoursOpen = Math.round((hours.close - hours.open) / 60);
 
     const dateOptions = useMemo(() => {
@@ -93,6 +96,13 @@ export function HeroSection({ availability, ready, onCheck, onViewPricing }) {
                         <p className="mt-8 max-w-[560px] text-[17px] sm:text-[18px] leading-[1.55] text-paper/90">
                             A floodlit {side}-a-side turf at Crossbar Metro Arena, right beside Uttara Center metro station. See what&apos;s free, lock your {slotMinutes}-minute slot in under a minute, and pay with bKash, Nagad or card.
                         </p>
+
+                        {discount > 0 ? (
+                            <p className="mt-6 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-neon px-4 py-2.5 text-ink">
+                                <span className="font-code text-[12px] uppercase tracking-[0.16em]">Grand opening launch offer</span>
+                                <span className="font-bigs text-[24px] font-bold uppercase leading-none">Up to {bdt(discount)} off</span>
+                            </p>
+                        ) : null}
 
                         <div className="mt-8 flex flex-wrap gap-3.5">
                             <Button onClick={() => onCheck(today, 'evening')}>See tonight&apos;s slots</Button>

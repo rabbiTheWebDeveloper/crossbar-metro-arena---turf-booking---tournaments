@@ -79,7 +79,7 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
           </h1>
 
           <p className="text-slate-300 text-sm sm:text-base md:text-lg font-normal max-w-2xl mx-auto mb-7 sm:mb-9 leading-relaxed px-3 page-enter-3">
-            12 fixed 90-minute slots every day, {siteSettings.openingHours ? siteSettings.openingHours.replace(/ every day$/i, '').toLowerCase() : '6 AM to 12 AM'}. Pick any date up to {windowDays} days ahead and pay online with bKash, Nagad or card{advance > 0 ? (<> with just a <strong className="text-emerald-400">৳{advance.toLocaleString()} advance</strong></>) : ''} or the full amount. One slot, one team: no double booking.
+            12 fixed 90-minute slots every day, {siteSettings.openingHours ? siteSettings.openingHours.replace(/ every day$/i, '').toLowerCase() : '6:30 AM to 12:30 AM'}. Pick any date up to {windowDays} days ahead and pay online with bKash, Nagad or card{advance > 0 ? (<> with just a <strong className="text-emerald-400">৳{advance.toLocaleString()} advance</strong></>) : ''} or the full amount. One slot, one team: no double booking.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12 w-full max-w-md sm:max-w-none mx-auto page-enter-3">

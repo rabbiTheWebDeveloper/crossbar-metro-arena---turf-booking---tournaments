@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { Phone, Mail, Train, ArrowUp, Smartphone, MessageSquare, Facebook, Instagram, Clock, MapPin } from 'lucide-react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
+import { usesMainDesign } from './home/routes';
 
 export const Footer = () => {
     const pathname = usePathname();
@@ -20,8 +21,8 @@ export const Footer = () => {
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor Dashboard (monthly reports)' }] : [])
     ];
 
-    // The home page renders its own footer (src/components/home/InfoSections.jsx)
-    if (pathname === '/') return null;
+    // Pages in the main design render their own footer (src/components/home/InfoSections.jsx)
+    if (usesMainDesign(pathname)) return null;
 
     return (<footer className="bg-[#05080b] border-t border-white/10 pt-12 pb-24 md:pb-8 text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

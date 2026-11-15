@@ -9,7 +9,7 @@ export const BOOKING_FAQ = [
     },
     {
         q: 'How much does a 90-minute turf slot cost in Uttara?',
-        a: 'Weekday slots (Sunday to Thursday) start from BDT 2,000 and evening floodlit slots go up to BDT 3,500. Weekend slots (Friday and Saturday) carry a BDT 500 surcharge. The full 12-slot rate card is published on the About page and inside the booking engine.'
+        a: 'During the grand-opening launch offer, weekday slots (Sunday to Thursday) cost BDT 2,500 to BDT 5,500 and weekend slots (Friday and Saturday) cost BDT 3,000 to BDT 6,500 per 90 minutes, up to BDT 2,000 below the regular price. The full 12-slot rate card, with regular and offer prices, is published on the About page and inside the booking engine.'
     },
     {
         q: 'Can I cancel or reschedule my turf booking?',
@@ -32,7 +32,7 @@ export const ABOUT_FAQ = [
     },
     {
         q: 'What are the opening hours of the turf?',
-        a: 'The arena is open every day from 6:00 AM to 12:00 midnight. The day is divided into 12 fixed 90-minute slots, starting at 6:00 AM and ending at midnight, so there is always a clear kickoff and finish time.'
+        a: 'The arena is open every day from 6:30 AM to 12:30 AM. The day is divided into 12 fixed 90-minute slots, starting at 6:30 AM and ending at 12:30 AM, so there is always a clear kickoff and finish time.'
     },
     {
         q: 'What size is the pitch and what format can we play?',

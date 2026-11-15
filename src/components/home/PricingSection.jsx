@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { useArena } from '../../context/ArenaContext';
 import { weekendDaysLabel } from '../../lib/dateUtils';
 import { Container, Eyebrow, SectionTitle, Button } from './ui';
-import { bdt, periodSummary, periodTiers } from './slots';
+import { bdt, maxDiscount, periodSummary, periodTiers } from './slots';
 
 /** Card order follows the design: cheapest, the featured prime-time card in the middle, then the rest. */
 const CARD_ORDER = ['morning', 'evening', 'afternoon'];
@@ -19,6 +19,7 @@ export function PricingSection({ onBook }) {
     const { pricing } = useArena();
     const summary = useMemo(() => periodSummary(pricing), [pricing]);
     const tiers = useMemo(() => periodTiers(pricing), [pricing]);
+    const discount = useMemo(() => maxDiscount(pricing), [pricing]);
     const weekendLabel = weekendDaysLabel(pricing.weekendDays);
     const advance = Number(pricing.advanceAmount) > 0 ? Number(pricing.advanceAmount) : 500;
     const windowDays = Number(pricing.bookingWindowDays) > 0 ? Number(pricing.bookingWindowDays) : 60;
@@ -38,6 +39,12 @@ export function PricingSection({ onBook }) {
                     <div>
                         <Eyebrow tone="pitch">Pricing</Eyebrow>
                         <SectionTitle className="mt-3">Pay for the slot. Nothing else.</SectionTitle>
+                        {discount > 0 ? (
+                            <p className="mt-5 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-ink px-4 py-2.5 text-paper">
+                                <span className="font-code text-[12px] uppercase tracking-[0.16em] text-neon">Grand opening launch offer</span>
+                                <span className="font-bigs text-[24px] font-bold uppercase leading-none">Up to {bdt(discount)} off</span>
+                            </p>
+                        ) : null}
                     </div>
                     <p className="max-w-[380px] text-[16px] leading-[1.55] text-ink/70 lg:pb-3">
                         Rates are for the whole pitch, per 90-minute slot — split it between the squad. {bdt(advance)} advance locks any slot; weekend rates apply on {weekendLabel}.
@@ -55,7 +62,14 @@ export function PricingSection({ onBook }) {
                                     {dark ? <span className="rounded-md bg-neon-dim px-2.5 py-1 font-code text-[12px] tracking-[0.04em] text-ink">Prime time</span> : null}
                                 </div>
                                 <div className={`mt-9 font-code text-[12px] uppercase tracking-[0.16em] ${dark ? 'text-paper/60' : 'text-ink/60'}`}>{PERIOD_NAMES[card.key]} · {card.range}</div>
+                                {card.weekdayMinActual > 0 ? (
+                                    <div className={`mt-3 font-code text-[15px] ${dark ? 'text-paper/55' : 'text-ink/50'}`}>
+                                        <s>{bdt(card.weekdayMinActual)}</s>
+                                        <span className={`ml-2 rounded px-1.5 py-0.5 text-[12px] ${dark ? 'bg-neon/15 text-neon' : 'bg-pitch/10 text-pitch'}`}>Save {bdt(card.weekdayMinActual - card.weekdayMin)}</span>
+                                    </div>
+                                ) : null}
                                 <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                                    {from ? <span className={`text-[16px] ${dark ? 'text-paper/60' : 'text-ink/55'}`}>from</span> : null}
                                     <span className={`font-bigs text-[60px] sm:text-[72px] font-bold leading-none ${dark ? 'text-neon' : 'text-ink'}`}>{bdt(card.weekdayMin)}</span>
                                     <span className={`text-[16px] ${dark ? 'text-paper/60' : 'text-ink/55'}`}>/ slot</span>
                                 </div>

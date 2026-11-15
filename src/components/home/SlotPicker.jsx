@@ -28,14 +28,17 @@ function SlotTile({ slot, selected, onSelect }) {
             disabled={!open}
             onClick={() => onSelect(slot)}
             aria-pressed={selected}
-            aria-label={`${slot.displayTime}, ${open ? `${bdt(slot.price)}, available` : sub}`}
+            aria-label={`${slot.displayTime}, ${open ? `${bdt(slot.price)}${slot.actualPrice > 0 ? ` (offer price, regular ${bdt(slot.actualPrice)})` : ''}, available` : sub}`}
             className={`${base} ${look}`}
         >
             <span className="flex items-baseline justify-between gap-2">
                 <span className={`font-code text-[16px] tracking-[0.02em] ${open || selected ? '' : 'line-through'}`}>{clock12(slot.startTime)}</span>
                 <span className={`font-code text-[11px] uppercase tracking-[0.08em] ${selected ? 'text-ink' : open ? (slot.isPeak ? 'text-ember' : 'text-neon') : 'text-paper/35'}`}>{tag}</span>
             </span>
-            <span className={`mt-2 text-[14px] ${selected ? 'text-ink font-semibold' : open ? 'text-paper/65' : 'text-paper/35'}`}>{sub}</span>
+            <span className={`mt-2 flex flex-wrap items-baseline gap-x-2 text-[14px] ${selected ? 'text-ink font-semibold' : open ? 'text-paper/65' : 'text-paper/35'}`}>
+                {open && slot.actualPrice > 0 ? <s className={`text-[12px] font-normal ${selected ? 'text-ink/60' : 'text-paper/40'}`}>{bdt(slot.actualPrice)}</s> : null}
+                <span className={open && slot.actualPrice > 0 && !selected ? 'text-paper font-semibold' : ''}>{sub}</span>
+            </span>
         </button>
     );
 }
@@ -192,7 +195,14 @@ export function SlotPicker({ availability, ready, date, onDateChange, period, on
                                 <SummaryRow label="Duration" value={`${selected?.durationMinutes || 90} minutes`} />
                             </dl>
                             <dl className="mt-6 space-y-4 border-t border-hairline pt-6">
-                                <SummaryRow label={selected?.isPeak ? 'Peak slot rate' : ready && weekend ? 'Weekend slot rate' : 'Slot rate'} value={selected ? bdt(selected.price) : '—'} mono />
+                                {selected && selected.actualPrice > 0 ? (
+                                    <>
+                                        <SummaryRow label={ready && weekend ? 'Actual price (weekend)' : 'Actual price'} value={<s className="text-paper/50">{bdt(selected.actualPrice)}</s>} mono />
+                                        <SummaryRow label="Launch offer" value={<span className="text-neon">− {bdt(selected.actualPrice - selected.price)}</span>} mono />
+                                    </>
+                                ) : (
+                                    <SummaryRow label={selected?.isPeak ? 'Peak slot rate' : ready && weekend ? 'Weekend slot rate' : 'Slot rate'} value={selected ? bdt(selected.price) : '—'} mono />
+                                )}
                                 <SummaryRow label="Booking fee" value="BDT 0" mono />
                             </dl>
                             <div className="mt-8 flex items-end justify-between gap-4">

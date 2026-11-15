@@ -171,7 +171,10 @@ export function validateSlotPrices(slots) {
         if (!HHMM.test(String(s.startTime || '')) || !HHMM.test(String(s.endTime || ''))) return { error: `Slot ${n} needs start and end times like 18:00.` };
         const weekday = Number(s.weekdayPrice);
         const weekend = Number(s.weekendPrice);
-        if (![weekday, weekend].every(p => Number.isFinite(p) && p >= 0 && p <= 100000)) return { error: `Slot ${n} prices must be between 0 and 100000.` };
+        // Regular ("actual") prices are optional; blank or 0 means the slot has no struck-through price
+        const weekdayActual = Number(s.weekdayActualPrice) || 0;
+        const weekendActual = Number(s.weekendActualPrice) || 0;
+        if (![weekday, weekend, weekdayActual, weekendActual].every(p => Number.isFinite(p) && p >= 0 && p <= 100000)) return { error: `Slot ${n} prices must be between 0 and 100000.` };
         const period = SLOT_PERIODS.includes(s.period) ? s.period : undefined;
         out.push({
             slotNumber: n,
@@ -180,7 +183,9 @@ export function validateSlotPrices(slots) {
             displayTime: String(s.displayTime || '').slice(0, 40),
             period,
             weekdayPrice: weekday,
-            weekendPrice: weekend
+            weekendPrice: weekend,
+            weekdayActualPrice: weekdayActual,
+            weekendActualPrice: weekendActual
         });
     }
     return { value: out.sort((a, b) => a.slotNumber - b.slotNumber) };

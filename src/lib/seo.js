@@ -156,9 +156,9 @@ export function parseDateRange(text) {
 
 const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-/** "6:00 AM – 12:00 AM (Midnight) Every Day" -> { opens: '06:00', closes: '24:00' } */
+/** "6:30 AM – 12:30 AM Every Day" -> { opens: '06:30', closes: '00:30' } (a closing time before the opening time means "after midnight") */
 function parseOpeningHours(text) {
-    const fallback = { opens: '06:00', closes: '24:00' };
+    const fallback = { opens: '06:30', closes: '00:30' };
     const m = String(text || '').match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*(?:–|—|-|to)\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
     if (!m) return fallback;
     const to24 = (h, min, ap) => {

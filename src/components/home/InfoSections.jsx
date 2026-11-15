@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { MapPin, Plus, Minus } from 'lucide-react';
 import { useArena, cleanPhone } from '../../context/ArenaContext';
 import { BOOKING_FAQ } from '../../data/faq';
@@ -161,7 +162,9 @@ export function CtaBand({ freeToday, eveningFree, ready, tomorrow, onBook }) {
 export function HomeFooter() {
     const { siteSettings, phoneLabel, telHref } = useContacts();
     const { isVisitor, isAdmin, isInvestor } = useArena();
-    const hash = (id, label) => ({ label, onClick: (e) => { e.preventDefault(); scrollToId(id); }, href: `#${id}` });
+    const onHome = (usePathname() || '/') === '/';
+    // home sections: scroll in place on the home page, link back to it from any other page
+    const hash = (id, label) => (onHome ? { label, onClick: (e) => { e.preventDefault(); scrollToId(id); }, href: `#${id}` } : { label, href: `/#${id}` });
     const columns = [
         { title: 'Play', links: [hash('book', 'Book a slot'), hash('pricing', 'Pricing'), { label: 'Tournaments', href: '/events' }, { label: 'Match results', href: '/results' }, { label: 'Find an opponent', href: '/matches' }] },
         { title: 'Arena', links: [hash('facilities', 'Facilities'), { label: 'Gallery', href: '/gallery' }, { label: 'Venue & metro guide', href: '/venue' }, { label: 'Shop', href: '/shop' }, { label: 'About & price table', href: '/about' }] },

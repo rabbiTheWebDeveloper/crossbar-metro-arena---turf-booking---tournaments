@@ -14,7 +14,7 @@ export default function VenuePage() {
             { label: 'From Station', value: '2 min walk', icon: Footprints },
             { label: 'Location', value: 'Sector 17', icon: MapPin },
             { label: 'Parking', value: 'Free & Guarded', icon: Car },
-            { label: 'Open', value: (siteSettings.openingHours || '6 AM – 12 AM').replace(/s*(Midnight)/i, '').replace(/ Every Day/i, ''), icon: Clock }
+            { label: 'Open', value: (siteSettings.openingHours || '6:30 AM – 12:30 AM').replace(/s*(Midnight)/i, '').replace(/ Every Day/i, ''), icon: Clock }
         ]} actions={<Link href="/booking" className="btn-volt inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm">
             <Calendar className="w-4 h-4"/>
             <span>Reserve A Pitch</span>

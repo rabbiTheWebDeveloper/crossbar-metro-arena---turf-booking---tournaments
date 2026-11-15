@@ -33,12 +33,28 @@ export function clockShort(hhmm) {
     return full.replace(':00 ', ' ');
 }
 
+/** The regular ("actual") price of a slot when an offer is running on it, otherwise 0. */
+export function actualPriceOf(def, weekend) {
+    const actual = Number(weekend ? def.weekendActualPrice : def.weekdayActualPrice) || 0;
+    const offer = Number(weekend ? def.weekendPrice : def.weekdayPrice) || 0;
+    return actual > offer ? actual : 0;
+}
+
+/** Biggest saving on the price list (0 when no offer is running): "up to BDT 2,000 off". */
+export function maxDiscount(pricing) {
+    return slotDefinitions(pricing).reduce((max, d) => Math.max(
+        max,
+        (Number(d.weekdayActualPrice) || 0) - (Number(d.weekdayPrice) || 0),
+        (Number(d.weekendActualPrice) || 0) - (Number(d.weekendPrice) || 0)
+    ), 0);
+}
+
 /** The admin's 12 slot definitions (falls back to the built-in schedule). */
 export function slotDefinitions(pricing) {
     return Array.isArray(pricing?.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION;
 }
 
-/** { morning: { range: '6 AM – 12 PM', weekdayMin, weekdayMax, weekendMin, weekendMax, count }, … } */
+/** { morning: { range: '6:30 AM – 12:30 PM', weekdayMin, weekdayMax, weekdayMinActual, weekendMin, weekendMax, count }, … } */
 export function periodSummary(pricing) {
     const out = {};
     for (const { key } of PERIODS) {
@@ -46,10 +62,13 @@ export function periodSummary(pricing) {
         if (!defs.length) continue;
         const weekday = defs.map(d => Number(d.weekdayPrice) || 0);
         const weekend = defs.map(d => Number(d.weekendPrice) || 0);
+        // the regular price of the cheapest weekday slot, for the struck-through figure on the price card
+        const cheapest = defs.reduce((a, b) => ((Number(b.weekdayPrice) || 0) < (Number(a.weekdayPrice) || 0) ? b : a), defs[0]);
         out[key] = {
             count: defs.length,
             range: `${clockShort(defs[0].startTime)} – ${clockShort(defs[defs.length - 1].endTime)}`,
             weekdayMin: Math.min(...weekday), weekdayMax: Math.max(...weekday),
+            weekdayMinActual: actualPriceOf(cheapest, false),
             weekendMin: Math.min(...weekend), weekendMax: Math.max(...weekend)
         };
     }
@@ -93,6 +112,7 @@ export function buildSlots({ date, today, bookings, slotHolds, pricing }) {
             durationMinutes: 90,
             period: def.period,
             price,
+            actualPrice: actualPriceOf(def, weekend), // 0 when there is no offer on this slot
             weekdayPrice: Number(def.weekdayPrice),
             weekendPrice: Number(def.weekendPrice),
             isPeak: hasPeak && price === maxPrice,
@@ -165,5 +185,9 @@ export function longDate(iso) {
 /** Arena opening / closing minutes derived from the first and last slot. */
 export function openingWindow(pricing) {
     const defs = slotDefinitions(pricing);
-    return { open: timeToMinutes(defs[0].startTime), close: timeToMinutes(defs[defs.length - 1].endTime), openLabel: clockShort(defs[0].startTime), closeLabel: clockShort(defs[defs.length - 1].endTime) };
+    const open = timeToMinutes(defs[0].startTime);
+    const end = timeToMinutes(defs[defs.length - 1].endTime);
+    // the last slot may finish after midnight ("00:30"): count that as the same arena day
+    const close = end <= open ? end + 1440 : end;
+    return { open, close, openLabel: clockShort(defs[0].startTime), closeLabel: clockShort(defs[defs.length - 1].endTime) };
 }

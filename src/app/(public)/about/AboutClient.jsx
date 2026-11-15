@@ -83,7 +83,7 @@ export default function AboutPage() {
                 Full 12-Slot Price Table · Weekday vs Weekend
               </h2>
               <p className="text-xs text-slate-400">
-                Weekday (Sun – Thu) &amp; Weekend (Fri &amp; Sat). Lock in your slot with just ৳500 advance.
+                Weekday (Sun – Thu) &amp; Weekend (Fri &amp; Sat), per 90 minutes. Struck-through figures are the regular price; you pay the launch-offer price beside them. Lock in your slot with just ৳{Number(pricing.advanceAmount || 500).toLocaleString()} advance.
               </p>
             </div>
 
@@ -111,11 +111,13 @@ export default function AboutPage() {
                     <td className="py-3 px-4 font-sans uppercase text-[11px] font-bold text-slate-400">
                       {s.period}
                     </td>
-                    <td className="py-3 px-4 text-slate-200 font-bold">
-                      ৳{s.weekdayPrice.toLocaleString()}
+                    <td className="py-3 px-4 text-slate-200 font-bold whitespace-nowrap">
+                      {Number(s.weekdayActualPrice) > Number(s.weekdayPrice) && (<s className="mr-2 font-normal text-slate-500">৳{Number(s.weekdayActualPrice).toLocaleString()}</s>)}
+                      ৳{Number(s.weekdayPrice).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-emerald-400 font-bold">
-                      ৳{s.weekendPrice.toLocaleString()}
+                    <td className="py-3 px-4 text-emerald-400 font-bold whitespace-nowrap">
+                      {Number(s.weekendActualPrice) > Number(s.weekendPrice) && (<s className="mr-2 font-normal text-slate-500">৳{Number(s.weekendActualPrice).toLocaleString()}</s>)}
+                      ৳{Number(s.weekendPrice).toLocaleString()}
                     </td>
                     <td className="py-3 px-4 text-right text-slate-400 font-sans">
                       ৳{pricing.advanceAmount || 500}
