@@ -13,7 +13,7 @@ export const VENUE_INFO = {
     facebook: 'https://www.facebook.com/crossbarmetroarena',
     instagramUrl: 'https://www.instagram.com/crossbarmetroarena',
     website: 'bookcrossbar.com',
-    openingHours: '6:00 AM – 12:00 AM (Midnight) Every Day',
+    openingHours: '6:30 AM – 12:30 AM Every Day',
     aboutText: 'Crossbar Metro Arena is Dhaka’s landmark sports destination, built with FIFA-standard shock-pad turf and stadium floodlights. Situated right beside Uttara Center Metro Station on MRT Line-6.'
 };
 // Single Ground definition for Crossbar Metro Arena
@@ -26,8 +26,8 @@ export const COURTS = [
         format: '7 vs 7',
         dimensions: '120ft x 75ft (FIFA Standard Small-Sided)',
         turfType: '50mm Monofilament Shock-Pad Artificial Grass with Cool-Infill',
-        dayPrice: 2200,
-        nightPrice: 3500,
+        dayPrice: 2500,
+        nightPrice: 5500,
         recommendedPlayers: '10 - 16 Players (5v5 to 8v8)',
         features: [
             'Pro 400-Lux High-Mast LED Floodlighting',
@@ -38,27 +38,34 @@ export const COURTS = [
         ]
     }
 ];
-// 12 slots definition
+/**
+ * The 12 daily slots (90 minutes each, 06:30 AM to 12:30 AM) with the grand-opening launch-offer prices.
+ *   weekdayPrice / weekendPrice              -> what the customer pays (the "offer price")
+ *   weekdayActualPrice / weekendActualPrice  -> the regular price, shown struck through while it is higher
+ * Bump SLOT_SCHEDULE_VERSION whenever these defaults change: the stored settings are replaced once
+ * with this list the next time the server reads them (see models/Setting.js).
+ */
+export const SLOT_SCHEDULE_VERSION = 2;
 export const SCHEDULE_SLOTS_DEFINITION = [
-    { slotNumber: 1, startTime: '06:00', endTime: '07:30', displayTime: '06:00 AM – 07:30 AM', period: 'morning', weekdayPrice: 2000, weekendPrice: 2500 },
-    { slotNumber: 2, startTime: '07:30', endTime: '09:00', displayTime: '07:30 AM – 09:00 AM', period: 'morning', weekdayPrice: 2000, weekendPrice: 2500 },
-    { slotNumber: 3, startTime: '09:00', endTime: '10:30', displayTime: '09:00 AM – 10:30 AM', period: 'morning', weekdayPrice: 2200, weekendPrice: 2700 },
-    { slotNumber: 4, startTime: '10:30', endTime: '12:00', displayTime: '10:30 AM – 12:00 PM', period: 'morning', weekdayPrice: 2200, weekendPrice: 2700 },
-    { slotNumber: 5, startTime: '12:00', endTime: '13:30', displayTime: '12:00 PM – 01:30 PM', period: 'afternoon', weekdayPrice: 2400, weekendPrice: 2900 },
-    { slotNumber: 6, startTime: '13:30', endTime: '15:00', displayTime: '01:30 PM – 03:00 PM', period: 'afternoon', weekdayPrice: 2400, weekendPrice: 2900 },
-    { slotNumber: 7, startTime: '15:00', endTime: '16:30', displayTime: '03:00 PM – 04:30 PM', period: 'afternoon', weekdayPrice: 2600, weekendPrice: 3200 },
-    { slotNumber: 8, startTime: '16:30', endTime: '18:00', displayTime: '04:30 PM – 06:00 PM', period: 'afternoon', weekdayPrice: 2800, weekendPrice: 3400 },
-    { slotNumber: 9, startTime: '18:00', endTime: '19:30', displayTime: '06:00 PM – 07:30 PM', period: 'evening', weekdayPrice: 3200, weekendPrice: 3800 },
-    { slotNumber: 10, startTime: '19:30', endTime: '21:00', displayTime: '07:30 PM – 09:00 PM', period: 'evening', weekdayPrice: 3500, weekendPrice: 4000 },
-    { slotNumber: 11, startTime: '21:00', endTime: '22:30', displayTime: '09:00 PM – 10:30 PM', period: 'evening', weekdayPrice: 3500, weekendPrice: 4000 },
-    { slotNumber: 12, startTime: '22:30', endTime: '24:00', displayTime: '10:30 PM – 12:00 AM', period: 'evening', weekdayPrice: 3000, weekendPrice: 3600 }
+    { slotNumber: 1, startTime: '06:30', endTime: '08:00', displayTime: '06:30 AM – 08:00 AM', period: 'morning', weekdayActualPrice: 5000, weekdayPrice: 4000, weekendActualPrice: 5500, weekendPrice: 4500 },
+    { slotNumber: 2, startTime: '08:00', endTime: '09:30', displayTime: '08:00 AM – 09:30 AM', period: 'morning', weekdayActualPrice: 5000, weekdayPrice: 4000, weekendActualPrice: 5500, weekendPrice: 4500 },
+    { slotNumber: 3, startTime: '09:30', endTime: '11:00', displayTime: '09:30 AM – 11:00 AM', period: 'morning', weekdayActualPrice: 5000, weekdayPrice: 4000, weekendActualPrice: 5000, weekendPrice: 3000 },
+    { slotNumber: 4, startTime: '11:00', endTime: '12:30', displayTime: '11:00 AM – 12:30 PM', period: 'morning', weekdayActualPrice: 4500, weekdayPrice: 2500, weekendActualPrice: 5000, weekendPrice: 3000 },
+    { slotNumber: 5, startTime: '12:30', endTime: '14:00', displayTime: '12:30 PM – 02:00 PM', period: 'afternoon', weekdayActualPrice: 4500, weekdayPrice: 2500, weekendActualPrice: 5000, weekendPrice: 3000 },
+    { slotNumber: 6, startTime: '14:00', endTime: '15:30', displayTime: '02:00 PM – 03:30 PM', period: 'afternoon', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 7, startTime: '15:30', endTime: '17:00', displayTime: '03:30 PM – 05:00 PM', period: 'afternoon', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 8, startTime: '17:00', endTime: '18:30', displayTime: '05:00 PM – 06:30 PM', period: 'afternoon', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 9, startTime: '18:30', endTime: '20:00', displayTime: '06:30 PM – 08:00 PM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 10, startTime: '20:00', endTime: '21:30', displayTime: '08:00 PM – 09:30 PM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 11, startTime: '21:30', endTime: '23:00', displayTime: '09:30 PM – 11:00 PM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
+    { slotNumber: 12, startTime: '23:00', endTime: '00:30', displayTime: '11:00 PM – 12:30 AM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 }
 ];
 // All 24 pricing matrix + configurable rules
 export const DEFAULT_PRICING = {
-    morningSlotPrice: 2200,
-    afternoonSlotPrice: 2600,
-    eveningSlotPrice: 3500,
-    weekendSurcharge: 500,
+    morningSlotPrice: 4000,
+    afternoonSlotPrice: 5500,
+    eveningSlotPrice: 5500,
+    weekendSurcharge: 1000,
     slotPrices: SCHEDULE_SLOTS_DEFINITION,
     advanceAmount: 500,
     holdMinutes: 10,

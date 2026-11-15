@@ -10,7 +10,7 @@ export default function NotFound() {
 
       <div className="relative z-10 max-w-md mx-auto space-y-6">
         <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
-          <CrossbarLogo size="lg"/>
+          <CrossbarLogo variant="stacked" size="lg"/>
         </Link>
 
         <div className="space-y-2">

@@ -289,3 +289,60 @@ html::-webkit-scrollbar { width: 10px; }
 html::-webkit-scrollbar-track { background: #070b0e; }
 html::-webkit-scrollbar-thumb { background: #1b2a33; border-radius: 9999px; border: 2px solid #070b0e; }
 html::-webkit-scrollbar-thumb:hover { background: #4cbf02; }
+
+/* =====================================================================
+   Home page v2 ("Home — Desktop 1440" design)
+   Tokens below are used by src/components/home/*. The page wrapper carries
+   the class `home-v2`. Its accent is the logo's green, the same brand green
+   as the rest of the site, so shared modals, toasts and the tab bar match.
+   ===================================================================== */
+@theme {
+  --color-ink: #0a120e;
+  --color-panel: #111c16;
+  --color-moss: #18271f;
+  --color-hairline: #25382e;
+  /* Accent = the logo's green. The token is still called "neon" from the first
+     version of this design, which used a yellow-lime accent. */
+  --color-neon: #4cbf02;
+  --color-neon-dim: #44ab02;
+  --color-paper: #f2f5ec;
+  --color-sage: #d5dccd;
+  --color-sage-deep: #c3cdb8;
+  /* pitch: the logo green darkened for text on light sections;
+     pitch-deep: the logo's dark green (the dark pitch stripes) */
+  --color-pitch: #2d7102;
+  --color-pitch-deep: #024302;
+  --color-ember: #f6a93b;
+
+  --font-bigs: var(--font-home-display, 'Big Shoulders'), 'Arial Narrow', 'Impact', sans-serif;
+  --font-body2: var(--font-home-body, 'Manrope'), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-code: var(--font-home-mono, 'DM Mono'), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+html:has(.home-v2) body {
+  background-color: #0a120e;
+  background-image: none;
+}
+
+.home-v2 {
+  font-family: var(--font-body2);
+  color: #f2f5ec;
+  background-color: #0a120e;
+}
+.home-v2 h1,
+.home-v2 h2,
+.home-v2 h3 {
+  font-family: var(--font-bigs);
+  letter-spacing: 0;
+}
+.home-v2 :focus-visible {
+  outline: 2px solid #4cbf02;
+  outline-offset: 2px;
+}
+.home-v2 ::selection {
+  background: #4cbf02;
+  color: #0a120e;
+}
+/* horizontal scrollers (date strip) without a visible scrollbar */
+.home-v2 .no-scrollbar { scrollbar-width: none; }
+.home-v2 .no-scrollbar::-webkit-scrollbar { display: none; }

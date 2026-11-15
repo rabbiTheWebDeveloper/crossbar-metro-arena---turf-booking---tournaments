@@ -253,7 +253,7 @@ export default function BookingPage() {
     const weekendLabel = weekendDaysLabel(pricing.weekendDays);
 
     const guidelines = [
-        { icon: Clock, title: '12 Slots Daily (90 Mins Each)', text: 'Fixed 90-minute matches from 06:00 AM to 12:00 AM Midnight. No overlapping games. One slot, one team.' },
+        { icon: Clock, title: '12 Slots Daily (90 Mins Each)', text: 'Fixed 90-minute matches from 06:30 AM to 12:30 AM. No overlapping games. One slot, one team.' },
         { icon: Shield, title: `৳${advance.toLocaleString()} Advance or Full Payment`, text: `Secure your slot online with bKash, Nagad, or card via SSLCommerz. Choose a ৳${advance.toLocaleString()} advance (pay the rest at the counter) or 100% online.` },
         { icon: Calendar, title: `${windowDays}-Day Advance Booking Window`, text: `Pick any match date up to ${windowDays} days in advance. Weekend rates (${weekendLabel}) apply automatically.` },
         { icon: Footprints, title: 'Turf Footwear Guidelines', text: 'Turf shoes (TF) or rubber molded studs (AG) required. Metal studs strictly forbidden on 50mm shock-pad turf.' }
@@ -267,7 +267,7 @@ export default function BookingPage() {
                 eyebrowIcon={Zap}
                 title="Reserve Your"
                 highlight="90-Min Turf Slot"
-                description={`12 slots daily, 90 minutes each, from 6 AM to 12 AM. Pick any date up to ${windowDays} days ahead. Pay online with bKash, Nagad, or card via SSLCommerz (৳${advance.toLocaleString()} advance or full).`}
+                description={`12 slots daily, 90 minutes each, from 6:30 AM to 12:30 AM. Pick any date up to ${windowDays} days ahead. Pay online with bKash, Nagad, or card via SSLCommerz (৳${advance.toLocaleString()} advance or full).`}
                 stats={[
                     { label: 'Schedule', value: '12 Slots / Day', icon: Clock },
                     { label: 'Match Time', value: '90 Mins', icon: Zap },

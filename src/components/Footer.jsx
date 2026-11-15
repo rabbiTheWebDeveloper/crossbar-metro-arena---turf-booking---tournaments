@@ -1,11 +1,14 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { Phone, Mail, Train, ArrowUp, Smartphone, MessageSquare, Facebook, Instagram, Clock, MapPin } from 'lucide-react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
+import { usesMainDesign } from './home/routes';
 
 export const Footer = () => {
+    const pathname = usePathname();
     const { setShowInstallModal, siteSettings, pricing, isVisitor, isAdmin, isInvestor } = useArena();
     const scrollToTop = () => {
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -18,12 +21,15 @@ export const Footer = () => {
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor Dashboard (monthly reports)' }] : [])
     ];
 
+    // Pages in the main design render their own footer (src/components/home/InfoSections.jsx)
+    if (usesMainDesign(pathname)) return null;
+
     return (<footer className="bg-[#05080b] border-t border-white/10 pt-12 pb-24 md:pb-8 text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-white/10">
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-block" aria-label="Crossbar Metro Arena home">
-              <CrossbarLogo size="lg"/>
+              <CrossbarLogo variant="stacked" size="md"/>
             </Link>
             <p className="text-slate-400 text-xs sm:text-sm max-w-sm leading-relaxed mt-2">
               {siteSettings.businessName || 'Crossbar Metro Arena'} is a floodlit outdoor football turf beside Uttara Metro Center, Dhaka. 12 daily 90-minute slots, bookable up to {pricing.bookingWindowDays || 60} days ahead with a ৳{Number(pricing.advanceAmount || 0).toLocaleString()} online advance.

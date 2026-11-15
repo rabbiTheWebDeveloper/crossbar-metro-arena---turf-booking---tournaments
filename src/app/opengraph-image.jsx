@@ -42,7 +42,7 @@ export default async function OpenGraphImage() {
             {logo && <img src={logo} width={96} height={96} alt="" style={{ borderRadius: 24 }}/>}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>{siteConfig.name}</div>
-              <div style={{ fontSize: 22, color: '#86efac', letterSpacing: 4, textTransform: 'uppercase' }}>{siteConfig.domain}</div>
+              <div style={{ fontSize: 22, color: '#95e05a', letterSpacing: 4, textTransform: 'uppercase' }}>{siteConfig.domain}</div>
             </div>
           </div>
 
@@ -57,7 +57,7 @@ export default async function OpenGraphImage() {
 
           <div style={{ display: 'flex', gap: 14 }}>
             {['Book a slot', '7v7 tournaments', 'Match results', 'MRT Line-6'].map(label => (
-              <div key={label} style={{ display: 'flex', padding: '12px 22px', borderRadius: 999, border: '2px solid rgba(76,191,2,0.6)', background: 'rgba(76,191,2,0.12)', color: '#bbf7d0', fontSize: 22, fontWeight: 700 }}>
+              <div key={label} style={{ display: 'flex', padding: '12px 22px', borderRadius: 999, border: '2px solid rgba(76,191,2,0.6)', background: 'rgba(76,191,2,0.12)', color: '#c2ee96', fontSize: 22, fontWeight: 700 }}>
                 {label}
               </div>
             ))}

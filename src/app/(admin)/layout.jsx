@@ -156,7 +156,7 @@ export default function AdminLayout({ children, }) {
       {/* MOBILE TOP BAR */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-[#080d12]/95 backdrop-blur-md border-b border-emerald-500/20 sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-2 group">
-          <CrossbarLogo size="sm" showSubtitle={false}/>
+          <CrossbarLogo size="sm"/>
           <span className="text-[11px] font-mono tracking-widest text-emerald-400 uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
             ADMIN
           </span>
@@ -179,8 +179,8 @@ export default function AdminLayout({ children, }) {
         <div className="overflow-y-auto pr-1">
           <div className="mb-6 px-2">
             <Link href="/" className="flex flex-col group">
-              <CrossbarLogo size="sm" showSubtitle={false}/>
-              <div className="pl-10 -mt-1 flex items-center gap-1.5">
+              <CrossbarLogo variant="stacked" size="sm"/>
+              <div className="mt-2 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
                 <span className="text-[10px] font-mono tracking-[0.2em] text-lime-400 uppercase font-black">
                   ADMIN PANEL

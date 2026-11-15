@@ -7,6 +7,14 @@ export const dynamic = 'force-dynamic';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const nonNeg = (v) => Math.max(0, Number(v) || 0);
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** "18:30" -> "06:30 PM" */
+const to12 = (hhmm) => {
+    const [h, m] = String(hhmm || '00:00').split(':').map(Number);
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${String(h12).padStart(2, '0')}:${String(m || 0).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
+const displayRange = (start, end) => `${to12(start)} – ${to12(end)}`;
 
 export default function AdminSlotPricingPage() {
     const { pricing, handleSavePricing, isLoadingData } = useArena();
@@ -41,6 +49,16 @@ export default function AdminSlotPricingPage() {
         touch();
         setSlotPrices(prev => prev.map(item => (item.slotNumber === slotNum ? { ...item, [field]: val } : item)));
     };
+    /** Kick-off / final-whistle time of a slot; the label shown to customers follows automatically. */
+    const handleUpdateTime = (slotNum, field, val) => {
+        touch();
+        setSlotPrices(prev => prev.map(item => {
+            if (item.slotNumber !== slotNum) return item;
+            const next = { ...item, [field]: val };
+            if (HHMM_RE.test(next.startTime) && HHMM_RE.test(next.endTime)) next.displayTime = displayRange(next.startTime, next.endTime);
+            return next;
+        }));
+    };
     const toggleWeekendDay = (day) => {
         touch();
         setWeekendDays(prev => (prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]));
@@ -50,14 +68,27 @@ export default function AdminSlotPricingPage() {
         e.preventDefault();
         if (isSubmitting) return;
         setError('');
-        const badSlot = slotPrices.find(s => Number(s.weekdayPrice) < 0 || Number(s.weekendPrice) < 0 || Number.isNaN(Number(s.weekdayPrice)) || Number.isNaN(Number(s.weekendPrice)));
+        const priceFields = ['weekdayPrice', 'weekendPrice', 'weekdayActualPrice', 'weekendActualPrice'];
+        const badSlot = slotPrices.find(s => priceFields.some(f => Number(s[f] || 0) < 0 || Number.isNaN(Number(s[f] || 0))));
         if (badSlot) { setError(`Slot ${badSlot.slotNumber}: prices must be numbers of ৳0 or more.`); return; }
+        const badTime = slotPrices.find(s => !HHMM_RE.test(String(s.startTime || '')) || !HHMM_RE.test(String(s.endTime || '')));
+        if (badTime) { setError(`Slot ${badTime.slotNumber}: enter a start and end time.`); return; }
+        // An "actual" price below the offer price would show customers a price rise as a discount
+        const upsideDown = slotPrices.find(s => (nonNeg(s.weekdayActualPrice) > 0 && nonNeg(s.weekdayActualPrice) < nonNeg(s.weekdayPrice)) || (nonNeg(s.weekendActualPrice) > 0 && nonNeg(s.weekendActualPrice) < nonNeg(s.weekendPrice)));
+        if (upsideDown) { setError(`Slot ${upsideDown.slotNumber}: the actual price is lower than the offer price. Set it to 0 (no offer) or raise it.`); return; }
         if ([advanceAmount, holdMinutes, bookingWindowDays, cancellationHours].some(v => Number.isNaN(Number(v)) || Number(v) < 0)) { setError('Rules must be numbers of 0 or more.'); return; }
         if (holdMinutes < 1) { setError('Slot hold must be at least 1 minute.'); return; }
         if (bookingWindowDays < 1) { setError('Booking window must be at least 1 day.'); return; }
         setIsSubmitting(true);
         const res = await handleSavePricing({
-            slotPrices: slotPrices.map(s => ({ ...s, weekdayPrice: nonNeg(s.weekdayPrice), weekendPrice: nonNeg(s.weekendPrice) })),
+            slotPrices: slotPrices.map(s => ({
+                ...s,
+                displayTime: displayRange(s.startTime, s.endTime),
+                weekdayPrice: nonNeg(s.weekdayPrice),
+                weekendPrice: nonNeg(s.weekendPrice),
+                weekdayActualPrice: nonNeg(s.weekdayActualPrice),
+                weekendActualPrice: nonNeg(s.weekendActualPrice)
+            })),
             advanceAmount: nonNeg(advanceAmount),
             holdMinutes: nonNeg(holdMinutes),
             bookingWindowDays: nonNeg(bookingWindowDays),
@@ -77,6 +108,8 @@ export default function AdminSlotPricingPage() {
 
     const weekdayLabel = DAY_NAMES.filter(d => !weekendDays.includes(d)).map(d => d.slice(0, 3)).join(', ') || 'none';
     const weekendLabel = weekendDays.map(d => d.slice(0, 3)).join(', ') || 'none';
+    // Biggest saving on the list, shown to customers as "up to ৳X off"
+    const maxDiscount = slotPrices.reduce((max, s) => Math.max(max, nonNeg(s.weekdayActualPrice) - nonNeg(s.weekdayPrice), nonNeg(s.weekendActualPrice) - nonNeg(s.weekendPrice)), 0);
 
     return (<div className="space-y-6 animate-fade-in font-sans">
 
@@ -84,10 +117,10 @@ export default function AdminSlotPricingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
         <div>
           <h2 className="text-xl font-black text-white font-display">
-            24 Slot Pricing Matrix &amp; Turf Rules
+Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
           </h2>
           <p className="text-xs text-slate-400">
-            Customize morning, prime evening, and weekend rates for all 12 operational slots.
+            Set the kick-off times and, for weekdays and weekends, the actual price and the offer price of all 12 slots. Customers pay the offer price.
           </p>
         </div>
 
@@ -171,9 +204,17 @@ export default function AdminSlotPricingPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <Clock className="w-4 h-4 text-lime-400"/>
-              <span>12 Slot Schedule Matrix (All 24 Rates)</span>
+              <span>12 Slot Schedule &amp; Price List (per 90 minutes)</span>
             </h3>
             <span className="text-[11px] font-mono text-slate-500">Weekday: {weekdayLabel} · Weekend: {weekendLabel}</span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-[#080d12] border border-white/5 text-[12px] text-slate-400 leading-relaxed">
+            <strong className="text-slate-200">Offer price</strong> is what the customer is charged. <strong className="text-slate-200">Actual price</strong> is the regular rate: when it is higher, the booking pages show it struck through next to the offer price. Set the actual price to 0 (or equal to the offer price) to end the offer for that slot.
+            {maxDiscount > 0
+                ? <span className="block mt-1 text-lime-300 font-semibold">Launch offer is live: customers see &quot;up to ৳{maxDiscount.toLocaleString()} off&quot;.</span>
+                : <span className="block mt-1 text-slate-500">No offer is running: only one price is shown per slot.</span>}
+            <span className="block mt-1 text-slate-500">Changing a time applies to new bookings; existing bookings keep the time they were made for.</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -181,10 +222,13 @@ export default function AdminSlotPricingPage() {
               <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
                 <tr>
                   <th className="py-2.5 px-3">Slot</th>
-                  <th className="py-2.5 px-3">Time Window</th>
+                  <th className="py-2.5 px-3">Start</th>
+                  <th className="py-2.5 px-3">End</th>
                   <th className="py-2.5 px-3">Period</th>
-                  <th className="py-2.5 px-3">Weekday Price (৳)</th>
-                  <th className="py-2.5 px-3">Weekend Price (৳)</th>
+                  <th className="py-2.5 px-3">Weekday Actual (৳)</th>
+                  <th className="py-2.5 px-3 text-lime-300">Weekday Offer (৳)</th>
+                  <th className="py-2.5 px-3">Weekend Actual (৳)</th>
+                  <th className="py-2.5 px-3 text-lime-300">Weekend Offer (৳)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 font-mono">
@@ -192,17 +236,27 @@ export default function AdminSlotPricingPage() {
                     <td className="py-2 px-3 font-bold text-white font-sans">
                       Slot {slot.slotNumber}
                     </td>
-                    <td className="py-2 px-3 text-slate-300">
-                      {slot.displayTime}
+                    <td className="py-2 px-3">
+                      <input type="time" step={900} value={slot.startTime} onChange={e => handleUpdateTime(slot.slotNumber, 'startTime', e.target.value)} aria-label={`Slot ${slot.slotNumber} start time`} className="bg-[#080d12] border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs [color-scheme:dark]"/>
+                    </td>
+                    <td className="py-2 px-3">
+                      <input type="time" step={900} value={slot.endTime === '24:00' ? '00:00' : slot.endTime} onChange={e => handleUpdateTime(slot.slotNumber, 'endTime', e.target.value)} aria-label={`Slot ${slot.slotNumber} end time`} className="bg-[#080d12] border border-white/10 rounded-lg px-2 py-1 text-white font-mono text-xs [color-scheme:dark]"/>
+                      <div className="text-[10px] text-slate-500 font-sans mt-0.5 whitespace-nowrap">{slot.displayTime}</div>
                     </td>
                     <td className="py-2 px-3 uppercase text-[11px] text-slate-400 font-sans">
                       {slot.period}
                     </td>
                     <td className="py-2 px-3">
-                      <input type="number" min={0} value={slot.weekdayPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekdayPrice', Number(e.target.value))} className="w-28 bg-[#080d12] border border-white/10 rounded-lg px-2.5 py-1 text-white font-mono text-xs"/>
+                      <input type="number" min={0} step={50} value={slot.weekdayActualPrice ?? 0} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekdayActualPrice', Number(e.target.value))} aria-label={`Slot ${slot.slotNumber} weekday actual price`} className="w-24 bg-[#080d12] border border-white/10 rounded-lg px-2.5 py-1 text-slate-300 font-mono text-xs"/>
                     </td>
                     <td className="py-2 px-3">
-                      <input type="number" min={0} value={slot.weekendPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekendPrice', Number(e.target.value))} className="w-28 bg-[#080d12] border border-white/10 rounded-lg px-2.5 py-1 text-lime-400 font-bold font-mono text-xs"/>
+                      <input type="number" min={0} step={50} value={slot.weekdayPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekdayPrice', Number(e.target.value))} aria-label={`Slot ${slot.slotNumber} weekday offer price`} className="w-24 bg-[#080d12] border border-lime-400/30 rounded-lg px-2.5 py-1 text-lime-400 font-bold font-mono text-xs"/>
+                    </td>
+                    <td className="py-2 px-3">
+                      <input type="number" min={0} step={50} value={slot.weekendActualPrice ?? 0} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekendActualPrice', Number(e.target.value))} aria-label={`Slot ${slot.slotNumber} weekend actual price`} className="w-24 bg-[#080d12] border border-white/10 rounded-lg px-2.5 py-1 text-slate-300 font-mono text-xs"/>
+                    </td>
+                    <td className="py-2 px-3">
+                      <input type="number" min={0} step={50} value={slot.weekendPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekendPrice', Number(e.target.value))} aria-label={`Slot ${slot.slotNumber} weekend offer price`} className="w-24 bg-[#080d12] border border-lime-400/30 rounded-lg px-2.5 py-1 text-lime-400 font-bold font-mono text-xs"/>
                     </td>
                   </tr>))}
               </tbody>
@@ -217,7 +271,7 @@ export default function AdminSlotPricingPage() {
           {dirty && !isSubmitting && <span className="text-[11px] text-amber-300 font-mono">Unsaved changes</span>}
           <button type="submit" disabled={isSubmitting} className="px-6 py-3 rounded-2xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-lime-400/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
             <Save className="w-4 h-4"/>
-            <span>{isSubmitting ? 'Saving…' : 'Save 24-Slot Matrix & Rules'}</span>
+            <span>{isSubmitting ? 'Saving…' : 'Save Price List & Rules'}</span>
           </button>
         </div>
 
