@@ -1,103 +1,66 @@
 import React from 'react';
-export const CrossbarLogo = ({ className = '', size = 'responsive', variant = 'full', showSubtitle = true }) => {
-    // Dimensions based on size
-    const sizes = {
-        sm: { mark: 32 },
-        responsive: { mark: 40 },
-        md: { mark: 44 },
-        lg: { mark: 60 },
-        xl: { mark: 88 }
-    };
-    const { mark } = sizes[size];
-    // The Goal + Ball + Speed Streaks + 3D Turf perspective emblem
-    const LogoMark = (<svg width={mark} height={mark * 0.88} viewBox="0 0 200 170" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 transition-transform duration-300 hover:scale-105" role="img" aria-label="Crossbar Metro Arena Emblem">
-      <defs>
-        {/* Pitch green gradient */}
-        <linearGradient id="grassLight" x1="100" y1="80" x2="100" y2="150" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#95e05a"/>
-          <stop offset="1" stopColor="#398f02"/>
-        </linearGradient>
-        <linearGradient id="grassDark" x1="100" y1="80" x2="100" y2="150" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#4cbf02"/>
-          <stop offset="1" stopColor="#2d7102"/>
-        </linearGradient>
-        <linearGradient id="streakGreen" x1="100" y1="40" x2="100" y2="90" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#95e05a" stopOpacity="0.9"/>
-          <stop offset="1" stopColor="#2d7102" stopOpacity="0.2"/>
-        </linearGradient>
-        <filter id="glowBall" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#4cbf02" floodOpacity="0.5"/>
-        </filter>
-      </defs>
 
-      {/* Goal Post Frame (Black & White border) */}
-      <path d="M 46 95 L 46 28 L 154 28 L 154 95" stroke="#0F172A" strokeWidth="9" strokeLinecap="square" strokeLinejoin="miter"/>
-      <path d="M 46 95 L 46 28 L 154 28 L 154 95" stroke="#E2E8F0" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter"/>
+/**
+ * The Crossbar Metro Arena logo, drawn from the brand artwork in public/brand.
+ *
+ * The site is dark, so these files are the logo recoloured for dark surfaces: the white background
+ * is transparent and the black ink (goal frame, wordmark) is white; the greens and the ball are the
+ * original ones. The untouched logo on white is public/brand/crossbar-metro-arena-logo.png.
+ * `w` / `h` are the files' pixel sizes and only reserve the right aspect ratio.
+ */
+const ART = {
+    mark: { src: '/brand/logo-mark-dark.webp', w: 520, h: 223 },
+    wordmark: { src: '/brand/logo-wordmark-dark.webp', w: 640, h: 152 },
+    stacked: { src: '/brand/logo-full-dark.webp', w: 900, h: 601 }
+};
 
-      {/* 3D Perspective Turf Field */}
-      {/* Stripe 1 (Far Left) */}
-      <polygon points="18,145 52,88 72,88 48,145" fill="url(#grassDark)"/>
-      {/* Stripe 2 */}
-      <polygon points="48,145 72,88 88,88 78,145" fill="url(#grassLight)"/>
-      {/* Stripe 3 (Center Left) */}
-      <polygon points="78,145 88,88 100,88 98,145" fill="url(#grassDark)"/>
-      {/* Stripe 4 (Center Right) */}
-      <polygon points="98,145 100,88 112,88 122,145" fill="url(#grassLight)"/>
-      {/* Stripe 5 */}
-      <polygon points="122,145 112,88 128,88 152,145" fill="url(#grassDark)"/>
-      {/* Stripe 6 (Far Right) */}
-      <polygon points="152,145 128,88 148,88 182,145" fill="url(#grassLight)"/>
+/** Heights per size. `lockup`: emblem + wordmark side by side (headers). `stacked`: the full logo. */
+const SIZES = {
+    sm: { mark: 'h-[30px]', wordmark: 'h-[27px]', stacked: 'h-[72px]' },
+    // bars that also carry buttons on a phone (navbar, auth and player headers)
+    responsive: { mark: 'h-7 sm:h-10', wordmark: 'h-6 sm:h-9', stacked: 'h-20 sm:h-24' },
+    // the main design's header, where the logo has the phone bar almost to itself
+    header: { mark: 'h-8 sm:h-10', wordmark: 'h-[29px] sm:h-9', stacked: 'h-20 sm:h-24' },
+    md: { mark: 'h-11', wordmark: 'h-10', stacked: 'h-28' },
+    lg: { mark: 'h-[52px]', wordmark: 'h-[46px]', stacked: 'h-36' },
+    xl: { mark: 'h-[72px]', wordmark: 'h-16', stacked: 'h-48' }
+};
 
-      {/* Field Boundary Base outline */}
-      <polygon points="18,145 52,88 148,88 182,145" fill="none" stroke="#4cbf02" strokeWidth="1.5"/>
+const Art = ({ part, heightClass, className = '', alt = '' }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+        src={ART[part].src}
+        width={ART[part].w}
+        height={ART[part].h}
+        alt={alt}
+        decoding="async"
+        draggable={false}
+        className={`w-auto max-w-none shrink-0 ${heightClass} ${className}`}
+    />
+);
 
-      {/* Turf Center Circle & Center Line in perspective */}
-      <line x1="100" y1="88" x2="100" y2="145" stroke="#FFFFFF" strokeWidth="2.5" strokeOpacity="0.95"/>
-      <ellipse cx="100" cy="94" rx="22" ry="7" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeOpacity="0.9"/>
+/**
+ *   variant: 'full'    emblem + wordmark side by side, for headers and bars (default)
+ *            'stacked' the logo as designed (emblem above the wordmark), where there is room
+ *            'mark'    the emblem alone
+ *   size:    'sm' | 'responsive' | 'header' | 'md' | 'lg' | 'xl'
+ *   compact: in the side-by-side variant, show only the emblem on phones (for crowded bars)
+ */
+export const CrossbarLogo = ({ className = '', size = 'responsive', variant = 'full', compact = false }) => {
+    const heights = SIZES[size] || SIZES.responsive;
+    const label = 'Crossbar Metro Arena';
 
-      {/* Speed Streaks shooting down from the ball */}
-      <polygon points="94,44 95,84 92,84" fill="#4cbf02"/>
-      <polygon points="99,44 101,96 99,96" fill="#95e05a"/>
-      <polygon points="106,44 107,84 104,84" fill="#4cbf02"/>
-
-      {/* Soccer Ball hitting the Crossbar */}
-      <g filter="url(#glowBall)">
-        <circle cx="100" cy="27" r="16" fill="#FFFFFF" stroke="#0F172A" strokeWidth="3"/>
-        {/* Ball Pentagons */}
-        <polygon points="100,21 106,25 104,31 96,31 94,25" fill="#0F172A"/>
-        <line x1="100" y1="21" x2="100" y2="13" stroke="#0F172A" strokeWidth="2"/>
-        <line x1="106" y1="25" x2="114" y2="22" stroke="#0F172A" strokeWidth="2"/>
-        <line x1="104" y1="31" x2="111" y2="38" stroke="#0F172A" strokeWidth="2"/>
-        <line x1="96" y1="31" x2="89" y2="38" stroke="#0F172A" strokeWidth="2"/>
-        <line x1="94" y1="25" x2="86" y2="22" stroke="#0F172A" strokeWidth="2"/>
-      </g>
-    </svg>);
     if (variant === 'mark') {
-        return <div className={`inline-flex items-center ${className}`}>{LogoMark}</div>;
+        return <span className={`inline-flex items-center select-none ${className}`}><Art part="mark" heightClass={heights.mark} alt={label} /></span>;
     }
-    return (<div className={`inline-flex items-center gap-2 sm:gap-2.5 select-none ${className}`}>
-      {LogoMark}
-
-      <div className="flex flex-col">
-        {/* Brand Main Wordmark */}
-        <div className="flex items-center tracking-wider font-extrabold text-white text-base sm:text-lg md:text-xl leading-none font-display uppercase">
-          <span>CROSS</span>
-          <span className="text-emerald-400">BAR</span>
-        </div>
-
-        {/* METRO with lateral green divider rules */}
-        <div className="flex items-center gap-1 sm:gap-1.5 my-0.5">
-          <span className="h-[2px] w-2 sm:w-4 bg-emerald-400"></span>
-          <span className="text-[11px] sm:text-[12px] md:text-xs font-black tracking-[0.2em] sm:tracking-[0.25em] text-emerald-400 uppercase font-mono">
-            METRO
-          </span>
-          <span className="h-[2px] w-2 sm:w-4 bg-emerald-400"></span>
-        </div>
-
-        {/* ARENA spaced */}
-        {showSubtitle && (<div className="text-[8px] sm:text-[10px] md:text-[11px] font-bold tracking-[0.28em] sm:tracking-[0.35em] text-slate-300 uppercase leading-none pl-0.5 hidden xs:block">
-            ARENA · DHAKA
-          </div>)}
-      </div>
-    </div>);
+    if (variant === 'stacked') {
+        return <span className={`inline-flex items-center select-none ${className}`}><Art part="stacked" heightClass={heights.stacked} alt={label} /></span>;
+    }
+    return (
+        <span className={`inline-flex items-center gap-2 sm:gap-2.5 select-none ${className}`} role="img" aria-label={label}>
+            <Art part="mark" heightClass={heights.mark} />
+            {/* on the narrowest phones the emblem alone keeps the bar from overflowing */}
+            <Art part="wordmark" heightClass={heights.wordmark} className={compact ? 'max-sm:hidden' : 'max-[339px]:hidden'} />
+        </span>
+    );
 };

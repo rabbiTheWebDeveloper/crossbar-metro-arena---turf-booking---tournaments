@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ShoppingBag, User, LogOut } from 'lucide-react';
 import { useArena, cleanPhone } from '../../context/ArenaContext';
 import { isStandaloneDisplay } from '../Navbar';
-import { Container, Button, GoalMark, scrollToId } from './ui';
+import { CrossbarLogo } from '../CrossbarLogo';
+import { Container, Button, scrollToId } from './ui';
 
 /** In-page sections, in the order of the design's navigation. */
 const SECTION_LINKS = [
@@ -72,24 +73,22 @@ export function HomeHeader() {
     return (
         <header className={`sticky top-0 z-40 transition-colors duration-200 ${scrolled || menuOpen ? 'bg-ink/95 backdrop-blur-md border-b border-hairline' : 'bg-transparent border-b border-transparent'}`}>
             <Container className="flex h-[76px] lg:h-[108px] items-center justify-between gap-4">
-                <Link href="/" className="flex items-center gap-3 shrink-0" aria-label="Crossbar Metro Arena home">
-                    <GoalMark size={44} />
-                    <span className="flex flex-col leading-none">
-                        <span className="font-bigs text-[30px] font-bold uppercase tracking-[0.01em] text-paper">Crossbar</span>
-                        <span className="font-code text-[11px] tracking-[0.08em] text-paper/60 mt-1">Metro Arena · Uttara</span>
-                    </span>
+                <Link href="/" className="flex items-center shrink-0" aria-label="Crossbar Metro Arena home">
+                    <CrossbarLogo size="header" />
                 </Link>
 
-                <nav className="hidden lg:flex items-center gap-9" aria-label="Sections">
+                {/* the section links need a wide bar; below it they live in the menu */}
+                <nav className="hidden xl:flex items-center gap-6 min-[1400px]:gap-9" aria-label="Sections">
                     {SECTION_LINKS.map(link => (
-                        <a key={link.id} href={sectionHref(link.id)} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="text-[15px] font-medium text-paper/90 hover:text-neon transition-colors">
+                        <a key={link.id} href={sectionHref(link.id)} onClick={(e) => { e.preventDefault(); goSection(link.id); }} className="whitespace-nowrap text-[15px] font-medium text-paper/90 hover:text-neon transition-colors">
                             {link.label}
                         </a>
                     ))}
                 </nav>
 
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {telHref ? <a href={telHref} className="hidden xl:inline font-code text-[15px] text-paper hover:text-neon transition-colors mr-2">{phoneLabel}</a> : null}
+                    {/* the hotline shows once the bar has room for it; a signed-in name takes more of that room */}
+                    {telHref ? <a href={telHref} className={`hidden ${isVisitor ? 'min-[1400px]:inline' : 'min-[1520px]:inline'} whitespace-nowrap font-code text-[15px] text-paper hover:text-neon transition-colors mr-2`}>{phoneLabel}</a> : null}
 
                     <button type="button" onClick={() => setShowCartDrawer(true)} className="relative hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-xl border border-hairline text-paper/80 hover:text-neon hover:border-neon/50 transition-colors cursor-pointer" aria-label={`Shop bag, ${cartCount} items`}>
                         <ShoppingBag className="w-[18px] h-[18px]" />
@@ -97,7 +96,7 @@ export function HomeHeader() {
                     </button>
 
                     {isVisitor ? (
-                        <Link href="/login" className="hidden md:inline-flex h-11 items-center gap-2 px-4 rounded-xl border border-hairline text-[14px] font-medium text-paper/90 hover:text-neon hover:border-neon/50 transition-colors">
+                        <Link href="/login" className="hidden md:inline-flex h-11 items-center gap-2 px-4 whitespace-nowrap rounded-xl border border-hairline text-[14px] font-medium text-paper/90 hover:text-neon hover:border-neon/50 transition-colors">
                             <User className="w-4 h-4" />
                             <span>Log in</span>
                         </Link>
@@ -119,7 +118,7 @@ export function HomeHeader() {
             {menuOpen ? (
                 <div className="border-t border-hairline bg-ink max-h-[calc(100dvh-76px)] overflow-y-auto">
                     <Container className="pt-6 pb-28 md:pb-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="lg:hidden">
+                        <div className="xl:hidden">
                             <div className="font-code text-[12px] uppercase tracking-[0.18em] text-paper/50 mb-3">{onHome ? 'On this page' : 'Home page'}</div>
                             <ul className="space-y-1">
                                 {SECTION_LINKS.map(link => (

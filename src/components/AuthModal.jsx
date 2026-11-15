@@ -100,7 +100,7 @@ export const AuthModal = () => {
 
         <div className="p-6 text-center border-b border-white/10 bg-gradient-to-b from-slate-900 to-[#0b1016]">
           <div className="flex justify-center mb-2">
-            <CrossbarLogo size="responsive"/>
+            <CrossbarLogo variant="stacked" size="sm"/>
           </div>
           <h3 id="auth-modal-title" className="text-xl font-black text-white font-display uppercase tracking-wide">
             {activeTab === 'login' && 'Account Login'}

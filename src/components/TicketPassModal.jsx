@@ -73,7 +73,7 @@ export const TicketPassModal = ({ booking, onClose }) => {
         </button>
 
         <div className="bg-gradient-to-b from-emerald-950 via-[#0e171f] to-[#0b1016] p-4 sm:p-6 text-center border-b border-white/10 relative">
-          <div className="flex justify-center mb-2"><CrossbarLogo size="responsive"/></div>
+          <div className="flex justify-center mb-2"><CrossbarLogo variant="stacked" size="sm"/></div>
           <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border text-[12px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${header.cls}`}>
             <HeaderIcon className="w-3.5 h-3.5"/>
             <span>{header.label}</span>

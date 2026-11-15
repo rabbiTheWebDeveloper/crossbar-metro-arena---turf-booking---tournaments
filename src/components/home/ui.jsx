@@ -6,7 +6,7 @@ export const Container = ({ className = '', children, ...rest }) => (
     <div className={`mx-auto w-full max-w-[1360px] px-5 sm:px-8 lg:px-10 ${className}`} {...rest}>{children}</div>
 );
 
-/** Small mono label above a heading. `tone`: 'neon' on dark sections, 'pitch' on light ones. */
+/** Small mono label above a heading. `tone`: 'neon' (logo green) on dark sections, 'pitch' (darker green) on light ones. */
 export const Eyebrow = ({ children, tone = 'neon', className = '' }) => (
     <div className={`font-code text-[12px] uppercase tracking-[0.18em] ${tone === 'pitch' ? 'text-pitch' : 'text-neon'} ${className}`}>{children}</div>
 );
@@ -37,16 +37,6 @@ export function Button({ variant = 'neon', size = 'md', href, external, classNam
     if (href) return <Link href={href} className={cls} {...rest}>{children}</Link>;
     return <button type="button" className={cls} {...rest}>{children}</button>;
 }
-
-/** The goal-frame mark from the design's logo. */
-export const GoalMark = ({ size = 44 }) => (
-    <span className="inline-flex items-center justify-center rounded-[10px] bg-neon shrink-0" style={{ width: size, height: size }} aria-hidden="true">
-        <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 22 22" fill="none">
-            <path d="M2 20V3h18v17" stroke="#0a120e" strokeWidth="2.6" strokeLinejoin="miter" />
-            <path d="M6.5 20V7.5h9V20" stroke="#0a120e" strokeWidth="2" strokeLinejoin="miter" />
-        </svg>
-    </span>
-);
 
 /** Smooth-scroll to a section of the home page. */
 export function scrollToId(id) {

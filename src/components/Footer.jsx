@@ -29,7 +29,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-white/10">
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-block" aria-label="Crossbar Metro Arena home">
-              <CrossbarLogo size="lg"/>
+              <CrossbarLogo variant="stacked" size="md"/>
             </Link>
             <p className="text-slate-400 text-xs sm:text-sm max-w-sm leading-relaxed mt-2">
               {siteSettings.businessName || 'Crossbar Metro Arena'} is a floodlit outdoor football turf beside Uttara Metro Center, Dhaka. 12 daily 90-minute slots, bookable up to {pricing.bookingWindowDays || 60} days ahead with a ৳{Number(pricing.advanceAmount || 0).toLocaleString()} online advance.

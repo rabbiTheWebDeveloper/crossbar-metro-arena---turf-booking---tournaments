@@ -65,7 +65,7 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
 
         <div className="text-center max-w-4xl mx-auto">
           <div className="flex justify-center mb-4 sm:mb-6 page-enter float-slow">
-            <CrossbarLogo size="lg"/>
+            <CrossbarLogo variant="stacked" size="lg"/>
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tight uppercase font-display leading-[1.05] mb-4 sm:mb-6 page-enter-2">

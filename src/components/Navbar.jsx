@@ -130,7 +130,8 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-6">
             <Link href="/" className="hover:opacity-95 transition-opacity" aria-label="Crossbar Metro Arena home">
-              <CrossbarLogo size="responsive"/>
+              {/* signed in, the account chip needs the room on a phone, so the emblem stands alone there */}
+              <CrossbarLogo size="responsive" compact={!isVisitor}/>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Main navigation">
@@ -164,9 +165,9 @@ export const Navbar = () => {
                 <button type="button" onClick={() => logout()} className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Log out" aria-label="Log out">
                   <LogOut className="w-3.5 h-3.5"/>
                 </button>
-              </div>) : (<Link href="/login" className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5">
+              </div>) : (<Link href="/login" className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap" aria-label="Log in">
                 <User className="w-3.5 h-3.5 text-emerald-400"/>
-                <span>Log In</span>
+                <span className="max-[399px]:hidden">Log In</span>
               </Link>)}
 
             <Link href="/booking" className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20">

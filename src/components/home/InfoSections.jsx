@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { MapPin, Plus, Minus } from 'lucide-react';
 import { useArena, cleanPhone } from '../../context/ArenaContext';
 import { BOOKING_FAQ } from '../../data/faq';
+import { CrossbarLogo } from '../CrossbarLogo';
 import { Container, Eyebrow, SectionTitle, Button, scrollToId } from './ui';
 
 /** Contact details shared by the location block, the FAQ aside and the footer. */
@@ -31,7 +32,7 @@ function MapTile({ href }) {
                 <path d="M-10 510L590 -10" stroke="#c3cdb8" strokeWidth="14" />
                 {/* the pitch */}
                 <g>
-                    <rect x="330" y="170" width="100" height="72" rx="5" fill="#1e8a4d" />
+                    <rect x="330" y="170" width="100" height="72" rx="5" fill="#2d7102" />
                     <path d="M380 170V242M330 206H430" stroke="#3aa86a" strokeWidth="1.5" />
                 </g>
             </svg>
@@ -193,8 +194,8 @@ export function HomeFooter() {
             <Container className="pt-12 pb-10">
                 <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-20">
                     <div className="max-w-[340px]">
-                        <div className="font-bigs text-[34px] font-bold uppercase leading-none text-paper">Crossbar Metro Arena</div>
-                        <p className="mt-4 text-[16px] leading-[1.5] text-paper/60">
+                        <Link href="/" className="inline-block" aria-label="Crossbar Metro Arena home"><CrossbarLogo variant="stacked" size="md" /></Link>
+                        <p className="mt-5 text-[16px] leading-[1.5] text-paper/60">
                             Floodlit football turf beside Uttara Center metro station, Dhaka. {siteSettings.openingHours ? `Open ${siteSettings.openingHours.replace(/\s*Every Day$/i, ', every day')}.` : ''}
                         </p>
                     </div>
@@ -207,7 +208,7 @@ export function HomeFooter() {
                                         <li key={link.label}>
                                             {link.href.startsWith('/')
                                                 ? <Link href={link.href} className="text-[16px] text-paper hover:text-neon transition-colors">{link.label}</Link>
-                                                : <a href={link.href} onClick={link.onClick} {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="text-[16px] text-paper hover:text-neon transition-colors break-all sm:break-normal">{link.label}</a>}
+                                                : <a href={link.href} onClick={link.onClick} {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="text-[16px] text-paper hover:text-neon transition-colors break-all lg:break-normal">{link.label}</a>}
                                         </li>
                                     ))}
                                 </ul>
