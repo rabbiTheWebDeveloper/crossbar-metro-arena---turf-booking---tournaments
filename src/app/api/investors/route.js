@@ -74,7 +74,8 @@ export async function POST(request) {
     try {
         const { denied } = await requireAdmin(request);
         if (denied) return denied;
-        const { body, error: jsonError } = await readJson(request);
+        // The admin UI posts the whole partner list (existing + new) as an array
+        const { body, error: jsonError } = await readJson(request, { allowArray: true });
         if (jsonError) return jsonError;
         const rawItems = Array.isArray(body) ? body : [body];
         if (rawItems.length === 0 || rawItems.length > 50) return badRequest('Send between 1 and 50 investors at a time.');

@@ -20,11 +20,15 @@ const isBlank = (v) => v === undefined || v === null || (typeof v === 'string' &
 
 export const badRequest = (message, extra = {}) => NextResponse.json({ error: message, ...extra }, { status: 400 });
 
-/** Parse the JSON body; a missing or invalid body becomes a 400 instead of a 500. */
-export async function readJson(request) {
+/**
+ * Parse the JSON body; a missing or invalid body becomes a 400 instead of a 500.
+ * Arrays are rejected unless the route opts in with { allowArray: true } (batch endpoints).
+ */
+export async function readJson(request, { allowArray = false } = {}) {
     try {
         const body = await request.json();
-        if (!body || typeof body !== 'object' || Array.isArray(body)) return { error: badRequest('Request body must be a JSON object.') };
+        if (!body || typeof body !== 'object') return { error: badRequest('Request body must be a JSON object.') };
+        if (Array.isArray(body) && !allowArray) return { error: badRequest('Request body must be a JSON object.') };
         return { body };
     } catch {
         return { error: badRequest('Request body must be valid JSON.') };
