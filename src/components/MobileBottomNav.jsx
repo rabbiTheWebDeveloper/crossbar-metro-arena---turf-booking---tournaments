@@ -7,11 +7,11 @@ import { Home, Trophy, Calendar, ShoppingBag, User } from 'lucide-react';
 
 export const MobileBottomNav = () => {
     const pathname = usePathname() || '/';
-    const { isVisitor, isAdmin, isInvestor, setShowAuthModal, setAuthModalInitialTab } = useArena();
+    const { isVisitor, isInvestor, canAccessAdmin, setShowAuthModal, setAuthModalInitialTab } = useArena();
     if (pathname.startsWith('/investor') || pathname.startsWith('/admin')) {
         return null;
     }
-    const meHref = isAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
+    const meHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
     const navItems = [
         { label: 'Home', href: '/', icon: Home, isActive: pathname === '/' },
         { label: 'Match Day', href: '/results', icon: Trophy, isActive: pathname === '/results' || pathname === '/matches' },

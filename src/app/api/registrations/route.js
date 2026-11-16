@@ -4,7 +4,7 @@ import { TournamentRegistration } from '@/models/TournamentRegistration';
 import { Tournament } from '@/models/Tournament';
 import { normalizeStatus, toStringList, parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 import { badRequest, readJson } from '@/lib/validate';
-import { optionalAuth, requireAdmin, cleanPhone, isObjectId, escapeRegex, rateLimit } from '@/lib/apiAuth';
+import { can, requirePermission, optionalAuth, cleanPhone, isObjectId, escapeRegex, rateLimit } from '@/lib/apiAuth';
 import { todayDhaka } from '@/lib/booking';
 
 const PAYMENT_MAP = { arena_counter: 'pay_at_turf', counter: 'pay_at_turf', bank_transfer: 'bank', bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', bank: 'bank', card: 'card', cash: 'cash', pay_at_turf: 'pay_at_turf' };
@@ -24,7 +24,7 @@ export async function GET(request) {
             const own = await TournamentRegistration.find({ captainPhone: cleanPhone(user.phone) }).sort({ createdAt: -1 });
             return NextResponse.json({ success: true, count: own.length, registrations: own.map(r => r.toJSON()) });
         }
-        if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin login required.' }, { status: user ? 403 : 401 });
+        if (!user || !can(user, 'registrations')) return NextResponse.json({ error: 'Admin login required.' }, { status: user ? 403 : 401 });
 
         const query = {};
         if (status) query.status = normalizeStatus(status);
@@ -50,7 +50,7 @@ export async function POST(request) {
         const targetId = body.id || body._id;
 
         if (isObjectId(targetId)) {
-            const { denied } = await requireAdmin(request);
+            const { denied } = await requirePermission(request, 'registrations');
             if (denied) return denied;
             const { data: edits, error: editError } = parseRegistrationEdits(body);
             if (editError) return badRequest(editError);

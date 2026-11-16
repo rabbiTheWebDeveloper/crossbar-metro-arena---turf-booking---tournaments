@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest, setAuthCookies, clearAuthCookies, signJwtToken } from '@/lib/serverAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { isObjectId } from '@/lib/apiAuth';
+import { isObjectId, loadAccess } from '@/lib/apiAuth';
 
 const tokenPayload = (user) => ({
     userId: user._id.toString(),
@@ -37,7 +37,7 @@ export async function GET(request) {
                 const res = NextResponse.json({ authenticated: false, user: null, reason: user ? 'disabled' : 'not_found' }, { status: 200 });
                 return clearAuthCookies(res);
             }
-            const userJson = user.toJSON();
+            const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
             const res = NextResponse.json({ authenticated: true, user: userJson }, { status: 200 });
             // Keep the readable user cookie in sync with the database (role/name changes)
             if (userJson.role !== authUser.role || userJson.name !== authUser.name) {
@@ -104,7 +104,7 @@ export async function PUT(request) {
         }
 
         await user.save();
-        const userJson = user.toJSON();
+        const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
         const response = NextResponse.json({ success: true, message: 'Profile updated successfully.', user: userJson });
         // Re-issue the token so the name/position in the JWT match the database
         setAuthCookies(response, signJwtToken(tokenPayload(user)), userJson);

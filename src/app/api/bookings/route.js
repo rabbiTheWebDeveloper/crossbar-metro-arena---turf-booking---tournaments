@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
-import { optionalAuth, requireAdmin, escapeRegex, cleanPhone } from '@/lib/apiAuth';
+import { can, requirePermission, optionalAuth, escapeRegex, cleanPhone } from '@/lib/apiAuth';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate, generateBookingCode,
     expireStaleHolds, findActiveBooking, statusFromPayment, publicBookingView, todayDhaka, addDays, isIsoDate
@@ -20,7 +20,8 @@ export async function GET(request) {
         await connectToDatabase();
         await expireStaleHolds();
         const user = await optionalAuth(request);
-        const isAdmin = user?.role === 'admin';
+        // The full list (names, phones, payments) is for the bookings desk and for the financial report
+        const isAdmin = can(user, ['bookings', 'finance']);
         const { searchParams } = new URL(request.url);
         const date = searchParams.get('date');
         const month = searchParams.get('month');
@@ -86,7 +87,7 @@ function toJson(b) {
  */
 export async function POST(request) {
     try {
-        const { user, denied } = await requireAdmin(request);
+        const { user, denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
         await connectToDatabase();
         await expireStaleHolds();

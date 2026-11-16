@@ -6,7 +6,7 @@ import { Setting } from '@/models/Setting';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { readJson, validate, badRequest } from '@/lib/validate';
 import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
-import { requireAdmin as requireAdminGuard } from '@/lib/apiAuth';
+import { requirePermission } from '@/lib/apiAuth';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -31,7 +31,7 @@ function expandDates({ startDate, endDate, weekdays }) {
 }
 
 async function requireAdmin(request) {
-    const { denied } = await requireAdminGuard(request);
+    const { denied } = await requirePermission(request, 'bookings');
     return denied;
 }
 

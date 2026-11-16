@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/Setting';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requirePermission, can } from '@/lib/apiAuth';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
 
@@ -27,7 +27,8 @@ export async function GET() {
 
 export async function PUT(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        // Venue details need the settings permission; prices and booking rules need the pricing permission
+        const { user, denied } = await requirePermission(request, ['settings', 'pricing']);
         if (denied) return denied;
 
         const { body: raw, error: jsonError } = await readJson(request);
@@ -39,6 +40,12 @@ export async function PUT(request) {
 
         const { data, error } = validate(merged, SETTINGS_SCHEMA, { partial: true });
         if (error) return badRequest(error);
+
+        const touchesPricing = merged.slotPrices !== undefined || Object.keys(data).some(k => PRICING_KEYS.includes(k));
+        const touchesVenue = Object.keys(data).some(k => !PRICING_KEYS.includes(k));
+        if ((touchesPricing && !can(user, 'pricing')) || (touchesVenue && !can(user, 'settings'))) {
+            return NextResponse.json({ error: 'You do not have permission to change those settings.' }, { status: 403 });
+        }
 
         if (data.weekendDays && !data.weekendDays.every(isDayName)) return badRequest('Weekend days must be full day names such as Friday.');
 

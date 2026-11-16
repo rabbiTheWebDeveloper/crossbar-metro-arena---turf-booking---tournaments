@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -35,7 +35,7 @@ export async function GET(request) {
 /** POST creates a product, or updates it when the body carries an existing id (used by the admin editor). */
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'products');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;

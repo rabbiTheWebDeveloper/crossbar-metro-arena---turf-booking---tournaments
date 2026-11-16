@@ -8,7 +8,7 @@ import { Phone, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, AlertC
 // Only same-origin relative paths are accepted as a post-login destination.
 const SAFE_PATH = /^\/(?![\/\\])/;
 const safeCallback = (raw) => (raw && SAFE_PATH.test(raw) ? raw : null);
-const destinationForRole = (role) => (role === 'admin' ? '/admin' : role === 'investor' ? '/investor' : '/player');
+const destinationForRole = (role) => (role === 'admin' || role === 'staff' ? '/admin' : role === 'investor' ? '/investor' : '/player');
 
 function LoginForm() {
     const router = useRouter();

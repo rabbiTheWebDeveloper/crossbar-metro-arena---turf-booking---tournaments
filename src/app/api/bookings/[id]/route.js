@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/Booking';
 import { Refund } from '@/models/Refund';
-import { optionalAuth, requireAuth, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { can, requirePermission, optionalAuth, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { loadPricing, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
 
 async function findBooking(id) {
@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
         const user = await optionalAuth(request);
         const { searchParams } = new URL(request.url);
         const phoneParam = cleanPhone(searchParams.get('phone') || '');
-        const allowed = user?.role === 'admin' || ownsBooking(user, booking) || (phoneParam && phoneParam === cleanPhone(booking.captainPhone));
+        const allowed = can(user, 'bookings') || ownsBooking(user, booking) || (phoneParam && phoneParam === cleanPhone(booking.captainPhone));
         return NextResponse.json({ success: true, booking: allowed ? booking.toJSON() : publicBookingView(booking) });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
@@ -43,7 +43,7 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
         const { id } = await params;
         const { body: raw, error: jsonError } = await readJson(request);
@@ -106,7 +106,7 @@ export async function DELETE(request, { params }) {
         if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         if (booking.paymentStatus === 'cancelled') return NextResponse.json({ success: true, message: 'Booking already cancelled', booking: booking.toJSON() });
 
-        const isAdmin = user.role === 'admin';
+        const isAdmin = can(user, 'bookings');
         if (!isAdmin) {
             if (!ownsBooking(user, booking)) return NextResponse.json({ error: 'You can only cancel your own bookings.' }, { status: 403 });
             const { cancellationHours } = await loadPricing();

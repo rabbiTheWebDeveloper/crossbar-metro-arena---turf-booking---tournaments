@@ -4,7 +4,7 @@ import { Payout } from '@/models/Payout';
 import { Investor } from '@/models/Investor';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { PAYOUT_SCHEMA } from '@/lib/schemas';
-import { requireRole, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 async function myInvestor(user) {
     const uid = String(user.userId || user.id || '');
@@ -19,7 +19,7 @@ async function myInvestor(user) {
 /** GET /api/payouts  - admin: all (filters month, investorId); investor: only their own. */
 export async function GET(request) {
     try {
-        const { user, denied } = await requireRole(request, ['admin', 'investor']);
+        const { user, denied } = await requirePermission(request, ['investors', 'finance'], { alsoRoles: ['investor'] });
         if (denied) return denied;
         await connectToDatabase();
         const { searchParams } = new URL(request.url);
@@ -28,7 +28,7 @@ export async function GET(request) {
 
         const query = {};
         if (month && /^\d{4}-\d{2}$/.test(month)) query.month = month;
-        if (user.role === 'admin') {
+        if (user.role !== 'investor') {
             if (investorId && isObjectId(investorId)) query.investorId = investorId;
         } else {
             const inv = await myInvestor(user);
@@ -47,7 +47,7 @@ export async function GET(request) {
 /** POST /api/payouts  (admin) */
 export async function POST(request) {
     try {
-        const { user, denied } = await requireAdmin(request);
+        const { user, denied } = await requirePermission(request, 'investors');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;

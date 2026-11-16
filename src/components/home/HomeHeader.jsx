@@ -32,7 +32,7 @@ const SITE_LINKS = [
  * plus the account, shop bag and full-site menu the previous navbar offered.
  */
 export function HomeHeader() {
-    const { siteSettings, currentUser, isVisitor, isAdmin, isInvestor, logout, cartItems, setShowCartDrawer, setShowInstallModal, setShowHandoverGuide } = useArena();
+    const { siteSettings, currentUser, isVisitor, isAdmin, isInvestor, canAccessAdmin, logout, cartItems, setShowCartDrawer, setShowInstallModal, setShowHandoverGuide } = useArena();
     const [menuOpen, setMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [canInstall, setCanInstall] = useState(false);
@@ -57,10 +57,10 @@ export function HomeHeader() {
     const phoneLabel = siteSettings.phoneFormatted || siteSettings.phone || '';
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
     const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-    const accountHref = isAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
+    const accountHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
     const dashboards = [
         ...(!isVisitor && !isInvestor ? [{ href: '/player', label: 'Player dashboard' }] : []),
-        ...(isAdmin ? [{ href: '/admin', label: 'Admin panel' }] : []),
+        ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin panel' }] : []),
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor dashboard' }] : [])
     ];
 

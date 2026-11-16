@@ -4,7 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/MatchResult';
 import { Team } from '@/models/Team';
 import { Setting } from '@/models/Setting';
-import { requireAuth, optionalAuth, cleanPhone, isObjectId } from '@/lib/apiAuth';
+import { can, requireAuth, optionalAuth, cleanPhone, isObjectId } from '@/lib/apiAuth';
 import { applyResultToStandings, syncStandings } from '@/lib/standings';
 import { isIsoDate, todayDhaka } from '@/lib/booking';
 
@@ -20,7 +20,7 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
         const mine = searchParams.get('mine') === '1';
-        const isAdmin = user?.role === 'admin';
+        const isAdmin = can(user, 'matches');
 
         const query = {};
         if (mine && user) {
@@ -60,7 +60,7 @@ export async function POST(request) {
         await connectToDatabase();
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
-        const isAdmin = user.role === 'admin';
+        const isAdmin = can(user, 'matches');
 
         // Admin edit path
         const targetId = body.id || body._id;

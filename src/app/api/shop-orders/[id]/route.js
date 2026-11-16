@@ -4,7 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { ShopReservation } from '@/models/ShopReservation';
 import { Product } from '@/models/Product';
 import { OtherIncome } from '@/models/OtherIncome';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 
 /**
  * PATCH /api/shop-orders/:id  (admin)
@@ -12,7 +12,7 @@ import { requireAdmin, isObjectId } from '@/lib/apiAuth';
  */
 export async function PATCH(request, { params }) {
     try {
-        const { user, denied } = await requireAdmin(request);
+        const { user, denied } = await requirePermission(request, 'shop_orders');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

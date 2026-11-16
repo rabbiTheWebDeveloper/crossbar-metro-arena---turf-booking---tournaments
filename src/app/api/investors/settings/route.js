@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/Investor';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_PAYOUT_DETAILS_SCHEMA, MOBILE_WALLET_METHODS } from '@/lib/schemas';
-import { requireRole, isObjectId, isValidBdPhone, cleanPhone } from '@/lib/apiAuth';
+import { requirePermission, isObjectId, isValidBdPhone, cleanPhone } from '@/lib/apiAuth';
 import { findInvestorForUser } from '@/lib/investorAccess';
 
 /**
@@ -31,7 +31,7 @@ const accountView = (user) => ({
 
 /** The partner record this request is allowed to act on, or a ready-made error response. */
 async function resolveInvestor(user, requestedId) {
-    if (user.role === 'admin') {
+    if (user.role !== 'investor') {
         if (!requestedId) return { investor: null };
         if (!isObjectId(requestedId)) return { denied: NextResponse.json({ error: 'Investor not found' }, { status: 404 }) };
         const investor = await Investor.findById(requestedId);
@@ -74,7 +74,7 @@ function normalisePayoutDetails(data) {
 
 export async function GET(request) {
     try {
-        const { user, denied } = await requireRole(request, ['admin', 'investor']);
+        const { user, denied } = await requirePermission(request, 'investors', { alsoRoles: ['investor'] });
         if (denied) return denied;
         await connectToDatabase();
 
@@ -96,7 +96,7 @@ export async function GET(request) {
 
 export async function PUT(request) {
     try {
-        const { user, denied } = await requireRole(request, ['admin', 'investor']);
+        const { user, denied } = await requirePermission(request, 'investors', { alsoRoles: ['investor'] });
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -112,7 +112,7 @@ export async function PUT(request) {
         const { investor, denied: notFound } = await resolveInvestor(user, body.investorId);
         if (notFound) return notFound;
         if (!investor) {
-            return user.role === 'admin'
+            return user.role !== 'investor'
                 ? badRequest('investorId is required.')
                 : NextResponse.json({ error: 'No partner account is linked to your login. Please contact the arena desk.' }, { status: 404 });
         }

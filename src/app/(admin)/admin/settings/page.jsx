@@ -102,7 +102,9 @@ function CardTitle({ icon: Icon, children, hint }) {
 }
 
 export default function AdminSettingsPage() {
-    const { siteSettings, isLoadingData, currentUser, handleSaveSiteSettings, handleUpdateProfile, handleChangePassword, exportDatabaseBackup } = useArena();
+    const { siteSettings, isLoadingData, currentUser, handleSaveSiteSettings, handleUpdateProfile, handleChangePassword, exportDatabaseBackup, isAdmin, can } = useArena();
+    // Everyone in the portal can manage their own login here; the venue form needs the settings permission
+    const canEditVenue = can('settings');
 
     // ---- Venue settings: `draft` holds only the fields being edited, on top of what the server has ----
     const [draft, setDraft] = useState({});
@@ -259,15 +261,15 @@ export default function AdminSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
         <div>
           <h2 className="text-xl font-black text-white font-display">Arena Settings</h2>
-          <p className="text-xs text-slate-400">Venue details shown on the website, your admin login, and data backup.</p>
+          <p className="text-xs text-slate-400">{canEditVenue ? 'Venue details shown on the website, your login, and data backup.' : 'Your login details and password.'}</p>
         </div>
-        {lastSaved && <span className="text-[11px] font-mono text-slate-500">Venue details last saved {lastSaved}</span>}
+        {canEditVenue && lastSaved && <span className="text-[11px] font-mono text-slate-500">Venue details last saved {lastSaved}</span>}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
         {/* VENUE SETTINGS */}
-        {isLoadingData ? (<div className="xl:col-span-2 space-y-4 animate-pulse" aria-busy="true">
+        {!canEditVenue ? null : isLoadingData ? (<div className="xl:col-span-2 space-y-4 animate-pulse" aria-busy="true">
             <div className="h-64 rounded-3xl bg-[#0c131a] border border-white/5"/>
             <div className="h-56 rounded-3xl bg-[#0c131a] border border-white/5"/>
             <div className="h-48 rounded-3xl bg-[#0c131a] border border-white/5"/>
@@ -303,10 +305,10 @@ export default function AdminSettingsPage() {
         </form>)}
 
         {/* RIGHT COLUMN */}
-        <div className="space-y-6">
+        <div className={canEditVenue ? 'space-y-6' : 'space-y-6 xl:col-span-3 max-w-xl'}>
 
           <section className={CARD}>
-            <CardTitle icon={User}>Your admin account</CardTitle>
+            <CardTitle icon={User}>Your account</CardTitle>
             <Message msg={accountMsg}/>
             <form onSubmit={saveAccount} noValidate className="space-y-3.5 text-xs">
               <div>
@@ -351,19 +353,19 @@ export default function AdminSettingsPage() {
             </form>
           </section>
 
-          <section className={CARD}>
+          {can('pricing') && <section className={CARD}>
             <CardTitle icon={Tag} hint="Slot prices, advance deposit, hold time, booking window, cancellation cutoff and weekend days.">Pricing &amp; booking rules</CardTitle>
             <Link href="/admin/slot-pricing" className={`${BTN_SECONDARY} w-full`}>
               <span>Open slot pricing</span>
             </Link>
-          </section>
+          </section>}
 
-          <section className={CARD}>
+          {isAdmin && <section className={CARD}>
             <CardTitle icon={Database} hint="Downloads everything loaded in this console as one JSON file. Backups are read-only; they cannot be restored from here.">Data backup</CardTitle>
             <button type="button" onClick={exportDatabaseBackup} className={`${BTN_SECONDARY} w-full`}>
               <Download className="w-3.5 h-3.5"/><span>Download backup</span>
             </button>
-          </section>
+          </section>}
 
         </div>
       </div>

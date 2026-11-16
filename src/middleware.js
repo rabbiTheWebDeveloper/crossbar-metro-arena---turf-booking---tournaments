@@ -68,7 +68,7 @@ export async function middleware(request) {
             }
 
             // Redirect to appropriate portal based on verified role
-            if (user.role === 'admin') {
+            if (user.role === 'admin' || user.role === 'staff') {
                 return NextResponse.redirect(new URL('/admin', request.url));
             }
             if (user.role === 'investor') {
@@ -89,7 +89,8 @@ export async function middleware(request) {
             return NextResponse.redirect(loginUrl);
         }
 
-        if (user.role !== 'admin') {
+        // Staff may enter; which pages and actions they get is decided by their role (admin layout + API guards)
+        if (user.role !== 'admin' && user.role !== 'staff') {
             // Non-admin attempting to access admin portal
             const target = user.role === 'investor' ? '/investor' : '/player';
             const redirectUrl = new URL(target, request.url);
@@ -107,8 +108,8 @@ export async function middleware(request) {
         }
 
         if (user.role !== 'investor' && user.role !== 'admin') {
-            // Player attempting to access investor portal
-            return NextResponse.redirect(new URL('/player', request.url));
+            // Player (or staff) attempting to access investor portal
+            return NextResponse.redirect(new URL(user.role === 'staff' ? '/admin' : '/player', request.url));
         }
     }
 

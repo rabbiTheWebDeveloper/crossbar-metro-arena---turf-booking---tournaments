@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { signJwtToken, setAuthCookies, getAuthUserFromRequest } from '@/lib/serverAuth';
-import { rateLimit, cleanPhone } from '@/lib/apiAuth';
+import { rateLimit, cleanPhone, loadAccess } from '@/lib/apiAuth';
 
 const GENERIC = 'Invalid mobile number or password.';
 
@@ -47,7 +47,8 @@ export async function POST(request) {
             teamId: user.teamId
         };
         const token = signJwtToken(tokenPayload);
-        const userJson = user.toJSON();
+        // Staff permissions travel with the user object (never in the token) so the portal can show the right menu
+        const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
 
         const response = NextResponse.json({
             success: true,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/Refund';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +7,7 @@ import { REFUND_UPDATE_SCHEMA } from '@/lib/schemas';
 
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'refunds');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });

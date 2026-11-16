@@ -9,7 +9,7 @@ import { usesMainDesign } from './home/routes';
 
 export const Footer = () => {
     const pathname = usePathname();
-    const { setShowInstallModal, siteSettings, pricing, isVisitor, isAdmin, isInvestor } = useArena();
+    const { setShowInstallModal, siteSettings, pricing, isVisitor, isAdmin, isInvestor, canAccessAdmin } = useArena();
     const scrollToTop = () => {
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -17,7 +17,7 @@ export const Footer = () => {
     const year = new Date().getFullYear();
     const dashboards = [
         ...(!isVisitor && !isInvestor ? [{ href: '/player', label: 'Player Dashboard (passes, teams, post scores)' }] : []),
-        ...(isAdmin ? [{ href: '/admin', label: 'Admin Panel (bookings, pricing, expenses)' }] : []),
+        ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin Panel (bookings, pricing, expenses)' }] : []),
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor Dashboard (monthly reports)' }] : [])
     ];
 

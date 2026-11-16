@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/Challenge';
-import { requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { can, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 const isOwner = (user, c) => user && (c.userId === String(user.userId || user.id) || (cleanPhone(user.phone) && cleanPhone(user.phone) === cleanPhone(c.captainPhone)));
 
@@ -35,7 +35,7 @@ export async function PATCH(request, { params }) {
             return NextResponse.json({ success: true, message: `Challenge accepted. Captain ${c.captainName} can be reached at ${c.captainPhone}.`, challenge: c.toJSON() });
         }
 
-        if (!isOwner(user, c) && user.role !== 'admin') return NextResponse.json({ error: 'Only the poster can edit this challenge.' }, { status: 403 });
+        if (!isOwner(user, c) && !can(user, 'matches')) return NextResponse.json({ error: 'Only the poster can edit this challenge.' }, { status: 403 });
         if (body.status && ['open', 'matched', 'closed'].includes(body.status)) {
             c.status = body.status;
             if (body.status === 'open') { c.matchedTeamName = ''; c.matchedCaptainName = ''; c.matchedPhone = ''; }
@@ -60,7 +60,7 @@ export async function DELETE(request, { params }) {
         if (!isObjectId(id)) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
         const c = await Challenge.findById(id);
         if (!c) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
-        if (!isOwner(user, c) && user.role !== 'admin') return NextResponse.json({ error: 'Only the poster can delete this challenge.' }, { status: 403 });
+        if (!isOwner(user, c) && !can(user, 'matches')) return NextResponse.json({ error: 'Only the poster can delete this challenge.' }, { status: 403 });
         await c.deleteOne();
         return NextResponse.json({ success: true, message: 'Challenge removed' });
     } catch (err) {

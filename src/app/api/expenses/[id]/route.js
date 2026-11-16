@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Expense } from '@/models/Expense';
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'finance');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

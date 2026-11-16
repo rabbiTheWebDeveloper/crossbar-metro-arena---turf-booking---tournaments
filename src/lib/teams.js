@@ -1,4 +1,4 @@
-import { cleanPhone } from './apiAuth';
+import { can, cleanPhone } from './apiAuth';
 
 export function sanitizePlayer(p) {
     if (!p || !p.name || String(p.name).trim().length < 2) return null;
@@ -17,6 +17,6 @@ export function sanitizePlayer(p) {
 /** Is this user the captain of the team (or an admin)? */
 export function canManageTeam(user, team) {
     if (!user || !team) return false;
-    if (user.role === 'admin') return true;
+    if (can(user, 'matches')) return true;
     return cleanPhone(user.phone) !== '' && cleanPhone(user.phone) === cleanPhone(team.captainPhone);
 }

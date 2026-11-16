@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/Team';
-import { requireAuth, optionalAuth, isObjectId, escapeRegex } from '@/lib/apiAuth';
+import { can, requireAuth, optionalAuth, isObjectId, escapeRegex } from '@/lib/apiAuth';
 import { sanitizePlayer, canManageTeam } from '@/lib/teams';
 
 export async function GET(request, { params }) {
@@ -72,11 +72,11 @@ export async function PATCH(request, { params }) {
         if (body.area !== undefined) team.area = String(body.area).slice(0, 60);
         if (body.homeColor !== undefined && /^#[0-9a-fA-F]{6}$/.test(body.homeColor)) team.homeColor = body.homeColor;
         if (body.badgeUrl !== undefined && /^https?:\/\//.test(body.badgeUrl || '')) team.badgeUrl = body.badgeUrl;
-        if (body.stats && user.role === 'admin') {
+        if (body.stats && can(user, 'matches')) {
             team.stats = { ...team.stats.toObject(), ...body.stats };
             team.markModified('stats');
         }
-        if (user.role === 'admin') {
+        if (can(user, 'matches')) {
             if (body.captainName) team.captainName = String(body.captainName).trim();
             if (body.captainPhone) team.captainPhone = String(body.captainPhone).replace(/[^0-9]/g, '');
         }
@@ -99,7 +99,7 @@ export async function DELETE(request, { params }) {
         const team = await Team.findById(id);
         if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
         if (!canManageTeam(user, team)) return NextResponse.json({ error: 'Only the team captain can delete this team.' }, { status: 403 });
-        if ((team.stats?.played || 0) > 0 && user.role !== 'admin') {
+        if ((team.stats?.played || 0) > 0 && !can(user, 'matches')) {
             return NextResponse.json({ error: 'Teams with recorded matches cannot be deleted. Contact the arena desk.' }, { status: 400 });
         }
         await team.deleteOne();

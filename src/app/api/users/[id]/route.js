@@ -1,109 +1,148 @@
-import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
+import { readJson, errorResponse } from '@/lib/validate';
 import { User } from '@/models/User';
-import { requireAdmin as requireAdminGuard } from '@/lib/apiAuth';
+import { Investor } from '@/models/Investor';
+import { requireAuth, requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, sameUser, canEditAccount, isLastActiveAdmin, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
 
-const VALID_ROLES = ['visitor', 'player', 'admin', 'investor'];
-const VALID_POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
+const notFound = () => NextResponse.json({ error: 'Account not found' }, { status: 404 });
+const NO_ACCESS = 'You do not have permission to manage this account.';
 
-async function requireAdmin(request) {
-    const { user, denied } = await requireAdminGuard(request);
-    return denied ? { denied } : { admin: user };
-}
+const present = async (userDoc) => (await withStaffRoleNames([userDoc.toJSON()]))[0];
 
-/** GET /api/users/:id  (admin) */
+/** GET /api/users/:id  (admin, or staff allowed to manage that account) */
 export async function GET(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { user: actor, denied } = await requireAuth(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
+        if (!isObjectId(id)) return notFound();
+        await connectToDatabase();
         const user = await User.findById(id).select('-password');
-        if (!user) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
-        return NextResponse.json({ success: true, user: user.toJSON() });
+        if (!user) return notFound();
+        if (!canEditAccount(actor, user)) return forbidden(NO_ACCESS);
+        return NextResponse.json({ success: true, user: await present(user) });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'GET /api/users/[id]');
     }
 }
 
 /**
- * PATCH /api/users/:id  (admin)
- * Editable: name, phone, email, playingPosition, teamId, role, disabled, newPassword
+ * PATCH /api/users/:id
+ * Editable: name, phone, email, playingPosition, teamId, disabled, newPassword
+ * Admin only: role, staffRoleId, and any change to an admin or staff account.
  */
 export async function PATCH(request, { params }) {
     try {
-        const { denied, admin } = await requireAdmin(request);
+        const { user: actor, denied } = await requireAuth(request);
         if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
+        if (!isObjectId(id)) return notFound();
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
 
+        await connectToDatabase();
         const user = await User.findById(id);
-        if (!user) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+        if (!user) return notFound();
+        if (!canEditAccount(actor, user)) return forbidden(NO_ACCESS);
+
+        const isAdmin = actor.role === 'admin';
+        const isSelf = sameUser(actor, user);
+        const wasLastAdmin = await isLastActiveAdmin(user);
 
         if (body.name !== undefined) {
             const name = String(body.name).trim();
-            if (name.length < 2) return NextResponse.json({ error: 'Name must be at least 2 characters.' }, { status: 400 });
+            if (name.length < 2) return invalid('Name must be at least 2 characters.');
             user.name = name;
         }
         if (body.phone !== undefined) {
             let clean = String(body.phone).replace(/[^0-9]/g, '');
             if (clean.startsWith('8801')) clean = clean.substring(2);
-            if (!/^01[3-9]\d{8}$/.test(clean)) {
-                return NextResponse.json({ error: 'Enter a valid 11-digit Bangladeshi mobile number (e.g. 01711223344).' }, { status: 400 });
-            }
+            if (!/^01[3-9]\d{8}$/.test(clean)) return invalid('Enter a valid 11-digit Bangladeshi mobile number (e.g. 01711223344).');
             const clash = await User.findOne({ phone: clean, _id: { $ne: user._id } });
-            if (clash) return NextResponse.json({ error: 'Another account already uses that mobile number.' }, { status: 409 });
+            if (clash) return invalid('Another account already uses that mobile number.', 409);
             user.phone = clean;
         }
-        if (body.email !== undefined) user.email = String(body.email).trim().toLowerCase();
+        if (body.email !== undefined) {
+            const email = String(body.email || '').trim().toLowerCase();
+            if (email && !EMAIL_RE.test(email)) return invalid('Enter a valid email address.');
+            user.email = email;
+        }
         if (body.playingPosition !== undefined) {
-            if (!VALID_POSITIONS.includes(body.playingPosition)) return NextResponse.json({ error: 'Invalid playing position.' }, { status: 400 });
+            if (!VALID_POSITIONS.includes(body.playingPosition)) return invalid('Invalid playing position.');
             user.playingPosition = body.playingPosition;
         }
         if (body.teamId !== undefined) user.teamId = String(body.teamId).trim();
-        if (body.role !== undefined) {
-            if (!VALID_ROLES.includes(body.role)) return NextResponse.json({ error: 'Invalid role.' }, { status: 400 });
-            if (String(admin.userId || admin.id) === String(user._id) && body.role !== 'admin') {
-                return NextResponse.json({ error: 'You cannot remove your own admin role.' }, { status: 400 });
-            }
+
+        // ---- Account type and staff role: admin only ----
+        const wantsRoleChange = body.role !== undefined && body.role !== user.role;
+        const wantsStaffRoleChange = body.staffRoleId !== undefined && String(body.staffRoleId || '') !== String(user.staffRoleId || '');
+        if ((wantsRoleChange || wantsStaffRoleChange) && !isAdmin) return forbidden('Only an admin can change an account type or staff role.');
+        if (wantsRoleChange) {
+            if (!ACCOUNT_ROLES.includes(body.role)) return invalid('Invalid role.');
+            if (isSelf && body.role !== 'admin') return invalid('You cannot remove your own admin role.');
+            if (wasLastAdmin && body.role !== 'admin') return invalid('This is the only active admin account. Make another account an admin first.');
             user.role = body.role;
         }
-        if (body.disabled !== undefined) {
-            if (String(admin.userId || admin.id) === String(user._id) && body.disabled) {
-                return NextResponse.json({ error: 'You cannot disable your own account.' }, { status: 400 });
+        if (user.role === 'staff') {
+            if (wantsRoleChange || wantsStaffRoleChange) {
+                const staffRole = await findStaffRole(body.staffRoleId !== undefined ? body.staffRoleId : user.staffRoleId);
+                if (!staffRole) return invalid('Choose a staff role for this account.');
+                user.staffRoleId = String(staffRole._id);
             }
-            user.disabled = Boolean(body.disabled);
+        } else {
+            user.staffRoleId = '';
+        }
+
+        if (body.disabled !== undefined) {
+            const disabled = Boolean(body.disabled);
+            if (isSelf && disabled) return invalid('You cannot disable your own account.');
+            if (wasLastAdmin && disabled) return invalid('This is the only active admin account. It cannot be disabled.');
+            user.disabled = disabled;
         }
         if (body.newPassword) {
-            if (String(body.newPassword).length < 6) return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
+            if (String(body.newPassword).length < 6) return invalid('Password must be at least 6 characters.');
             user.password = String(body.newPassword); // hashed by the pre-save hook
         }
 
         await user.save();
-        return NextResponse.json({ success: true, message: 'Player profile updated', user: user.toJSON() });
+        return NextResponse.json({ success: true, message: 'Account updated', user: await present(user) });
     } catch (err) {
-        console.error('PATCH /api/users/[id] error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'PATCH /api/users/[id]');
     }
 }
 
-/** DELETE /api/users/:id (admin) - soft delete: disables the account */
+/**
+ * DELETE /api/users/:id               - soft delete: disables the account (it can be enabled again)
+ * DELETE /api/users/:id?permanent=1   - admin only: removes the login for good. Bookings, registrations and
+ *                                       payouts are kept (they store the customer's name and phone themselves).
+ */
 export async function DELETE(request, { params }) {
     try {
-        const { denied, admin } = await requireAdmin(request);
-        if (denied) return denied;
-        await connectToDatabase();
         const { id } = await params;
-        if (String(admin.userId || admin.id) === String(id)) {
-            return NextResponse.json({ error: 'You cannot disable your own account.' }, { status: 400 });
+        const permanent = new URL(request.url).searchParams.get('permanent') === '1';
+        const { user: actor, denied } = permanent ? await requireAdmin(request) : await requireAuth(request);
+        if (denied) return denied;
+        if (!isObjectId(id)) return notFound();
+
+        await connectToDatabase();
+        const user = await User.findById(id);
+        if (!user) return notFound();
+        if (!canEditAccount(actor, user)) return forbidden(NO_ACCESS);
+        if (sameUser(actor, user)) return invalid(permanent ? 'You cannot delete your own account.' : 'You cannot disable your own account.');
+        if (await isLastActiveAdmin(user)) return invalid('This is the only active admin account. Make another account an admin first.');
+
+        if (permanent) {
+            await Investor.updateMany({ userId: String(user._id) }, { $set: { userId: '' } });
+            await User.deleteOne({ _id: user._id });
+            return NextResponse.json({ success: true, deleted: true, message: `${user.name}'s account was deleted.` });
         }
-        const user = await User.findByIdAndUpdate(id, { disabled: true }, { new: true }).select('-password');
-        if (!user) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
-        return NextResponse.json({ success: true, message: 'Account disabled', user: user.toJSON() });
+
+        user.disabled = true;
+        await user.save();
+        return NextResponse.json({ success: true, message: 'Account disabled', user: await present(user) });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'DELETE /api/users/[id]');
     }
 }

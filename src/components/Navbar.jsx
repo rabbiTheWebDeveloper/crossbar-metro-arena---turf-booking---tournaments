@@ -35,7 +35,7 @@ export const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
     const [showInstall, setShowInstall] = useState(false);
     const pathname = usePathname() || '/';
-    const { setShowInstallModal, setShowAuthModal, setAuthModalInitialTab, setShowCartDrawer, setShowHandoverGuide, currentUser, isVisitor, isAdmin, isInvestor, logout, cartItems, siteSettings } = useArena();
+    const { setShowInstallModal, setShowAuthModal, setAuthModalInitialTab, setShowCartDrawer, setShowHandoverGuide, currentUser, isVisitor, isAdmin, isInvestor, canAccessAdmin, logout, cartItems, siteSettings } = useArena();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 15);
@@ -69,7 +69,7 @@ export const Navbar = () => {
     const showInvestorLink = isAdmin || isInvestor;
     const dashboardLinks = [
         ...(showPlayerLink ? [{ href: '/player', label: 'Player', icon: User, emoji: '⚽' }] : []),
-        ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: ShieldCheck, emoji: '🛡️' }] : []),
+        ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin', icon: ShieldCheck, emoji: '🛡️' }] : []),
         ...(showInvestorLink ? [{ href: '/investor', label: 'Investor', icon: TrendingUp, emoji: '💼' }] : [])
     ];
     const openLogin = () => { setAuthModalInitialTab('login'); setShowAuthModal(true); };
@@ -156,7 +156,7 @@ export const Navbar = () => {
 
             {!isVisitor ? (<div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1 text-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <Link href={isAdmin ? '/admin' : isInvestor ? '/investor' : '/player'} className="font-bold text-white max-w-[90px] sm:max-w-[130px] truncate hover:text-emerald-300">
+                <Link href={canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/player'} className="font-bold text-white max-w-[90px] sm:max-w-[130px] truncate hover:text-emerald-300">
                   {currentUser.name}
                 </Link>
                 <span className="text-[11px] uppercase font-bold text-slate-400 px-1 rounded bg-black/40">

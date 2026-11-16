@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useArena, todayDhaka } from '../../context/ArenaContext';
 import { CrossbarLogo } from '../../components/CrossbarLogo';
 import { SCHEDULE_SLOTS_DEFINITION } from '../../data/initialData';
-import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Settings, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound } from 'lucide-react';
+import { canOpenAdminPath } from '../../lib/permissions';
+import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound, Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const parseLocalDate = (iso) => {
@@ -17,7 +18,7 @@ const PHONE_RE = /^01[3-9]\d{8}$/;
 export default function AdminLayout({ children, }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { pricing, refunds, shopReservations, registrations, matchResults, handleBookingSuccess, switchDemoUser, logout, currentUser, demoMode } = useArena();
+    const { pricing, refunds, shopReservations, registrations, matchResults, handleBookingSuccess, switchDemoUser, logout, currentUser, demoMode, isAdmin, can, authChecked } = useArena();
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [showWalkinModal, setShowWalkinModal] = useState(false);
     // Walk-in booking modal state
@@ -58,7 +59,8 @@ export default function AdminLayout({ children, }) {
     const pendingRegistrationsCount = registrations.filter(r => r.status === 'pending').length;
     const pendingResultsCount = matchResults.filter(r => r.status === 'pending_approval').length;
 
-    const navItems = [
+    // Each entry is shown only to accounts that may open it: admins see everything, staff what their role grants
+    const allNavItems = [
         { label: 'Today', href: '/admin', icon: Clock },
         { label: 'Schedule', href: '/admin/schedule', icon: Calendar },
         { label: 'All bookings', href: '/admin/all-bookings', altHref: '/admin/bookings', icon: Layers },
@@ -74,8 +76,14 @@ export default function AdminLayout({ children, }) {
         { label: 'Events', href: '/admin/events', icon: Trophy },
         { label: 'Match results', href: '/admin/match-results', icon: Award, badge: pendingResultsCount },
         { label: 'Gallery', href: '/admin/gallery', icon: Camera },
+        { label: 'Users', href: '/admin/users', icon: ShieldCheck },
+        { label: 'Roles & permissions', href: '/admin/roles', icon: KeyRound },
         { label: 'Settings', href: '/admin/settings', icon: Settings },
     ];
+    const navItems = allNavItems.filter(item => canOpenAdminPath(currentUser, item.href));
+    const pageAllowed = canOpenAdminPath(currentUser, pathname);
+    const canTakeBookings = can('bookings');
+    const roleBadge = isAdmin ? 'ADMIN' : (currentUser?.staffRoleName || 'STAFF');
 
     // Dynamic Header Title
     const headerTitle = useMemo(() => {
@@ -101,6 +109,8 @@ export default function AdminLayout({ children, }) {
         if (pathname.includes('/match-results')) return 'Match results';
         if (pathname.includes('/gallery')) return 'Gallery Photos';
         if (pathname.includes('/settings')) return 'Settings';
+        if (pathname.includes('/users')) return 'Users';
+        if (pathname.includes('/roles')) return 'Roles & permissions';
         return 'Admin Panel';
     }, [pathname, todayDateStr]);
 
@@ -252,13 +262,13 @@ export default function AdminLayout({ children, }) {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <button type="button" onClick={() => { resetWalkinForm(); setShowWalkinModal(true); }} className="px-3.5 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-lime-400/20 active:scale-95 transition-all cursor-pointer">
+            {canTakeBookings && <button type="button" onClick={() => { resetWalkinForm(); setShowWalkinModal(true); }} className="px-3.5 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-lime-400/20 active:scale-95 transition-all cursor-pointer">
               <Plus className="w-3.5 h-3.5 stroke-[3]"/>
               <span className="hidden xs:inline">Walk-in booking</span>
-            </button>
+            </button>}
 
-            <span className="px-2.5 py-1 rounded-md text-[11px] font-mono font-black tracking-wider text-slate-950 bg-[#f59e0b]">
-              ADMIN
+            <span className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-black tracking-wider uppercase max-w-[140px] truncate ${isAdmin ? 'text-slate-950 bg-[#f59e0b]' : 'text-sky-200 bg-sky-500/20 border border-sky-400/30'}`} title={isAdmin ? 'Full access' : `Staff role: ${roleBadge}`}>
+              {roleBadge}
             </span>
 
             <div className="w-7 h-7 rounded-full bg-lime-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-md shadow-lime-400/20" title={currentUser?.name || 'Admin'}>
@@ -269,7 +279,29 @@ export default function AdminLayout({ children, }) {
 
         {/* BODY CONTAINER */}
         <div className="p-4 sm:p-6 lg:p-8 w-full flex-1">
-          {children}
+          {!authChecked ? (
+            <div className="space-y-4 animate-pulse" aria-busy="true">
+              <div className="h-10 w-64 rounded-xl bg-[#0c131a] border border-white/5"/>
+              <div className="h-64 rounded-3xl bg-[#0c131a] border border-white/5"/>
+            </div>
+          ) : pageAllowed ? children : (
+            <div className="max-w-md mx-auto mt-10 p-8 rounded-3xl bg-[#0c131a] border border-amber-400/25 text-center space-y-4">
+              <Lock className="w-8 h-8 text-amber-400 mx-auto"/>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">{navItems.length <= 1 ? 'No access yet' : 'You do not have access to this page'}</h2>
+              <p className="text-xs text-slate-400">
+                {navItems.length <= 1
+                  ? 'Your account has not been given a staff role with any permissions. Ask an admin to set one under Users.'
+                  : `Your role (${roleBadge}) does not include this section. Ask an admin if you need it.`}
+              </p>
+              {navItems.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 pt-1">
+                  {navItems.map(item => (
+                    <Link key={item.href} href={item.href} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200">{item.label}</Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 

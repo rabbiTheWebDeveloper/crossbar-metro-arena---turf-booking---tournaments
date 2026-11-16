@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/TournamentRegistration';
 import { readJson, badRequest } from '@/lib/validate';
@@ -24,7 +24,7 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'registrations');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
@@ -58,7 +58,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'registrations');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

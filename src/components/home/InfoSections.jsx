@@ -162,7 +162,7 @@ export function CtaBand({ freeToday, eveningFree, ready, tomorrow, onBook }) {
 /** Footer from the design, linking to every part of the site. */
 export function HomeFooter() {
     const { siteSettings, phoneLabel, telHref } = useContacts();
-    const { isVisitor, isAdmin, isInvestor } = useArena();
+    const { isVisitor, isAdmin, isInvestor, canAccessAdmin } = useArena();
     const onHome = (usePathname() || '/') === '/';
     // home sections: scroll in place on the home page, link back to it from any other page
     const hash = (id, label) => (onHome ? { label, onClick: (e) => { e.preventDefault(); scrollToId(id); }, href: `#${id}` } : { label, href: `/#${id}` });
@@ -175,7 +175,7 @@ export function HomeFooter() {
                 ? [{ label: 'Log in', href: '/login' }, { label: 'Create an account', href: '/register' }, { label: 'Find my booking', href: '/booking' }]
                 : [
                     ...(!isInvestor ? [{ label: 'Player dashboard', href: '/player' }] : []),
-                    ...(isAdmin ? [{ label: 'Admin panel', href: '/admin' }] : []),
+                    ...(canAccessAdmin ? [{ label: 'Admin panel', href: '/admin' }] : []),
                     ...(isAdmin || isInvestor ? [{ label: 'Investor dashboard', href: '/investor' }] : [])
                 ]
         },

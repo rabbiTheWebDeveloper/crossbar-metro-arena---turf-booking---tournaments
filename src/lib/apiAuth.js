@@ -1,6 +1,7 @@
 import { cleanPhone } from './phone';
 import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest } from './serverAuth';
+import { hasPermission, cleanPermissions } from './permissions';
 
 /**
  * Shared auth guards for API route handlers.
@@ -20,14 +21,48 @@ async function liveUser(tokenUser) {
         const { connectToDatabase } = await import('./mongodb');
         const { User } = await import('@/models/User');
         await connectToDatabase();
-        const doc = await User.findById(id).select('name phone role disabled email playingPosition teamId').lean();
+        const doc = await User.findById(id).select('name phone role disabled email playingPosition teamId staffRoleId').lean();
         if (!doc || doc.disabled) return null;
-        return { ...tokenUser, userId: String(doc._id), id: String(doc._id), name: doc.name, phone: doc.phone, role: doc.role, email: doc.email, playingPosition: doc.playingPosition, teamId: doc.teamId };
+        const access = await loadAccess(doc);
+        return { ...tokenUser, userId: String(doc._id), id: String(doc._id), name: doc.name, phone: doc.phone, role: doc.role, email: doc.email, playingPosition: doc.playingPosition, teamId: doc.teamId, ...access };
     } catch (e) {
-        // Database unreachable: fall back to the signed token so the app keeps working
+        // Database unreachable: fall back to the signed token so the app keeps working.
+        // Staff permissions are never taken from the token, so staff get no admin access while the database is down.
         console.warn('liveUser lookup failed, using token payload:', e.message);
-        return tokenUser;
+        return { ...tokenUser, permissions: [] };
     }
+}
+
+/**
+ * Admin-portal access for a user record: { permissions, staffRoleId, staffRoleName }.
+ * Staff permissions are read from their role on every request, so editing a role takes effect immediately.
+ * The caller must already be connected to the database.
+ */
+export async function loadAccess(userDoc) {
+    if (!userDoc || userDoc.role !== 'staff') return { permissions: [], staffRoleId: '', staffRoleName: '' };
+    const roleId = String(userDoc.staffRoleId || '');
+    if (!isObjectId(roleId)) return { permissions: [], staffRoleId: '', staffRoleName: '' };
+    const { Role } = await import('@/models/Role');
+    const role = await Role.findById(roleId).select('name permissions').lean();
+    if (!role) return { permissions: [], staffRoleId: '', staffRoleName: '' };
+    return { permissions: cleanPermissions(role.permissions), staffRoleId: roleId, staffRoleName: role.name };
+}
+
+/** Does this user hold the permission (or any of a list)? Admins hold all. See lib/permissions.js. */
+export const can = hasPermission;
+
+/**
+ * Guard for admin-portal routes: admins always pass, staff pass when their role grants the permission
+ * (or any one of a list). `alsoRoles` lets other account types through, e.g. investors reading finance data.
+ *
+ *   const { user, denied } = await requirePermission(request, 'bookings');
+ *   const { user, denied } = await requirePermission(request, ['investors', 'finance'], { alsoRoles: ['investor'] });
+ */
+export async function requirePermission(request, permission, { alsoRoles = [] } = {}) {
+    const { user, denied } = await requireAuth(request);
+    if (denied) return { user: null, denied };
+    if (hasPermission(user, permission) || alsoRoles.includes(user.role)) return { user, denied: null };
+    return { user, denied: NextResponse.json({ error: 'You do not have permission to do that.' }, { status: 403 }) };
 }
 
 export async function requireAuth(request) {

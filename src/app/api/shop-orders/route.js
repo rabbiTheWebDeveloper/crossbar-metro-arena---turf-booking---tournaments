@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ShopReservation } from '@/models/ShopReservation';
 import { Product } from '@/models/Product';
-import { requireAdmin, optionalAuth, cleanPhone, isObjectId, rateLimit } from '@/lib/apiAuth';
+import { can, optionalAuth, cleanPhone, isObjectId, rateLimit } from '@/lib/apiAuth';
 import { generateBookingCode } from '@/lib/booking';
 
 /** GET /api/shop-orders  (admin: all; signed-in customer: ?mine=1 own orders) */
@@ -20,7 +20,7 @@ export async function GET(request) {
             const own = await ShopReservation.find({ customerPhone: cleanPhone(user.phone), ...(status ? { status } : {}) }).sort({ createdAt: -1 });
             return NextResponse.json({ success: true, count: own.length, reservations: own.map(r => r.toJSON()) });
         }
-        if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin login required.' }, { status: user ? 403 : 401 });
+        if (!user || !can(user, 'shop_orders')) return NextResponse.json({ error: 'Admin login required.' }, { status: user ? 403 : 401 });
 
         const query = {};
         if (status) query.status = status;

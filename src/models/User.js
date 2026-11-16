@@ -24,10 +24,16 @@ const UserSchema = new Schema({
     role: {
         type: String,
         enum: {
-            values: ['visitor', 'player', 'admin', 'investor'],
+            values: ['visitor', 'player', 'admin', 'staff', 'investor'],
             message: '{VALUE} is not a valid user role'
         },
         default: 'player'
+    },
+    // For role "staff": the staff role (models/Role.js) that decides what they can do in the admin portal
+    staffRoleId: {
+        type: String,
+        trim: true,
+        default: ''
     },
     playingPosition: {
         type: String,

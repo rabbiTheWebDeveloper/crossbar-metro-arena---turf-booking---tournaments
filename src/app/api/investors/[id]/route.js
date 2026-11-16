@@ -4,11 +4,11 @@ import { Investor } from '@/models/Investor';
 import { Payout } from '@/models/Payout';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
-import { requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 export async function PUT(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'investors');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Investor not found' }, { status: 404 });
@@ -53,7 +53,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'investors');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

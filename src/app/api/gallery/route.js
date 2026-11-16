@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { GalleryPhoto } from '@/models/GalleryPhoto';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -28,7 +28,7 @@ export async function GET(request) {
 /** POST adds a photo, or updates it when the body carries an existing id (used by the admin editor). */
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'gallery');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;

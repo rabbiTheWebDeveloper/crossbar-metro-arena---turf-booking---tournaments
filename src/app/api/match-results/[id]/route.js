@@ -2,13 +2,13 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/MatchResult';
-import { requireAuth, requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { can, requirePermission, requireAuth, isObjectId } from '@/lib/apiAuth';
 import { syncStandings, applyResultToStandings } from '@/lib/standings';
 
 /** PATCH /api/match-results/:id  (admin: approve / reject / edit) */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'matches');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;
@@ -55,7 +55,7 @@ export async function DELETE(request, { params }) {
         const result = await MatchResult.findById(id);
         if (!result) return NextResponse.json({ error: 'Match result not found' }, { status: 404 });
         const isOwner = result.userId && result.userId === String(user.userId || user.id);
-        if (user.role !== 'admin' && !(isOwner && result.status === 'pending_approval')) {
+        if (!can(user, 'matches') && !(isOwner && result.status === 'pending_approval')) {
             return NextResponse.json({ error: 'You can only withdraw your own result while it is pending.' }, { status: 403 });
         }
         if (result.standingsApplied) await applyResultToStandings(result, -1);

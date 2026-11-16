@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/Investor';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
-import { requireRole, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { findInvestorForUser } from '@/lib/investorAccess';
 
 /** Fields an investor may see about other partners (no contact details). */
@@ -17,12 +17,12 @@ const publicView = (i) => ({
 
 export async function GET(request) {
     try {
-        const { user, denied } = await requireRole(request, ['admin', 'investor']);
+        const { user, denied } = await requirePermission(request, ['investors', 'finance'], { alsoRoles: ['investor'] });
         if (denied) return denied;
         await connectToDatabase();
         const investors = await Investor.find().sort({ sharePercentage: -1 });
 
-        if (user.role === 'admin') {
+        if (user.role !== 'investor') {
             return NextResponse.json({ success: true, count: investors.length, investors: investors.map(i => i.toJSON()) });
         }
         // Investors: their own full record, other partners only by name + share
@@ -59,7 +59,7 @@ const pickFields = (item) => {
 
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'investors');
         if (denied) return denied;
         // The admin UI posts the whole partner list (existing + new) as an array
         const { body, error: jsonError } = await readJson(request, { allowArray: true });

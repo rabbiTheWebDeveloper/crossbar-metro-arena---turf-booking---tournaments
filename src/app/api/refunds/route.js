@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, requireRole } from '@/lib/apiAuth';
+import { requirePermission } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/Refund';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +7,7 @@ import { REFUND_SCHEMA, REFUND_STATUSES } from '@/lib/schemas';
 
 export async function GET(request) {
     try {
-        const { denied } = await requireRole(request, ['admin', 'investor']);
+        const { denied } = await requirePermission(request, ['refunds', 'finance'], { alsoRoles: ['investor'] });
         if (denied) return denied;
         await connectToDatabase();
         const { searchParams } = new URL(request.url);
@@ -32,7 +32,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'refunds');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;

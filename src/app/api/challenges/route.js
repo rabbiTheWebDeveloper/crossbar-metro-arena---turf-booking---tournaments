@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/Challenge';
-import { requireAuth, optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
+import { can, requireAuth, optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
 import { isIsoDate, todayDhaka } from '@/lib/booking';
 
 /** GET /api/challenges  - open challenges from today onwards (public). ?mine=1 for the caller's own, ?status=all for admins. */
@@ -19,7 +19,7 @@ export async function GET(request) {
             query.$or = [{ userId: String(user.userId || user.id) }, { captainPhone: cleanPhone(user.phone) }];
             if (status !== 'all') query.status = status;
         } else {
-            query.status = status === 'all' && user?.role === 'admin' ? { $in: ['open', 'matched', 'closed'] } : (status === 'all' ? 'open' : status);
+            query.status = status === 'all' && can(user, 'matches') ? { $in: ['open', 'matched', 'closed'] } : (status === 'all' ? 'open' : status);
             query.date = { $gte: todayDhaka() };
         }
 
@@ -28,7 +28,7 @@ export async function GET(request) {
             const j = { ...c, id: String(c._id) };
             // Public listing: phone only for the owner / admin (contact goes through the "Accept" action)
             const own = user && (j.userId === String(user.userId || user.id) || cleanPhone(j.captainPhone) === cleanPhone(user.phone));
-            if (!own && user?.role !== 'admin') { j.captainPhone = j.captainPhone ? `${j.captainPhone.slice(0, 3)}•••••${j.captainPhone.slice(-3)}` : ''; j.matchedPhone = undefined; }
+            if (!own && !can(user, 'matches')) { j.captainPhone = j.captainPhone ? `${j.captainPhone.slice(0, 3)}•••••${j.captainPhone.slice(-3)}` : ''; j.matchedPhone = undefined; }
             return j;
         });
         return NextResponse.json({ success: true, count: list.length, challenges: list });
@@ -56,7 +56,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Team name, match date and time slot are required.' }, { status: 400 });
         }
         if (date < todayDhaka()) return NextResponse.json({ error: 'Pick a date from today onwards.' }, { status: 400 });
-        const isAdmin = user.role === 'admin';
+        const isAdmin = can(user, 'matches');
         const captainPhone = isAdmin && body.captainPhone ? cleanPhone(body.captainPhone) : cleanPhone(user.phone);
         const captainName = isAdmin && body.captainName ? String(body.captainName).trim() : user.name;
 

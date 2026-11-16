@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, requireRole, escapeRegex } from '@/lib/apiAuth';
+import { requirePermission, escapeRegex } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Expense } from '@/models/Expense';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +7,7 @@ import { EXPENSE_SCHEMA } from '@/lib/schemas';
 
 export async function GET(request) {
     try {
-        const { denied } = await requireRole(request, ['admin', 'investor']);
+        const { denied } = await requirePermission(request, 'finance', { alsoRoles: ['investor'] });
         if (denied) return denied;
         await connectToDatabase();
         const { searchParams } = new URL(request.url);
@@ -34,7 +34,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { denied, user } = await requireAdmin(request);
+        const { denied, user } = await requirePermission(request, 'finance');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;

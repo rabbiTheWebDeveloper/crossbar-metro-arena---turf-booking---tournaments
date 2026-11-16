@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
-import { requireAuth, optionalAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
+import { can, requireAuth, optionalAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
 import { sanitizePlayer } from '@/lib/teams';
 
 export async function GET(request) {
@@ -11,7 +11,7 @@ export async function GET(request) {
         await connectToDatabase();
         const user = await optionalAuth(request);
         const myPhone = user ? cleanPhone(user.phone) : '';
-        const isAdmin = user?.role === 'admin';
+        const isAdmin = can(user, 'matches');
         const teams = await Team.find().sort({ 'stats.points': -1, createdAt: -1 }).lean();
         // Public listing hides phone numbers; the captain (and admins) get full details plus an isMine flag
         const list = teams.map(t => {
@@ -43,7 +43,7 @@ export async function POST(request) {
         const name = String(body.name || '').trim();
         if (name.length < 3) return NextResponse.json({ error: 'Team name must be at least 3 characters.' }, { status: 400 });
 
-        const isAdmin = user.role === 'admin';
+        const isAdmin = can(user, 'matches');
         const captainName = isAdmin && body.captainName ? String(body.captainName).trim() : user.name;
         const captainPhone = isAdmin && body.captainPhone ? cleanPhone(body.captainPhone) : cleanPhone(user.phone);
         if (!captainName || !captainPhone) return NextResponse.json({ error: 'Captain name and phone are required.' }, { status: 400 });

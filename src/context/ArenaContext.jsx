@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, getStoredSMSLogs, logSMSNotification } from '../utils/storage';
 import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
 import { cleanPhone } from '../lib/phone';
+import { hasPermission } from '../lib/permissions';
 
 const ArenaContext = createContext(undefined);
 
@@ -75,6 +76,7 @@ export const ArenaProvider = ({ children }) => {
     const [myChallenges, setMyChallenges] = useState([]);
     const [galleryPhotos, setGalleryPhotos] = useState([]);
     const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]); // staff roles (admin only)
     const [currentUser, setCurrentUser] = useState(VISITOR);
     const [authChecked, setAuthChecked] = useState(false);
     const [smsLogs, setSmsLogs] = useState([]);
@@ -102,6 +104,10 @@ export const ArenaProvider = ({ children }) => {
     const isVisitor = role === 'visitor';
     const isAdmin = role === 'admin';
     const isInvestor = role === 'investor';
+    // Staff open the admin portal with the permissions of their staff role; admins hold every permission.
+    const isStaff = role === 'staff';
+    const canAccessAdmin = isAdmin || isStaff;
+    const can = useCallback((permission) => hasPermission(currentUser, permission), [currentUser]);
     const noticeTimer = useRef(null);
 
     const showNotice = useCallback((type, message, ms = 4500) => {
@@ -143,13 +149,15 @@ export const ArenaProvider = ({ children }) => {
                 challenges: get('/api/challenges')
             };
             const roleCalls = {};
-            if (userRole === 'admin') {
+            // Staff ask for the same desk data; the server answers 403 for sections their role does not cover
+            if (userRole === 'admin' || userRole === 'staff') {
                 Object.assign(roleCalls, {
                     expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
                     refunds: get('/api/refunds'), otherIncome: get('/api/other-income'), shopOrders: get('/api/shop-orders'),
                     registrations: get('/api/registrations'), users: get('/api/users?includeDisabled=1'),
                     allResults: get('/api/match-results?status=all'), allChallenges: get('/api/challenges?status=all')
                 });
+                if (userRole === 'admin') roleCalls.roles = get('/api/roles');
             } else if (userRole === 'investor') {
                 Object.assign(roleCalls, {
                     expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
@@ -196,6 +204,7 @@ export const ArenaProvider = ({ children }) => {
             if (r.registrations && r.registrations.ok) setRegistrations(unwrap(r.registrations.data, 'registrations') || []);
             if (r.myRegistrations && r.myRegistrations.ok) setRegistrations(unwrap(r.myRegistrations.data, 'registrations') || []);
             if (r.users && r.users.ok) setUsers(unwrap(r.users.data, 'users') || []);
+            if (r.roles && r.roles.ok) setRoles(unwrap(r.roles.data, 'roles') || []);
         } catch (err) {
             console.warn('loadRealBackendData caught error:', err);
             setLoadError('Could not load arena data.');
@@ -349,7 +358,7 @@ export const ArenaProvider = ({ children }) => {
         await api('/api/auth/logout', { method: 'POST' });
         setCurrentUser(VISITOR);
         saveCurrentUser(VISITOR);
-        setUsers([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+        setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
         loadRealBackendData('visitor');
     }, [loadRealBackendData]);
 
@@ -393,6 +402,41 @@ export const ArenaProvider = ({ children }) => {
         setUsers(prev => prev.map(u => (u.id === id ? r.data.user : u)));
         return r.data.user;
     }, []);
+    const handleCreateUser = useCallback(async (data) => {
+        const r = await api('/api/users', { method: 'POST', body: data });
+        if (r.ok && r.data.user) { setUsers(prev => [r.data.user, ...prev]); showNotice('success', r.data.message || 'Account created'); return { ok: true, user: r.data.user }; }
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+    /** Permanently remove a login (admin only). Bookings and payouts made by the person are kept. */
+    const handleDeleteUser = useCallback(async (id) => {
+        const r = await api(`/api/users/${id}?permanent=1`, { method: 'DELETE' });
+        if (r.ok) { setUsers(prev => prev.filter(u => u.id !== id)); setInvestors(prev => prev.map(i => (i.userId === id ? { ...i, userId: '' } : i))); showNotice('success', r.data.message || 'Account deleted'); return { ok: true }; }
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Admin: staff roles ----
+    const refreshRoles = useCallback(async () => {
+        const r = await api('/api/roles');
+        if (r.ok) setRoles(unwrap(r.data, 'roles') || []);
+    }, []);
+    /** Create (no id) or update a staff role: { id?, name, description, permissions } */
+    const handleSaveRole = useCallback(async ({ id, ...data }) => {
+        const r = id ? await api(`/api/roles/${id}`, { method: 'PUT', body: data }) : await api('/api/roles', { method: 'POST', body: data });
+        if (r.ok && r.data.role) {
+            setRoles(prev => (id ? prev.map(x => (x.id === id ? r.data.role : x)) : [...prev, r.data.role]).sort((a, b) => a.name.localeCompare(b.name)));
+            // Staff rows show the role name, so keep them in step with a rename
+            if (id) setUsers(prev => prev.map(u => (u.staffRoleId === id ? { ...u, staffRoleName: r.data.role.name } : u)));
+            showNotice('success', r.data.message || 'Role saved');
+            return { ok: true, role: r.data.role };
+        }
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+    const handleDeleteRole = useCallback(async (id) => {
+        const r = await api(`/api/roles/${id}`, { method: 'DELETE' });
+        if (r.ok) { setRoles(prev => prev.filter(x => x.id !== id)); showNotice('success', r.data.message || 'Role deleted'); return { ok: true }; }
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
     const handleUpdateUserRole = useCallback((userId, newRole) => handleAdminUpdateUser(userId, { role: newRole }).catch(e => showNotice('error', e.message)), [handleAdminUpdateUser, showNotice]);
     const handleToggleUserDisabled = useCallback((userId) => {
         const u = users.find(x => x.id === userId);
@@ -759,8 +803,8 @@ export const ArenaProvider = ({ children }) => {
 
     const value = useMemo(() => ({
         bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
-        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
-        isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
+        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
+        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
         activeTicketPass, setActiveTicketPass, showSquadModal, setShowSquadModal, showAdminModal, setShowAdminModal,
@@ -768,7 +812,8 @@ export const ArenaProvider = ({ children }) => {
         authModalInitialTab, setAuthModalInitialTab, showSSLCommerzModal, setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
         showHandoverGuide, setShowHandoverGuide,
         login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, demoMode: DEMO_MODE,
-        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser,
+        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
+        refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
@@ -782,14 +827,15 @@ export const ArenaProvider = ({ children }) => {
         sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
     }), [
         bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
-        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, currentUser, authChecked,
-        isVisitor, isAdmin, isInvestor, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice,
+        shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
+        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
         activeTicketPass, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
         showSSLCommerzModal, pendingBookingData, showHandoverGuide,
         login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword,
-        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser,
+        handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
+        refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,

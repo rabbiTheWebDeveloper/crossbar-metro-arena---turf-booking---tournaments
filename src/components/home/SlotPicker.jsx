@@ -89,8 +89,8 @@ export function SlotPicker({ availability, ready, date, onDateChange, period, on
 
     const continueToPayment = () => {
         if (!selected) return;
-        if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'investor')) {
-            showNotice('info', `${currentUser.role === 'admin' ? 'Admins' : 'Investors'} cannot book online from this account. Admins add bookings from the Schedule tab instead.`);
+        if (currentUser && ['admin', 'staff', 'investor'].includes(currentUser.role)) {
+            showNotice('info', `${currentUser.role === 'investor' ? 'Investors' : 'Admins'} cannot book online from this account. Admins add bookings from the Schedule tab instead.`);
             return;
         }
         setCheckoutSlot(selected);

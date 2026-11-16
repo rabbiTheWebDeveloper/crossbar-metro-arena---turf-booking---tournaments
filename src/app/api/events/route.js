@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requirePermission } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tournament } from '@/models/Tournament';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'events');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
