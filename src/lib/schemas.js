@@ -203,11 +203,24 @@ export const INVESTOR_SCHEMA = {
     joinedDate: { type: 'date', label: 'Joined date' }
 };
 
+export const PAYOUT_METHODS = ['bank_transfer', 'bkash', 'nagad', 'rocket', 'cheque', 'cash'];
+export const MOBILE_WALLET_METHODS = ['bkash', 'nagad', 'rocket'];
+
+/** Partner's own payout preference (PUT /api/investors/settings). Method-specific rules live in the route. */
+export const INVESTOR_PAYOUT_DETAILS_SCHEMA = {
+    method: { type: 'enum', values: PAYOUT_METHODS, label: 'Payout method' },
+    accountName: { type: 'string', max: 80, label: 'Account name' },
+    accountNumber: { type: 'string', max: 34, label: 'Account number' },
+    bankName: { type: 'string', max: 80, label: 'Bank name' },
+    branch: { type: 'string', max: 80, label: 'Branch' },
+    note: { type: 'string', max: 200, label: 'Note' }
+};
+
 export const PAYOUT_SCHEMA = {
     month: { type: 'month', required: true, label: 'Month' },
     amount: { type: 'money', required: true, label: 'Amount' },
     datePaid: { type: 'date', label: 'Date paid' },
-    paymentMethod: { type: 'enum', values: ['bank_transfer', 'bkash', 'nagad', 'rocket', 'cheque', 'cash'], default: 'bank_transfer', label: 'Payment method' },
+    paymentMethod: { type: 'enum', values: PAYOUT_METHODS, default: 'bank_transfer', label: 'Payment method' },
     transactionNote: { type: 'text', max: 200, default: '' },
     allowDuplicate: { type: 'bool', default: false }
 };

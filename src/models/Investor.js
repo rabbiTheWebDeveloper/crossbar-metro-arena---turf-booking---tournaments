@@ -37,6 +37,17 @@ const InvestorSchema = new Schema({
     },
     // Linked login account (User._id). Set by the admin so the investor portal shows the right partner.
     userId: { type: String, trim: true, default: '', index: true },
+    // Where the partner wants dividends sent. Edited by the partner in /investor/settings
+    // (PUT /api/investors/settings); never touched by the admin investor routes.
+    payoutDetails: {
+        method: { type: String, enum: ['', 'bank_transfer', 'bkash', 'nagad', 'rocket', 'cheque', 'cash'], default: '' },
+        accountName: { type: String, trim: true, default: '' },
+        accountNumber: { type: String, trim: true, default: '' },
+        bankName: { type: String, trim: true, default: '' },
+        branch: { type: String, trim: true, default: '' },
+        note: { type: String, trim: true, default: '' },
+        updatedAt: { type: Date, default: null }
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],

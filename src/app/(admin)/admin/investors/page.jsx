@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
-import { formatMoney, formatMonth, shiftMonth, PAYOUT_METHODS, paymentMethodLabel } from '@/data/finance';
+import { formatMoney, formatMonth, shiftMonth, PAYOUT_METHODS, paymentMethodLabel, payoutDetailsSummary } from '@/data/finance';
 import { ChevronLeft, ChevronRight, Plus, Link2, UserMinus, UserCheck, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +94,8 @@ export default function AdminInvestorsPage() {
     const openPayout = (inv) => {
         const share = shareById[inv.id];
         setPayoutError('');
-        setPayoutForm({ amount: share ? share.balance : 0, datePaid: todayDhaka(), paymentMethod: 'bank_transfer', transactionNote: '' });
+        // Start from the method the partner asked for in their portal settings
+        setPayoutForm({ amount: share ? share.balance : 0, datePaid: todayDhaka(), paymentMethod: inv.payoutDetails?.method || 'bank_transfer', transactionNote: '' });
         setPayoutInvestor(inv);
     };
 
@@ -278,6 +279,11 @@ export default function AdminInvestorsPage() {
               <strong className="text-white">{payoutInvestor.name}</strong> ({payoutInvestor.sharePercentage}%) · {formatMonth(selectedMonth)}
               {shareById[payoutInvestor.id] && (<span className="block mt-1 font-mono">share {formatMoney(shareById[payoutInvestor.id].shareAmount)} · paid {formatMoney(shareById[payoutInvestor.id].paidAmount)} · owed {formatMoney(shareById[payoutInvestor.id].balance)}</span>)}
             </p>
+            <div className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-xs">
+              <span className="text-slate-500">Partner prefers: </span>
+              <span className="text-white font-semibold break-words">{payoutDetailsSummary(payoutInvestor.payoutDetails) || 'no preference set'}</span>
+              {payoutInvestor.payoutDetails?.method && payoutInvestor.payoutDetails?.note && (<span className="block text-slate-400 mt-0.5">Note: {payoutInvestor.payoutDetails.note}</span>)}
+            </div>
 
             <form onSubmit={handlePayoutSubmit} className="space-y-3 text-xs">
               <div>

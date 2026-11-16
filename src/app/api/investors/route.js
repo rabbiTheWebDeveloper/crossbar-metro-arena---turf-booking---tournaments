@@ -4,6 +4,7 @@ import { Investor } from '@/models/Investor';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requireRole, requireAdmin, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { findInvestorForUser } from '@/lib/investorAccess';
 
 /** Fields an investor may see about other partners (no contact details). */
 const publicView = (i) => ({
@@ -13,20 +14,6 @@ const publicView = (i) => ({
     status: i.status,
     joinedDate: i.joinedDate
 });
-
-/** Resolve which Investor record belongs to a logged-in user: userId link first, exact phone second. */
-export async function findInvestorForUser(user) {
-    if (!user) return null;
-    const uid = user.userId || user.id;
-    let inv = null;
-    if (isObjectId(uid)) inv = await Investor.findOne({ userId: String(uid) });
-    if (!inv && user.phone) {
-        const phone = cleanPhone(user.phone);
-        const all = await Investor.find({ phone: { $exists: true, $ne: '' } });
-        inv = all.find(i => cleanPhone(i.phone) === phone) || null;
-    }
-    return inv;
-}
 
 export async function GET(request) {
     try {

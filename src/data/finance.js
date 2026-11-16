@@ -50,7 +50,19 @@ export const paymentMethodLabel = (method) => {
     return PAYMENT_METHOD_LABELS[method] || String(method).replaceAll('_', ' ').replace(/\b\w/g, ch => ch.toUpperCase());
 };
 
-export const REFUND_STATUS_LABELS = { pending: 'Pending', approved: 'Approved', completed: 'Completed', rejected: 'Rejected' };
+export const MOBILE_WALLET_METHODS = ['bkash', 'nagad', 'rocket'];
+
+/** One-line summary of a partner's payout preference, e.g. `bKash · 01711223344 (Rahim)`. Empty when none is set. */
+export const payoutDetailsSummary = (details) => {
+    if (!details || !details.method) return '';
+    const parts = [paymentMethodLabel(details.method)];
+    if (details.bankName) parts.push([details.bankName, details.branch].filter(Boolean).join(', '));
+    if (details.accountNumber) parts.push(details.accountNumber);
+    const summary = parts.join(' · ');
+    return details.accountName ? `${summary} (${details.accountName})` : summary;
+};
+
+export const REFUND_STATUS_LABELS ={ pending: 'Pending', approved: 'Approved', completed: 'Completed', rejected: 'Rejected' };
 
 export const formatMoney = (num) => `৳${Math.round(Number(num) || 0).toLocaleString('en-IN')}`;
 

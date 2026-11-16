@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useArena } from '@/context/ArenaContext';
 import { InvestorContext } from '@/context/InvestorContext';
 import { CrossbarLogo } from '@/components/CrossbarLogo';
-import { BarChart3, Calendar, Receipt, CreditCard, Globe, ShieldCheck, LogOut, Menu, X, ChevronDown, UserX, LogIn } from 'lucide-react';
+import { BarChart3, Calendar, Receipt, CreditCard, Settings, Globe, ShieldCheck, LogOut, Menu, X, ChevronDown, UserX, LogIn } from 'lucide-react';
 
 export default function InvestorDashboardLayout({ children }) {
     const pathname = usePathname();
@@ -31,6 +31,7 @@ export default function InvestorDashboardLayout({ children }) {
         if (pathname.includes('/bookings')) return 'BOOKINGS';
         if (pathname.includes('/expenses')) return 'EXPENSES';
         if (pathname.includes('/payouts') || pathname.includes('/my-payouts')) return 'MY PAYOUTS';
+        if (pathname.includes('/settings')) return 'SETTINGS';
         return `INVESTOR OVERVIEW · ${activeInvestor?.name || 'Partner'}`;
     }, [pathname, activeInvestor]);
 
@@ -38,6 +39,7 @@ export default function InvestorDashboardLayout({ children }) {
     const isBookings = pathname.includes('/bookings');
     const isExpenses = pathname.includes('/expenses');
     const isPayouts = pathname.includes('/payouts') || pathname.includes('/my-payouts');
+    const isSettings = pathname.includes('/settings');
 
     const roleLabel = String(currentUser?.role || 'investor').toUpperCase();
     const avatarInitial = (currentUser?.name || 'P').trim().charAt(0).toUpperCase() || 'P';
@@ -154,6 +156,13 @@ export default function InvestorDashboardLayout({ children }) {
             : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}>
               <CreditCard className={`w-4 h-4 ${isPayouts ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`}/>
               <span>My payouts</span>
+            </Link>
+
+            <Link href="/investor/settings" onClick={() => setMobileSidebarOpen(false)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all text-left ${isSettings
+            ? 'bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 font-black'
+            : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}>
+              <Settings className={`w-4 h-4 ${isSettings ? 'text-slate-950 stroke-[2.5]' : 'text-slate-400'}`}/>
+              <span>Settings</span>
             </Link>
           </nav>
         </div>

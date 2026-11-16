@@ -567,8 +567,15 @@ export const ArenaProvider = ({ children }) => {
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [showNotice]);
 
+    /** Partner's own payout preference. Admins pass `investorId` to save it on a partner's behalf. */
+    const handleSaveInvestorSettings = useCallback(async (payoutDetails, investorId) => {
+        const r = await api('/api/investors/settings', { method: 'PUT', body: { payoutDetails, ...(investorId ? { investorId } : {}) } });
+        if (r.ok && r.data.investor) { setInvestors(prev => upsert(prev, r.data.investor)); showNotice('success', r.data.message || 'Payout preference saved'); return { ok: true, investor: r.data.investor }; }
+        showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
     // ---- Teams ----
-    const handleSaveTeam = useCallback(async (team) => {
+    const handleSaveTeam =useCallback(async (team) => {
         const r = await api('/api/teams', { method: 'POST', body: team });
         if (r.ok && r.data.team) {
             setTeams(prev => upsert(prev, { ...r.data.team, isMine: true }));
@@ -764,7 +771,7 @@ export const ArenaProvider = ({ children }) => {
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
-        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor,
+        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,
         handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
@@ -785,7 +792,7 @@ export const ArenaProvider = ({ children }) => {
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
-        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor,
+        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,
         handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
