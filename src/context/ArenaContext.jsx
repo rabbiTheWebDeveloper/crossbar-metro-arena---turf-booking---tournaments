@@ -561,8 +561,9 @@ export const ArenaProvider = ({ children }) => {
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [showNotice]);
 
-    const handleDeleteInvestor = useCallback(async (id) => {
-        const r = await api(`/api/investors/${id}`, { method: 'DELETE' });
+    /** With { permanent: true } the partner is removed even when payouts exist (the payout history is kept). */
+    const handleDeleteInvestor = useCallback(async (id, { permanent = false } = {}) => {
+        const r = await api(`/api/investors/${id}${permanent ? '?permanent=1' : ''}`, { method: 'DELETE' });
         if (r.ok) { setInvestors(prev => (r.data.investor ? upsert(prev, r.data.investor) : prev.filter(i => i.id !== id))); showNotice('success', r.data.message); return { ok: true }; }
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [showNotice]);

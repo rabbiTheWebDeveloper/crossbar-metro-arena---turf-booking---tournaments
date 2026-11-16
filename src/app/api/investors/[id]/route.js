@@ -59,6 +59,14 @@ export async function DELETE(request, { params }) {
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Investor not found' }, { status: 404 });
         const payoutCount = await Payout.countDocuments({ investorId: id });
+        // ?permanent=1 removes the partner even with payouts on record. The payout rows are kept
+        // (they carry the partner's name) so past financial reports do not change.
+        const permanent = new URL(request.url).searchParams.get('permanent') === '1';
+        if (payoutCount > 0 && permanent) {
+            const removed = await Investor.findByIdAndDelete(id);
+            if (!removed) return NextResponse.json({ error: 'Investor not found' }, { status: 404 });
+            return NextResponse.json({ success: true, message: `Investor deleted. ${payoutCount} past payout${payoutCount === 1 ? '' : 's'} kept in the ledger.` });
+        }
         if (payoutCount > 0) {
             // Keep the payout history intact; deactivate instead of deleting
             const inv = await Investor.findByIdAndUpdate(id, { status: 'inactive' }, { new: true });
