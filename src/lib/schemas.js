@@ -144,7 +144,8 @@ export const SETTINGS_SCHEMA = {
     googleMapsUrl: { type: 'url', label: 'Google Maps link' },
     facebookUrl: { type: 'url', label: 'Facebook link' },
     instagramUrl: { type: 'url', label: 'Instagram link' },
-    website: { type: 'url', label: 'Website' },
+    // Shown as plain text in the footer ("bookcrossbar.com"), so it is not required to be a full http(s) link
+    website: { type: 'string', max: 120, label: 'Website' },
     openingHours: { type: 'string', max: 120 },
     aboutText: { type: 'text', max: 2000 },
     morningSlotPrice: { type: 'money', label: 'Morning price' },

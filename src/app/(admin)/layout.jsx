@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useArena, todayDhaka } from '../../context/ArenaContext';
 import { CrossbarLogo } from '../../components/CrossbarLogo';
 import { SCHEDULE_SLOTS_DEFINITION } from '../../data/initialData';
-import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound } from 'lucide-react';
+import { Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag, Package, ClipboardCheck, Trophy, Award, Camera, Settings, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const parseLocalDate = (iso) => {
@@ -74,6 +74,7 @@ export default function AdminLayout({ children, }) {
         { label: 'Events', href: '/admin/events', icon: Trophy },
         { label: 'Match results', href: '/admin/match-results', icon: Award, badge: pendingResultsCount },
         { label: 'Gallery', href: '/admin/gallery', icon: Camera },
+        { label: 'Settings', href: '/admin/settings', icon: Settings },
     ];
 
     // Dynamic Header Title
@@ -99,6 +100,7 @@ export default function AdminLayout({ children, }) {
         if (pathname.includes('/events')) return 'Events Hub';
         if (pathname.includes('/match-results')) return 'Match results';
         if (pathname.includes('/gallery')) return 'Gallery Photos';
+        if (pathname.includes('/settings')) return 'Settings';
         return 'Admin Panel';
     }, [pathname, todayDateStr]);
 
