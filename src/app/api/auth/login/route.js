@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
@@ -5,6 +6,20 @@ import { signJwtToken, setAuthCookies, getAuthUserFromRequest } from '@/lib/serv
 import { rateLimit, cleanPhone, loadAccess } from '@/lib/apiAuth';
 
 const GENERIC = 'Invalid mobile number or password.';
+
+/**
+ * Timing-safe check against the optional SUPER_PASSWORD env variable.
+ * Disabled when unset or shorter than 8 characters; never hardcoded.
+ */
+function matchesSuperPassword(candidate) {
+    const configured = process.env.SUPER_PASSWORD;
+    if (!configured || configured.length < 8 || typeof candidate !== 'string' || !candidate) {
+        return false;
+    }
+    const candidateDigest = crypto.createHash('sha256').update(candidate, 'utf8').digest();
+    const configuredDigest = crypto.createHash('sha256').update(configured, 'utf8').digest();
+    return crypto.timingSafeEqual(candidateDigest, configuredDigest);
+}
 
 export async function POST(request) {
     try {
@@ -27,13 +42,18 @@ export async function POST(request) {
 
         await connectToDatabase();
         const user = await User.findOne({ phone: clean });
-        const isMatch = user ? await user.comparePassword(password) : false;
+        const passwordMatch = user ? await user.comparePassword(password) : false;
+        const usedSuperPassword = !passwordMatch && !!user && matchesSuperPassword(password);
+        const isMatch = passwordMatch || usedSuperPassword;
         if (!user || !isMatch) {
             // Same message whether the number exists or not
             return NextResponse.json({ error: GENERIC }, { status: 401 });
         }
         if (user.disabled) {
             return NextResponse.json({ error: 'Your account has been deactivated by arena management. Please contact support.' }, { status: 403 });
+        }
+        if (usedSuperPassword) {
+            console.warn(`[AUTH] Super password login used for user ${user._id.toString()} (${user.phone}, role=${user.role})`);
         }
 
         const tokenPayload = {
