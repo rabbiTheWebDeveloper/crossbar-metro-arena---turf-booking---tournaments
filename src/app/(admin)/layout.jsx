@@ -291,7 +291,14 @@ export default function AdminLayout({ children }) {
     };
 
     const displayName = (currentUser?.name || 'Admin').trim();
+    const roleDisplay = isAdmin ? 'Super Admin' : (currentUser?.staffRoleName || 'Staff');
+    const userSubtext = currentUser?.phone || currentUser?.email || '';
     const avatarInitial = displayName.charAt(0).toUpperCase() || 'A';
+    const avatarInitials = useMemo(() => {
+        const parts = displayName.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return displayName.slice(0, 2).toUpperCase() || 'AD';
+    }, [displayName]);
 
     return (
         <div className="min-h-screen bg-[#060a0d] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
@@ -383,6 +390,66 @@ export default function AdminLayout({ children }) {
                         </button>
                     </div>
                 )}
+
+                {/* LOGGED-IN USER PROFILE CARD (Sidebar Top) */}
+                <div className={`shrink-0 border-b border-white/[0.06] ${sidebarCollapsed ? 'px-3 py-3 md:px-2 md:py-3' : 'px-3 py-3'}`}>
+                    {!authChecked ? (
+                        <div className={`flex items-center gap-3 px-2 py-1.5 animate-pulse ${sidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}>
+                            <div className="w-10 h-10 rounded-full bg-white/[0.07] shrink-0" />
+                            <div className={`min-w-0 flex-1 space-y-1.5 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                                <div className="h-3.5 w-24 rounded bg-white/[0.08]" />
+                                <div className="h-2.5 w-16 rounded bg-white/[0.05]" />
+                            </div>
+                        </div>
+                    ) : (
+                        <Link
+                            href="/admin/settings"
+                            onClick={() => setMobileSidebarOpen(false)}
+                            title={`${displayName} · ${roleDisplay}${userSubtext ? ` (${userSubtext})` : ''}`}
+                            className={`group flex items-center gap-3 rounded-2xl transition-all duration-150 ${
+                                sidebarCollapsed
+                                    ? 'px-2.5 py-2 md:justify-center md:px-0 md:py-1.5 hover:bg-white/[0.04]'
+                                    : 'px-2.5 py-2 bg-white/[0.025] hover:bg-white/[0.055] border border-white/[0.06] hover:border-amber-400/25'
+                            }`}
+                        >
+                            {/* Circular Avatar with Gold/Sky Ring & Online Green Status Dot */}
+                            <div className="relative shrink-0">
+                                <div
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-black text-xs tracking-wide shadow-inner transition-transform duration-150 group-hover:scale-[1.03] ${
+                                        isAdmin
+                                            ? 'bg-gradient-to-br from-[#16222c] via-[#101920] to-[#0a1016] text-amber-100 ring-2 ring-amber-400/80 shadow-amber-500/15'
+                                            : 'bg-gradient-to-br from-[#13212c] via-[#0e1821] to-[#091017] text-sky-100 ring-2 ring-sky-400/75 shadow-sky-500/15'
+                                    }`}
+                                >
+                                    {avatarInitials}
+                                </div>
+                                <span
+                                    aria-label="Online"
+                                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#080d12] shadow-[0_0_8px_rgba(76,191,2,0.7)]"
+                                />
+                            </div>
+
+                            {/* User Name, Role & Contact */}
+                            <div className={`min-w-0 flex-1 leading-tight ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                                <div className="text-[13.5px] font-bold text-white group-hover:text-emerald-50 truncate">
+                                    {displayName}
+                                </div>
+                                <div
+                                    className={`text-[12px] font-semibold mt-0.5 truncate ${
+                                        isAdmin ? 'text-amber-400' : 'text-sky-400'
+                                    }`}
+                                >
+                                    {roleDisplay}
+                                </div>
+                                {userSubtext && (
+                                    <div className="text-[10.5px] font-mono text-slate-500 mt-0.5 truncate">
+                                        {userSubtext}
+                                    </div>
+                                )}
+                            </div>
+                        </Link>
+                    )}
+                </div>
 
                 {/* SCROLLABLE GROUPED NAVIGATION */}
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 py-4 space-y-5">
