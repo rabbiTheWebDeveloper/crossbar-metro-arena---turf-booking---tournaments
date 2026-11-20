@@ -8,6 +8,13 @@ export const dynamic = 'force-dynamic';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PHONE_RE = /^01[3-9]\d{8}$/;
+const formatTime12 = (hhmm) => {
+    const [hRaw, mRaw] = String(hhmm || '00:00').split(':').map(Number);
+    const h = Number.isFinite(hRaw) ? hRaw : 0;
+    const m = Number.isFinite(mRaw) ? mRaw : 0;
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+};
 
 const PILL = {
     cyan: 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30',
@@ -177,7 +184,7 @@ export default function AdminSchedulePage() {
 
       {/* DATE STRIP + DATE PICKER */}
       <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none flex-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar flex-1">
           {dateStrip.map(item => {
               const isSelected = selectedDate === item.iso;
               return (<button key={item.iso} type="button" onClick={() => setSelectedDate(item.iso)} className={`flex-1 min-w-[62px] sm:min-w-[70px] py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all cursor-pointer ${isSelected
@@ -232,10 +239,10 @@ export default function AdminSchedulePage() {
                         : b.paymentStatus === 'confirmed_unpaid'
                             ? 'bg-[#141108] border-amber-500/30'
                             : 'bg-[#0c1613] border-emerald-500/30';
-            return (<div key={slot.slotNumber} className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${cardClass}`}>
-              <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-                <div className="w-16 sm:w-20 font-mono font-bold text-xs sm:text-sm text-white shrink-0">
-                  {slot.startTime} {Number(slot.startTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+            return (<div key={slot.slotNumber} className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 ${cardClass}`}>
+              <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                <div className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] font-mono font-bold text-xs text-white shrink-0 tabular-nums">
+                  {formatTime12(slot.startTime)}
                 </div>
 
                 <div className="min-w-0">
@@ -262,10 +269,10 @@ export default function AdminSchedulePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {!isBooked ? (<button type="button" onClick={() => handleOpenWalkin(slot)} className="px-3 py-1.5 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold text-xs transition-colors cursor-pointer border border-lime-400/20">
                     + Book Walk-in
-                  </button>) : (<div className="flex items-center gap-2">
+                  </button>) : (<div className="flex flex-wrap items-center gap-2">
                     {statusPill(b)}
 
                     {!isHold && due > 0 && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-xs font-bold transition-colors cursor-pointer border border-amber-400/30 disabled:opacity-50" title="Record a partial or full payment">

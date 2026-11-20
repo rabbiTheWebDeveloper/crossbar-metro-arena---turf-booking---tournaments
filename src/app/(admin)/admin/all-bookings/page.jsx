@@ -139,7 +139,7 @@ export default function AdminAllBookingsPage() {
             Reset
           </button>)}
 
-        <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
           {FILTERS.map(f => (<button key={f.key} type="button" onClick={() => changeFilter(f.key)} className={`px-3 py-2 rounded-xl whitespace-nowrap font-bold transition-colors cursor-pointer ${filterStatus === f.key
                 ? 'bg-lime-400 text-slate-950 font-black'
                 : 'bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white'}`}>
@@ -165,7 +165,7 @@ export default function AdminAllBookingsPage() {
             const total = Number(b.totalPrice) || 0;
             const d = parseLocalDate(b.date);
             const isBusy = busyId === b.id;
-            return (<div key={b.id} className={`p-3 sm:p-3.5 rounded-2xl bg-[#0c131a] border transition-all flex items-center justify-between gap-3 text-xs ${isCancelled ? 'border-white/5 opacity-60' : isHold ? 'border-white/10 border-dashed' : 'border-white/5 hover:border-lime-400/30'}`}>
+            return (<div key={b.id} className={`p-3 sm:p-3.5 rounded-2xl bg-[#0c131a] border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${isCancelled ? 'border-white/5 opacity-60' : isHold ? 'border-white/10 border-dashed' : 'border-white/5 hover:border-lime-400/30'}`}>
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center font-mono shrink-0">
                     <span className="text-[10px] text-slate-400 uppercase leading-none">
@@ -207,7 +207,7 @@ export default function AdminAllBookingsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   {statusPill(b)}
 
                   {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer disabled:opacity-50" title="Record a partial or full cash payment">

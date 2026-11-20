@@ -60,6 +60,7 @@
   --text-xs--line-height: 1.25rem;
   --text-sm: 0.9375rem;
   --text-sm--line-height: 1.4rem;
+  --breakpoint-xs: 30rem;
 }
 
 @layer base {
@@ -189,6 +190,7 @@
 
 /* Fallbacks for animate-in / slide-in utility classes used by modals & drawers */
 .animate-in { animation-duration: 0.25s; animation-fill-mode: both; animation-timing-function: ease-out; }
+.animate-fade-in { animation: fade-in-kf 0.22s ease-out both; }
 .fade-in { animation-name: fade-in-kf; }
 .zoom-in-95 { animation-name: zoom-in-kf; }
 .slide-in-from-bottom { animation-name: slide-up-kf; animation-duration: 0.3s; }
@@ -273,7 +275,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-enter, .page-enter-2, .page-enter-3, .float-slow, .animate-in, .animate-floodlight-left, .animate-floodlight-right, .animate-text-shimmer, .animate-neon-pulse, .animate-radar-ping { animation: none !important; }
+  .page-enter, .page-enter-2, .page-enter-3, .float-slow, .animate-in, .animate-fade-in, .animate-floodlight-left, .animate-floodlight-right, .animate-text-shimmer, .animate-neon-pulse, .animate-radar-ping { animation: none !important; }
 }
 
 /* ---------- Scrollbars ---------- */
