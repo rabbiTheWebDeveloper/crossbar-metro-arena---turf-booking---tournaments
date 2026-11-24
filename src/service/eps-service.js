@@ -58,6 +58,8 @@ export async function createEpsClient() {
     }
     let client;
     try {
+        // The SDK requires merchantId/storeId to be UUIDs - EPS's server also parses them as
+        // System.Guid, so a non-UUID value can never work.
         client = new EPS({
             username: cfg.username,
             password: cfg.password,
@@ -121,6 +123,16 @@ export async function initiateEpsBookingPayment({
         valueB: String(booking._id),
         valueC: booking.date,
         valueD: String(booking.slotNumber)
+    }).catch((err) => {
+        // EPS often answers 400 with a validation body (e.g. ASP.NET `errors`) that the SDK
+        // reduces to "Request failed with status code 400" - log and surface the real reason.
+        const body = err?.response;
+        if (body) console.error('EPS initialize response body:', JSON.stringify(body, null, 2));
+        const detail = body?.errors
+            ? Object.entries(body.errors).map(([k, v]) => `${k}: ${[].concat(v).join(', ')}`).join('; ')
+            : (body?.title || body?.ErrorMessage || body?.errorMessage || '');
+        if (detail) throw new Error(`EPS rejected the payment request: ${detail}`);
+        throw err;
     });
 
     if (!payment?.RedirectURL) {

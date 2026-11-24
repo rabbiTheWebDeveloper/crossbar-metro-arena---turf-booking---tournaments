@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { getEpsConfig } from '@/service/eps-service';
 
-// Same formats the eps-gateway-nodejs SDK enforces in validateConfig().
+// EPS expects an email username and GUID merchant/store IDs.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,18 +60,16 @@ export async function PUT(request) {
         if (epsHashKey.length > 300) return badRequest('EPS Hash Key is too long.');
         if (epsMerchantId.length > 120) return badRequest('EPS Merchant ID is too long.');
         if (epsStoreId.length > 120) return badRequest('EPS Store ID is too long.');
-
-        // The EPS SDK rejects anything that is not a full UUID, so catch bad values here
-        // (e.g. a truncated copy-paste) instead of failing later when a customer pays.
-        // Empty values are allowed so an admin can clear the settings and fall back to .env.
         if (epsUsername && !EMAIL_RE.test(epsUsername)) {
             return badRequest('EPS User Name must be an email address.');
         }
+        // EPS's server parses merchantId / storeId as System.Guid, so reject anything that is not
+        // a full UUID at save time (e.g. a truncated copy-paste) instead of at customer checkout.
         if (epsMerchantId && !UUID_RE.test(epsMerchantId)) {
-            return badRequest('EPS Merchant ID must be a full UUID like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 characters).');
+            return badRequest('EPS Merchant ID must be a full 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).');
         }
         if (epsStoreId && !UUID_RE.test(epsStoreId)) {
-            return badRequest('EPS Store ID must be a full UUID like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 characters).');
+            return badRequest('EPS Store ID must be a full 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Ask EPS for the complete ID.');
         }
 
         await connectToDatabase();
