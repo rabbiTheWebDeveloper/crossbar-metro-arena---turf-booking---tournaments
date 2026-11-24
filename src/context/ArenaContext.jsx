@@ -89,7 +89,7 @@ export const ArenaProvider = ({ children }) => {
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [notice, setNotice] = useState(null); // { type: 'success'|'error'|'info', message }
-    const [paymentGateways, setPaymentGateways] = useState({ eps: false, sslcommerz: false, active: 'eps' });
+    const [paymentGateways, setPaymentGateways] = useState({ eps: false, active: 'eps' });
 
     // ---- UI / modal state ----
     const [activeTicketPass, setActiveTicketPass] = useState(null);
@@ -523,18 +523,20 @@ export const ArenaProvider = ({ children }) => {
         return { ok: false, error: r.error };
     }, [sendSMSNotification, showNotice]);
 
-    /** Public online booking: creates a server-priced payment hold and returns the EPS (or fallback SSLCommerz) gateway URL. */
-    const startOnlinePayment = useCallback(async (pendingBooking, preferredGateway) => {
-        const gw = preferredGateway || (paymentGateways.active === 'sslcommerz' ? 'sslcommerz' : 'eps');
-        const endpoint = gw === 'sslcommerz' ? '/api/payment/sslcommerz/init' : '/api/payment/eps/init';
-        const r = await api(endpoint, { method: 'POST', body: { pendingBooking } });
+    /** Public online booking: creates a server-priced payment hold and returns the EPS gateway URL. */
+    const startOnlinePayment = useCallback(async (pendingBooking) => {
+        const r = await api('/api/payment/eps/init', { method: 'POST', body: { pendingBooking } });
         if (r.ok && r.data.gatewayUrl) return { ok: true, ...r.data };
         return { ok: false, error: r.error || 'Could not start payment' };
-    }, [paymentGateways.active]);
+    }, []);
 
-    /** Look up a booking by code (optionally with phone for full details). */
-    const lookupBooking = useCallback(async (code, phone) => {
-        const r = await api(`/api/bookings/${encodeURIComponent(code)}${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`);
+    /** Look up a booking by code (optionally with phone or gateway tranId for full details). */
+    const lookupBooking = useCallback(async (code, phone, tranId) => {
+        const qs = new URLSearchParams();
+        if (phone) qs.set('phone', phone);
+        if (tranId) qs.set('tranId', tranId);
+        const suffix = qs.toString() ? `?${qs.toString()}` : '';
+        const r = await api(`/api/bookings/${encodeURIComponent(code)}${suffix}`);
         return r.ok ? { ok: true, booking: r.data.booking } : { ok: false, error: r.error };
     }, []);
 

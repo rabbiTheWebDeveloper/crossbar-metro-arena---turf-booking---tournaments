@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { requirePermission } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
-import { getEpsConfig } from '@/service/eps-service';
+import { getEpsConfig, createEpsClient } from '@/service/eps-service';
 
 // EPS expects an email username and GUID merchant/store IDs.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,11 +28,42 @@ export async function GET(request) {
                 epsMerchantId: cfg.merchantId,
                 epsStoreId: cfg.storeId,
                 epsSandbox: cfg.sandbox,
-                configured: cfg.configured
+                configured: cfg.configured,
+                configError: cfg.configError || '',
+                source: cfg.source
             }
         });
     } catch (err) {
         return errorResponse(err, 'GET /api/settings/payment');
+    }
+}
+
+/**
+ * POST /api/settings/payment  (admin / staff with `settings` permission)
+ * Tests the currently active EPS credentials by requesting an auth token from EPS.
+ */
+export async function POST(request) {
+    try {
+        const { denied } = await requirePermission(request, 'settings');
+        if (denied) return denied;
+
+        const cfg = await getEpsConfig();
+        if (!cfg.configured) {
+            return badRequest(cfg.configError || 'EPS payment gateway is not configured yet.');
+        }
+
+        const { client } = await createEpsClient();
+        await client.getToken();
+
+        return NextResponse.json({
+            success: true,
+            message: `EPS ${cfg.sandbox ? 'Sandbox' : 'Live'} connection succeeded! Credentials and UUIDs are valid.`
+        });
+    } catch (err) {
+        return NextResponse.json(
+            { error: err?.message || 'EPS connection test failed.' },
+            { status: 400 }
+        );
     }
 }
 

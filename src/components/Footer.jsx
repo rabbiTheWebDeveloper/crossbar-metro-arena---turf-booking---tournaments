@@ -124,7 +124,7 @@ export const Footer = () => {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-slate-400">
           <span>© {year} {siteSettings.businessName || 'Crossbar Metro Arena'} ({siteSettings.website || 'bookcrossbar.com'}). All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <span className="text-emerald-400/80">Payments via bKash, Nagad &amp; card (SSLCommerz)</span>
+            <span className="text-emerald-400/80">Payments via bKash, Nagad &amp; card (EPS)</span>
             <button type="button" onClick={scrollToTop} className="flex items-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors p-1 cursor-pointer" title="Back to top">
               <span>Back to Top</span>
               <ArrowUp className="w-3 h-3"/>

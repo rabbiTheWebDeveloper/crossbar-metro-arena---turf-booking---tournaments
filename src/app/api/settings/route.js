@@ -5,7 +5,6 @@ import { requirePermission, can } from '@/lib/apiAuth';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
 import { isEpsConfigured } from '@/service/eps-service';
-import { isGatewayConfigured as isSslConfigured } from '@/lib/sslcommerz';
 
 const PRICING_KEYS = ['slotPrices', 'morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours', 'weekendDays', 'approveResultsFirst'];
 
@@ -18,13 +17,9 @@ function shape(settings, paymentGateways) {
 }
 
 async function gatewaySummary() {
+    // EPS is the only online payment gateway.
     const eps = await isEpsConfigured();
-    const sslcommerz = isSslConfigured();
-    return {
-        eps,
-        sslcommerz,
-        active: eps ? 'eps' : (sslcommerz ? 'sslcommerz' : 'none')
-    };
+    return { eps, active: eps ? 'eps' : 'none' };
 }
 
 export async function GET() {

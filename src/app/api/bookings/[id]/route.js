@@ -33,7 +33,13 @@ export async function GET(request, { params }) {
         const user = await optionalAuth(request);
         const { searchParams } = new URL(request.url);
         const phoneParam = cleanPhone(searchParams.get('phone') || '');
-        const allowed = can(user, 'bookings') || ownsBooking(user, booking) || (phoneParam && phoneParam === cleanPhone(booking.captainPhone));
+        const tranIdParam = String(searchParams.get('tranId') || '').trim();
+        const matchesTranId = Boolean(
+            tranIdParam && [booking.epsTransactionId, booking.gatewayTranId, booking.transactionId]
+                .filter(Boolean)
+                .some(v => String(v).trim() === tranIdParam)
+        );
+        const allowed = can(user, 'bookings') || ownsBooking(user, booking) || (phoneParam && phoneParam === cleanPhone(booking.captainPhone)) || matchesTranId;
         return NextResponse.json({ success: true, booking: allowed ? booking.toJSON() : publicBookingView(booking) });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

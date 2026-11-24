@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/validate';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
-import { publicBaseUrl } from '@/lib/sslcommerz';
-import { isEpsConfigured, initiateEpsBookingPayment } from '@/service/eps-service';
+import { publicBaseUrl } from '@/lib/baseUrl';
+import { getEpsConfig, initiateEpsBookingPayment } from '@/service/eps-service';
 import { optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate,
@@ -42,9 +42,14 @@ export async function POST(request) {
         }
 
         await connectToDatabase();
-        if (!(await isEpsConfigured())) {
+        const epsCfg = await getEpsConfig();
+        if (!epsCfg.configured) {
             return NextResponse.json(
-                { error: 'EPS online payment is not configured yet. Please configure EPS in Admin Settings or pay at the arena counter.' },
+                {
+                    error: epsCfg.configError
+                        ? `EPS gateway config is invalid: ${epsCfg.configError} Fix it in Admin Settings -> EPS Payment Gateway (or EPS_* in .env).`
+                        : 'EPS online payment is not configured yet. Please configure EPS in Admin Settings or pay at the arena counter.'
+                },
                 { status: 503 }
             );
         }

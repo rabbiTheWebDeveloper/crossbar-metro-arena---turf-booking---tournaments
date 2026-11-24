@@ -7,11 +7,12 @@ import { X, Shield, Phone, User, Users, AlertCircle, Timer, Check, ArrowRight } 
 
 /**
  * Step 1 of the public online booking: collect squad details, add-ons and the payment option.
- * It hands a contract-shaped `pendingBooking` to the SSLCommerz confirm modal, which starts the
+ * It hands a contract-shaped `pendingBooking` to the EPS confirm modal, which starts the
  * server-priced payment. No prices are ever sent to the server from here.
  */
 export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
     const { handlePlaceSlotHold, handleReleaseSlotHold, currentUser, isVisitor, pricing, teams, setShowSSLCommerzModal, setPendingBookingData, customerSettings } = useArena();
+    const gatewayLabel = 'EPS';
 
     const captainTeams = useMemo(() => {
         if (!currentUser || currentUser.role !== 'player') return [];
@@ -230,7 +231,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
           {/* 3. Payment option */}
           <div className="space-y-3 pt-2 border-t border-white/10">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              3. Payment Option (bKash / Nagad / Cards via SSLCommerz)
+              3. Payment Option (bKash / Nagad / Cards via {gatewayLabel})
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -287,7 +288,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
                 <span>Due at the arena</span>
                 <span className="font-mono">৳{dueAmount.toLocaleString()}</span>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1">The final amount is confirmed by the arena server on the next step before you are sent to SSLCommerz.</p>
+              <p className="text-[11px] text-slate-500 pt-1">The final amount is confirmed by the arena server on the next step before you are sent to {gatewayLabel}.</p>
             </div>
           </div>
 

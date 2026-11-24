@@ -5,7 +5,7 @@
 export const BOOKING_FAQ = [
     {
         q: 'How do I book a football turf slot at Crossbar Metro Arena?',
-        a: 'Open the Book a Slot page, pick a date up to 60 days ahead, choose one of the 12 daily 90-minute slots and pay online. You can pay a small advance (currently BDT 500) or the full amount with bKash, Nagad or any Visa/Mastercard through SSLCommerz. Your digital match pass is issued instantly.'
+        a: 'Open the Book a Slot page, pick a date up to 60 days ahead, choose one of the 12 daily 90-minute slots and pay online. You can pay a small advance (currently BDT 500) or the full amount with bKash, Nagad or any Visa/Mastercard through EPS. Your digital match pass is issued instantly.'
     },
     {
         q: 'How much does a 90-minute turf slot cost in Uttara?',

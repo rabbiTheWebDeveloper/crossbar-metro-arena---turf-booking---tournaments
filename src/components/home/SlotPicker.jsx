@@ -52,7 +52,7 @@ const SummaryRow = ({ label, value, mono }) => (
 
 /**
  * "Pick your slot": date strip, the day's 12 kick-offs grouped by period, and the booking summary
- * that opens the checkout (squad details, add-ons, SSLCommerz payment).
+ * that opens the checkout (squad details, add-ons, EPS payment).
  *   date / onDateChange: selected day (YYYY-MM-DD)      period / onPeriodChange: 'all' | period key
  */
 export function SlotPicker({ availability, ready, date, onDateChange, period, onPeriodChange }) {

@@ -57,13 +57,13 @@ function PaymentNotificationBanner() {
         let cancelled = false;
         (async () => {
             setVerifyState('verifying');
-            const r = result.bookingCode ? await lookupBooking(result.bookingCode) : { ok: false };
+            const r = result.bookingCode ? await lookupBooking(result.bookingCode, '', result.tranId) : { ok: false };
             if (cancelled) return;
             const b = r.ok ? r.booking : null;
             if (b && PAID_STATUSES.includes(b.paymentStatus)) {
                 setVerifiedBooking(b);
                 setVerifyState('verified');
-                setActiveTicketPass(b);
+                if (!b.isPublicView) setActiveTicketPass(b);
                 refreshBookings().catch(() => { /* ignore */ });
                 try { confetti({ particleCount: 90, spread: 75, origin: { y: 0.5 } }); } catch { /* ignore */ }
             } else {
@@ -251,10 +251,11 @@ export default function BookingPage() {
     const windowDays = Number(pricing.bookingWindowDays) > 0 ? Number(pricing.bookingWindowDays) : 60;
     const advance = Number(pricing.advanceAmount) > 0 ? Number(pricing.advanceAmount) : 500;
     const weekendLabel = weekendDaysLabel(pricing.weekendDays);
+    const gatewayLabel = 'EPS';
 
     const guidelines = [
         { icon: Clock, title: '12 Slots Daily (90 Mins Each)', text: 'Fixed 90-minute matches from 06:30 AM to 12:30 AM. No overlapping games. One slot, one team.' },
-        { icon: Shield, title: `৳${advance.toLocaleString()} Advance or Full Payment`, text: `Secure your slot online with bKash, Nagad, or card via SSLCommerz. Choose a ৳${advance.toLocaleString()} advance (pay the rest at the counter) or 100% online.` },
+        { icon: Shield, title: `৳${advance.toLocaleString()} Advance or Full Payment`, text: `Secure your slot online with bKash, Nagad, or card via ${gatewayLabel}. Choose a ৳${advance.toLocaleString()} advance (pay the rest at the counter) or 100% online.` },
         { icon: Calendar, title: `${windowDays}-Day Advance Booking Window`, text: `Pick any match date up to ${windowDays} days in advance. Weekend rates (${weekendLabel}) apply automatically.` },
         { icon: Footprints, title: 'Turf Footwear Guidelines', text: 'Turf shoes (TF) or rubber molded studs (AG) required. Metal studs strictly forbidden on 50mm shock-pad turf.' }
     ];
@@ -267,12 +268,12 @@ export default function BookingPage() {
                 eyebrowIcon={Zap}
                 title="Reserve Your"
                 highlight="90-Min Turf Slot"
-                description={`12 slots daily, 90 minutes each, from 6:30 AM to 12:30 AM. Pick any date up to ${windowDays} days ahead. Pay online with bKash, Nagad, or card via SSLCommerz (৳${advance.toLocaleString()} advance or full).`}
+                description={`12 slots daily, 90 minutes each, from 6:30 AM to 12:30 AM. Pick any date up to ${windowDays} days ahead. Pay online with bKash, Nagad, or card via ${gatewayLabel} (৳${advance.toLocaleString()} advance or full).`}
                 stats={[
                     { label: 'Schedule', value: '12 Slots / Day', icon: Clock },
                     { label: 'Match Time', value: '90 Mins', icon: Zap },
                     { label: 'Advance Window', value: `Up to ${windowDays} Days`, icon: Calendar },
-                    { label: 'Payment Gateway', value: 'SSLCommerz', icon: Shield }
+                    { label: 'Payment Gateway', value: gatewayLabel, icon: Shield }
                 ]}
             />
 

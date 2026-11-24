@@ -9,7 +9,7 @@ const MATCH_TYPE_LABEL = { friendly: 'Friendly Scrimmage', competitive: 'Competi
 
 const classifyError = (message) => {
     const m = String(message || '').toLowerCase();
-    if (m.includes('not configured')) return 'gateway_unavailable';
+    if (m.includes('not configured') || m.includes('config is invalid') || m.includes('invalid storeid') || m.includes('invalid merchantid')) return 'gateway_unavailable';
     if (m.includes('another customer') || m.includes('already been reserved') || m.includes('taken a moment ago') || m.includes('could not reserve')) return 'slot_conflict';
     if (m.includes('already passed') || m.includes('days ahead') || m.includes('invalid date')) return 'bad_date';
     return 'generic';
@@ -17,17 +17,17 @@ const classifyError = (message) => {
 
 /**
  * Step 2 of the public online booking: confirm the summary, create the server-side
- * payment hold (server prices everything) and redirect to the hosted SSLCommerz page.
+ * payment hold (server prices everything) and redirect to the hosted EPS payment page.
+ * (Component name kept for compatibility with GlobalModals / ArenaContext state names.)
  */
 export const SSLCommerzModal = () => {
     const {
         setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
-        startOnlinePayment, pricing, siteSettings, paymentGateways, handleReleaseSlotHold, refreshBookings
+        startOnlinePayment, pricing, siteSettings, handleReleaseSlotHold, refreshBookings
     } = useArena();
 
-    const activeGateway = paymentGateways?.active === 'sslcommerz' && !paymentGateways?.eps ? 'sslcommerz' : 'eps';
-    const gatewayName = activeGateway === 'sslcommerz' ? 'SSLCommerz' : 'EPS (Easy Payment System)';
-    const gatewayShort = activeGateway === 'sslcommerz' ? 'SSLCommerz' : 'EPS';
+    const gatewayName = 'EPS (Easy Payment System)';
+    const gatewayShort = 'EPS';
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverQuote, setServerQuote] = useState(null); // { amount, totalPrice, dueAfterPayment, bookingCode, holdExpiresAt }
@@ -72,7 +72,7 @@ export const SSLCommerzModal = () => {
         setIsSubmitting(true);
         setErrorMessage('');
         setErrorKind('');
-        const r = await startOnlinePayment(pb, activeGateway);
+        const r = await startOnlinePayment(pb);
         if (r.ok && r.gatewayUrl) {
             setServerQuote({ amount: r.amount, totalPrice: r.totalPrice, dueAfterPayment: r.dueAfterPayment, bookingCode: r.bookingCode, holdExpiresAt: r.holdExpiresAt });
             redirectedRef.current = true;

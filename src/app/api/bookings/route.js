@@ -84,7 +84,7 @@ function toJson(b) {
 
 /**
  * POST /api/bookings  (admin only: walk-in / counter bookings)
- * Online customer bookings are created by /api/payment/sslcommerz/init and confirmed by the gateway callback.
+ * Online customer bookings are created by /api/payment/eps/init and confirmed by the gateway callback.
  * Prices are always computed on the server; an admin may override the court price for a counter deal.
  */
 export async function POST(request) {

@@ -61,7 +61,7 @@ export default function AuthLayout({ children }) {
             <span>Secure sign-in · Crossbar Metro Arena, Dhaka</span>
           </div>
           <div className="flex items-center gap-4 text-[12px] text-slate-400">
-            <span>Payments via bKash, Nagad &amp; card (SSLCommerz)</span>
+            <span>Payments via bKash, Nagad &amp; card (EPS)</span>
             <span>·</span>
             <a href={`tel:${VENUE_INFO.phone.replace(/[^0-9+]/g, '')}`} className="hover:text-emerald-400 transition-colors">Helpline: {VENUE_INFO.phoneFormatted || VENUE_INFO.phone}</a>
           </div>

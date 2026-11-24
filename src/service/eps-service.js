@@ -10,7 +10,26 @@ import {
 } from '@/queries/payment-queries';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
-import { publicBaseUrl } from '@/lib/sslcommerz';
+import { publicBaseUrl } from '@/lib/baseUrl';
+
+const EPS_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EPS_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateEpsConfigValues(cfg) {
+    if (!cfg.username || !cfg.password || !cfg.hashKey || !cfg.merchantId || !cfg.storeId) {
+        return 'Missing one or more required EPS credentials (username, password, hashKey, merchantId, storeId).';
+    }
+    if (!EPS_EMAIL_RE.test(cfg.username)) {
+        return 'EPS User Name must be a valid email address.';
+    }
+    if (!EPS_UUID_RE.test(cfg.merchantId)) {
+        return `EPS Merchant ID is ${cfg.merchantId.length} characters instead of a valid 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).`;
+    }
+    if (!EPS_UUID_RE.test(cfg.storeId)) {
+        return `EPS Store ID is ${cfg.storeId.length} characters instead of a valid 36-character UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Check for missing characters when copying from EPS.`;
+    }
+    return '';
+}
 
 /**
  * Load EPS gateway configuration from MongoDB Setting first, falling back to environment variables.
@@ -35,14 +54,16 @@ export async function getEpsConfig() {
         ? Boolean(doc.epsSandbox)
         : process.env.EPS_SANDBOX !== 'false';
 
+    const base = { username, password, hashKey, merchantId, storeId, sandbox };
+    const hasAll = Boolean(username && password && hashKey && merchantId && storeId);
+    const configError = hasAll ? validateEpsConfigValues(base) : '';
+
     return {
-        username,
-        password,
-        hashKey,
-        merchantId,
-        storeId,
-        sandbox,
-        configured: Boolean(username && password && hashKey && merchantId && storeId)
+        ...base,
+        configured: hasAll && !configError,
+        hasAnyValues: Boolean(username || password || hashKey || merchantId || storeId),
+        configError,
+        source: dbHasAny ? 'db' : 'env'
     };
 }
 

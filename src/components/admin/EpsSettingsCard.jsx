@@ -16,8 +16,10 @@ export function EpsSettingsCard() {
         epsSandbox: true
     });
     const [configured, setConfigured] = useState(false);
+    const [configError, setConfigError] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [testing, setTesting] = useState(false);
     const [showSecrets, setShowSecrets] = useState(false);
     const [msg, setMsg] = useState(null);
 
@@ -38,6 +40,7 @@ export function EpsSettingsCard() {
                         epsSandbox: Boolean(data.eps.epsSandbox)
                     });
                     setConfigured(Boolean(data.eps.configured));
+                    setConfigError(data.eps.configError || '');
                 }
             } catch {
                 // ignore load error
@@ -69,13 +72,38 @@ export function EpsSettingsCard() {
             if (!res.ok) {
                 setMsg({ type: 'error', text: data.error || 'Could not save EPS settings.' });
             } else {
-                if (data.eps) setConfigured(Boolean(data.eps.configured));
+                if (data.eps) {
+                    setConfigured(Boolean(data.eps.configured));
+                    setConfigError(data.eps.configError || '');
+                }
                 setMsg({ type: 'success', text: data.message || 'EPS settings saved.' });
             }
         } catch {
             setMsg({ type: 'error', text: 'Network error while saving EPS settings.' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleTestConnection = async () => {
+        if (testing || saving) return;
+        setTesting(true);
+        setMsg(null);
+        try {
+            const res = await fetch('/api/settings/payment', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setMsg({ type: 'error', text: data.error || 'EPS connection test failed.' });
+            } else {
+                setMsg({ type: 'success', text: data.message || 'EPS connection succeeded!' });
+            }
+        } catch {
+            setMsg({ type: 'error', text: 'Network error while testing EPS connection.' });
+        } finally {
+            setTesting(false);
         }
     };
 
@@ -107,6 +135,13 @@ export function EpsSettingsCard() {
                     </Link>
                 </div>
             </div>
+
+            {configError && !msg && (
+                <div role="alert" className="flex items-start gap-2 px-3 py-2 rounded-xl border text-xs bg-amber-500/10 border-amber-500/30 text-amber-200">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-px"/>
+                    <span>{configError}</span>
+                </div>
+            )}
 
             {msg && (
                 <div role={msg.type === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 px-3 py-2 rounded-xl border text-xs ${
@@ -222,14 +257,25 @@ export function EpsSettingsCard() {
                             </div>
                         </label>
 
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 transition-colors"
-                        >
-                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Save className="w-3.5 h-3.5"/>}
-                            <span>{saving ? 'Saving…' : 'Save EPS Settings'}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleTestConnection}
+                                disabled={testing || saving}
+                                className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 transition-colors"
+                            >
+                                {testing && <Loader2 className="w-3.5 h-3.5 animate-spin"/>}
+                                <span>{testing ? 'Testing…' : 'Test Connection'}</span>
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={saving || testing}
+                                className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 transition-colors"
+                            >
+                                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Save className="w-3.5 h-3.5"/>}
+                                <span>{saving ? 'Saving…' : 'Save EPS Settings'}</span>
+                            </button>
+                        </div>
                     </div>
                 </form>
             )}

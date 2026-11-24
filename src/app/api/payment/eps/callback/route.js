@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { publicBaseUrl } from '@/lib/sslcommerz';
+import { publicBaseUrl } from '@/lib/baseUrl';
 import {
     verifyAndConfirmEpsPayment,
     markEpsPaymentFailedOrCancelled
