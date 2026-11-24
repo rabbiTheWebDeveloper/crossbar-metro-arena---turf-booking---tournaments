@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
+import { EpsSettingsCard } from '@/components/admin/EpsSettingsCard';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { Building2, Phone, MapPin, Share2, Save, RotateCcw, Download, Lock, User, ExternalLink, Tag, CheckCircle2, AlertCircle, Database } from 'lucide-react';
 
@@ -275,7 +276,9 @@ export default function AdminSettingsPage() {
             <div className="h-56 rounded-3xl bg-[#0c131a] border border-white/5"/>
             <div className="h-48 rounded-3xl bg-[#0c131a] border border-white/5"/>
           </div>) : (
-        <form onSubmit={saveVenue} noValidate className="xl:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
+        <EpsSettingsCard />
+        <form onSubmit={saveVenue} noValidate className="space-y-6">
           {SECTIONS.map(section => (
             <section key={section.id} className={CARD}>
               <CardTitle icon={section.icon} hint={section.hint}>{section.title}</CardTitle>
@@ -303,7 +306,8 @@ export default function AdminSettingsPage() {
               </button>
             </div>
           </div>
-        </form>)}
+        </form>
+        </div>)}
 
         {/* RIGHT COLUMN */}
         <div className={canEditVenue ? 'space-y-6' : 'space-y-6 xl:col-span-3 max-w-xl'}>

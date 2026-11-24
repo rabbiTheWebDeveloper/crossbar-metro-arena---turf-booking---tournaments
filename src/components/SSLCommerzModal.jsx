@@ -22,8 +22,12 @@ const classifyError = (message) => {
 export const SSLCommerzModal = () => {
     const {
         setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
-        startOnlinePayment, pricing, siteSettings, handleReleaseSlotHold, refreshBookings
+        startOnlinePayment, pricing, siteSettings, paymentGateways, handleReleaseSlotHold, refreshBookings
     } = useArena();
+
+    const activeGateway = paymentGateways?.active === 'sslcommerz' && !paymentGateways?.eps ? 'sslcommerz' : 'eps';
+    const gatewayName = activeGateway === 'sslcommerz' ? 'SSLCommerz' : 'EPS (Easy Payment System)';
+    const gatewayShort = activeGateway === 'sslcommerz' ? 'SSLCommerz' : 'EPS';
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [serverQuote, setServerQuote] = useState(null); // { amount, totalPrice, dueAfterPayment, bookingCode, holdExpiresAt }
@@ -68,7 +72,7 @@ export const SSLCommerzModal = () => {
         setIsSubmitting(true);
         setErrorMessage('');
         setErrorKind('');
-        const r = await startOnlinePayment(pb);
+        const r = await startOnlinePayment(pb, activeGateway);
         if (r.ok && r.gatewayUrl) {
             setServerQuote({ amount: r.amount, totalPrice: r.totalPrice, dueAfterPayment: r.dueAfterPayment, bookingCode: r.bookingCode, holdExpiresAt: r.holdExpiresAt });
             redirectedRef.current = true;
@@ -97,7 +101,7 @@ export const SSLCommerzModal = () => {
                         </div>
                         <div>
                             <div className="text-sm font-black text-white">Confirm &amp; pay securely</div>
-                            <div className="text-[12px] text-slate-400">You will be redirected to SSLCommerz (bKash, Nagad, Rocket, cards)</div>
+                            <div className="text-[12px] text-slate-400">You will be redirected to {gatewayName} (bKash, Nagad, Rocket, OKWallet, cards)</div>
                         </div>
                     </div>
                     <button type="button" onClick={closeModal} disabled={isSubmitting} aria-label="Close" className="p-1.5 rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50">
@@ -188,10 +192,10 @@ export const SSLCommerzModal = () => {
                         <div>
                             <h4 className="text-sm font-black text-white uppercase tracking-tight flex items-center gap-1.5">
                                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                <span>SSLCommerz secure checkout</span>
+                                <span>{gatewayShort} secure checkout</span>
                             </h4>
                             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                                The slot is held for you for {Number(pricing.holdMinutes) || 10} minutes once you continue. Complete the payment on the SSLCommerz page and you will be brought back here with your booking confirmation.
+                                The slot is held for you for {Number(pricing.holdMinutes) || 10} minutes once you continue. Complete the payment on the {gatewayShort} page and you will be brought back here with your booking confirmation.
                             </p>
                         </div>
 
@@ -204,11 +208,11 @@ export const SSLCommerzModal = () => {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>{serverQuote ? 'Redirecting to SSLCommerz…' : 'Reserving your slot…'}</span>
+                                    <span>{serverQuote ? `Redirecting to ${gatewayShort}…` : 'Reserving your slot…'}</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Pay ৳{payable.toLocaleString()} with SSLCommerz</span>
+                                    <span>Pay ৳{payable.toLocaleString()} with {gatewayShort}</span>
                                     <ExternalLink className="w-4 h-4" />
                                 </>
                             )}

@@ -4,6 +4,9 @@ import { Booking } from '@/models/booking-model';
 import { Refund } from '@/models/refund-model';
 import { can, requirePermission, optionalAuth, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { loadPricing, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
+import { readJson, validate, badRequest } from '@/lib/validate';
+import { BOOKING_UPDATE_SCHEMA } from '@/lib/schemas';
+import { createPaymentRecord } from '@/queries/payment-queries';
 
 async function findBooking(id) {
     return Booking.findOne(isObjectId(id) ? { _id: id } : { bookingCode: String(id).toUpperCase() });
@@ -43,7 +46,7 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'bookings');
+        const { user: actor, denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
         const { id } = await params;
         const { body: raw, error: jsonError } = await readJson(request);
@@ -55,9 +58,10 @@ export async function PATCH(request, { params }) {
         if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         if (booking.paymentStatus === 'cancelled') return NextResponse.json({ error: 'This booking is cancelled.' }, { status: 400 });
 
+        const previousAdvance = Number(booking.advanceAmount) || 0;
         const cash = Number(body.collectedCash || 0);
         if (cash > 0) {
-            booking.advanceAmount = Math.min(booking.totalPrice, (booking.advanceAmount || 0) + cash);
+            booking.advanceAmount = Math.min(booking.totalPrice, previousAdvance + cash);
             booking.paidAt = new Date();
             if (body.paymentMethod) booking.paymentMethod = body.paymentMethod;
             else if (booking.paymentMethod === 'pay_at_turf') booking.paymentMethod = 'cash';
@@ -85,6 +89,33 @@ export async function PATCH(request, { params }) {
         if (body.paymentMethod && cash <= 0) booking.paymentMethod = body.paymentMethod;
 
         await booking.save();
+
+        const newlyCollected = Math.max(0, (Number(booking.advanceAmount) || 0) - previousAdvance);
+        if (newlyCollected > 0) {
+            const ref = `COLLECT-${booking.bookingCode}-${Date.now().toString().slice(-6)}`;
+            await createPaymentRecord({
+                bookingId: String(booking._id),
+                bookingCode: booking.bookingCode,
+                merchantTransactionId: ref,
+                gatewayTransactionId: booking.transactionId || ref,
+                gateway: 'counter',
+                status: 'success',
+                amount: newlyCollected,
+                currency: 'BDT',
+                paymentMethod: body.paymentMethod || booking.paymentMethod || 'cash',
+                financialEntity: String(body.paymentMethod || booking.paymentMethod || 'CASH').toUpperCase(),
+                customerName: booking.captainName,
+                customerPhone: booking.captainPhone,
+                teamName: booking.teamName,
+                slotDate: booking.date,
+                slotNumber: booking.slotNumber,
+                slotDisplay: booking.displayTime,
+                recordedBy: actor?.name || 'Admin Desk',
+                verifiedAt: new Date(),
+                notes: requested === 'paid_full' ? 'Settled remaining balance at desk' : 'Balance collected at desk'
+            }).catch((err) => console.error('Collect payment log failed:', err));
+        }
+
         return NextResponse.json({ success: true, message: 'Booking updated successfully', booking: booking.toJSON() });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

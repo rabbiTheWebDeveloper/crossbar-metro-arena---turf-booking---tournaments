@@ -4,22 +4,37 @@ import { Setting } from '@/models/setting-model';
 import { requirePermission, can } from '@/lib/apiAuth';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
+import { isEpsConfigured } from '@/service/eps-service';
+import { isGatewayConfigured as isSslConfigured } from '@/lib/sslcommerz';
 
 const PRICING_KEYS = ['slotPrices', 'morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours', 'weekendDays', 'approveResultsFirst'];
 
 /** Split one Setting document into the two shapes the client uses. */
-function shape(settings) {
+function shape(settings, paymentGateways) {
     const json = typeof settings.toJSON === 'function' ? settings.toJSON() : settings;
     const pricing = {};
     for (const k of PRICING_KEYS) pricing[k] = json[k];
-    return { settings: json, pricing };
+    return { settings: json, pricing, ...(paymentGateways ? { paymentGateways } : {}) };
+}
+
+async function gatewaySummary() {
+    const eps = await isEpsConfigured();
+    const sslcommerz = isSslConfigured();
+    return {
+        eps,
+        sslcommerz,
+        active: eps ? 'eps' : (sslcommerz ? 'sslcommerz' : 'none')
+    };
 }
 
 export async function GET() {
     try {
         await connectToDatabase();
-        const settings = await Setting.getOrCreateSettings();
-        return NextResponse.json({ success: true, ...shape(settings) });
+        const [settings, paymentGateways] = await Promise.all([
+            Setting.getOrCreateSettings(),
+            gatewaySummary()
+        ]);
+        return NextResponse.json({ success: true, ...shape(settings, paymentGateways) });
     } catch (err) {
         return errorResponse(err, 'GET /api/settings');
     }

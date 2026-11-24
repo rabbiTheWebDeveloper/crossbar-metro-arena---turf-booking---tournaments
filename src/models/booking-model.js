@@ -49,8 +49,13 @@ const BookingSchema = new Schema({
     dueAmount: { type: Number, default: 0 },
     paymentMethod: {
         type: String,
-        enum: ['pay_at_turf', 'bkash', 'nagad', 'rocket', 'upay', 'card', 'cash'],
+        enum: ['pay_at_turf', 'bkash', 'nagad', 'rocket', 'upay', 'card', 'cash', 'eps', 'bank'],
         default: 'bkash'
+    },
+    paymentGateway: {
+        type: String,
+        enum: ['', 'eps', 'sslcommerz', 'counter'],
+        default: ''
     },
     paymentStatus: {
         type: String,
@@ -61,6 +66,7 @@ const BookingSchema = new Schema({
     },
     transactionId: { type: String, trim: true, index: true },
     gatewayTranId: { type: String, trim: true, index: true },
+    epsTransactionId: { type: String, trim: true, index: true },
     gatewayValId: { type: String, trim: true },
     gatewayCardType: { type: String, trim: true },
     expectedAmount: { type: Number }, // amount the gateway must report for this booking

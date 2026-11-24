@@ -10,7 +10,7 @@ import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
     Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
-    PanelLeftClose, PanelLeftOpen, ExternalLink
+    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -145,6 +145,7 @@ export default function AdminLayout({ children }) {
                     { label: 'Today', href: '/admin', icon: Clock },
                     { label: 'Schedule', href: '/admin/schedule', icon: Calendar },
                     { label: 'All Bookings', href: '/admin/all-bookings', altHref: '/admin/bookings', icon: Layers },
+                    { label: 'Payments', href: '/admin/payments', icon: CreditCard },
                     { label: 'Fixed Slots', href: '/admin/recurring', icon: Repeat },
                     { label: 'Refunds', href: '/admin/refunds', icon: AlertCircle, badge: pendingRefundsCount, badgeTone: 'rose' },
                     { label: 'Customers', href: '/admin/customers', icon: Contact },

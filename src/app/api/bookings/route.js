@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
 import { can, requirePermission, optionalAuth, escapeRegex, cleanPhone } from '@/lib/apiAuth';
 import { trackCustomer } from '@/lib/customers';
+import { createPaymentRecord } from '@/queries/payment-queries';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate, generateBookingCode,
     expireStaleHolds, findActiveBooking, statusFromPayment, publicBookingView, todayDhaka, addDays, isIsoDate
@@ -152,6 +153,7 @@ export async function POST(request) {
                     advanceAmount: advance,
                     dueAmount: Math.max(0, totalPrice - advance),
                     paymentMethod: method,
+                    paymentGateway: 'counter',
                     paymentStatus,
                     transactionId: body.transactionId ? String(body.transactionId).trim() : `COUNTER-${Date.now().toString().slice(-6)}`,
                     paidAt: advance > 0 ? new Date() : undefined,
@@ -167,6 +169,30 @@ export async function POST(request) {
         if (!booking) return NextResponse.json({ error: 'Could not allocate a booking code, please retry.' }, { status: 500 });
 
         await trackCustomer({ name: booking.captainName, phone: booking.captainPhone, source: 'walk_in' });
+
+        if (advance > 0) {
+            await createPaymentRecord({
+                bookingId: String(booking._id),
+                bookingCode: booking.bookingCode,
+                merchantTransactionId: `${booking.transactionId}-${Date.now().toString().slice(-4)}`,
+                gatewayTransactionId: booking.transactionId,
+                gateway: 'counter',
+                status: 'success',
+                amount: advance,
+                currency: 'BDT',
+                paymentMethod: method,
+                financialEntity: method.toUpperCase(),
+                customerName: booking.captainName,
+                customerPhone: booking.captainPhone,
+                teamName: booking.teamName,
+                slotDate: booking.date,
+                slotNumber: booking.slotNumber,
+                slotDisplay: booking.displayTime,
+                recordedBy: user.name || 'Admin Desk',
+                verifiedAt: new Date(),
+                notes: 'Counter / desk booking payment'
+            }).catch((err) => console.error('Counter payment log failed:', err));
+        }
 
         return NextResponse.json({ success: true, message: 'Booking created successfully!', booking: booking.toJSON() }, { status: 201 });
     } catch (err) {

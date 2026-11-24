@@ -45,12 +45,25 @@ const SettingSchema = new Schema({
     bookingWindowDays: { type: Number, default: 60 },
     cancellationHours: { type: Number, default: 24 },
     weekendDays: { type: [String], default: ['Friday', 'Saturday'] },
-    approveResultsFirst: { type: Boolean, default: false }
+    approveResultsFirst: { type: Boolean, default: false },
+    // EPS Payment Gateway configuration (never exposed in public toJSON; managed via admin /api/settings/payment)
+    epsUsername: { type: String, trim: true, default: '' },
+    epsPassword: { type: String, default: '' },
+    epsHashKey: { type: String, trim: true, default: '' },
+    epsMerchantId: { type: String, trim: true, default: '' },
+    epsStoreId: { type: String, trim: true, default: '' },
+    epsSandbox: { type: Boolean, default: true }
 }, {
     timestamps: true,
     toJSON: {
         transform(_doc, ret) {
             ret.id = ret._id.toString();
+            delete ret.epsUsername;
+            delete ret.epsPassword;
+            delete ret.epsHashKey;
+            delete ret.epsMerchantId;
+            delete ret.epsStoreId;
+            delete ret.epsSandbox;
             return ret;
         }
     }

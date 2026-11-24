@@ -58,7 +58,7 @@ export default function AdminAllBookingsPage() {
         const list = bookings.filter(b => {
             if (b.isPublicView) return false;
             if (q) {
-                const hay = [b.teamName, b.captainName, b.captainPhone, b.bookingCode, b.date, b.seriesLabel].map(x => String(x || '').toLowerCase());
+                const hay = [b.teamName, b.captainName, b.captainPhone, b.bookingCode, b.date, b.seriesLabel, b.transactionId, b.epsTransactionId, b.gatewayCardType, b.paymentGateway].map(x => String(x || '').toLowerCase());
                 if (!hay.some(h => h.includes(q))) return false;
             }
             const due = Number(b.dueAmount) || 0;
@@ -189,6 +189,8 @@ export default function AdminAllBookingsPage() {
                       </span>
                       {b.isRecurring && (<span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 shrink-0" title={b.seriesLabel || 'Part of a fixed weekly series'}>FIXED</span>)}
                       {b.isWalkIn && !b.isRecurring && (<span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 shrink-0">WALK-IN</span>)}
+                      {b.paymentGateway === 'eps' && (<span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 shrink-0">EPS</span>)}
+                      {b.paymentGateway === 'sslcommerz' && (<span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-300 shrink-0">SSL</span>)}
                     </div>
 
                     <div className="text-[12px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
@@ -202,6 +204,12 @@ export default function AdminAllBookingsPage() {
                       {due > 0 && !isCancelled && !isHold ? (<span className="text-amber-400 font-bold">
                           (Due ৳{due.toLocaleString()})
                         </span>) : null}
+                      {(b.gatewayCardType || b.paymentMethod) && (
+                        <span className="text-slate-400">· {b.gatewayCardType || String(b.paymentMethod).replaceAll('_', ' ')}</span>
+                      )}
+                      {(b.epsTransactionId || b.transactionId) && (
+                        <span className="text-[11px] text-slate-500" title="Transaction ID">· Txn: {b.epsTransactionId || b.transactionId}</span>
+                      )}
                       {isHold && <span className="text-slate-500">gateway hold</span>}
                     </div>
                   </div>

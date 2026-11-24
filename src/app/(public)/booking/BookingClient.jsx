@@ -14,7 +14,7 @@ import confetti from 'canvas-confetti';
 const PAID_STATUSES = ['paid_advance', 'paid_full'];
 
 const STATUS_COPY = {
-    failed: { title: 'Payment declined or incomplete', text: 'The payment was not completed at SSLCommerz. Your slot was released; pick it again to retry.' },
+    failed: { title: 'Payment declined or incomplete', text: 'The payment was not completed at the payment gateway. Your slot was released; pick it again to retry.' },
     cancelled: { title: 'Payment cancelled', text: 'You cancelled the payment at the gateway. The slot was released; nothing was charged.' },
     slot_lost: { title: 'Slot no longer available', text: 'Your payment went through but the slot was taken before it could be confirmed. The arena desk will arrange a refund — please contact them with the transaction id below.' },
     error: { title: 'Something went wrong', text: 'We could not process the gateway response. If money left your account, contact the arena desk with the transaction id below.' },

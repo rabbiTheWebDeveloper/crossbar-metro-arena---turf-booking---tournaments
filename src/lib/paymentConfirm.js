@@ -3,6 +3,7 @@ import { Refund } from '@/models/refund-model';
 import { validateSSLTransaction, verifyValidation } from '@/lib/sslcommerz';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
+import { createPaymentRecord, findPaymentByMerchantTranId, updatePaymentByMerchantTranId } from '@/queries/payment-queries';
 
 /**
  * Confirm a gateway payment for the pending booking identified by tran_id.
@@ -51,6 +52,7 @@ export async function confirmGatewayPayment({ tranId, valId, source = 'callback'
                 advanceAmount: Math.min(paid, booking.totalPrice),
                 dueAmount: Math.max(0, booking.totalPrice - paid),
                 paymentStatus: statusFromPayment(paid, booking.totalPrice),
+                paymentGateway: 'sslcommerz',
                 paymentMethod: method,
                 transactionId: validation.bank_tran_id || tranId,
                 gatewayValId: validation.val_id || valId,
@@ -65,6 +67,39 @@ export async function confirmGatewayPayment({ tranId, valId, source = 'callback'
         if (e && e.code === 11000) return null; // slot was re-booked while the hold was expired
         throw e;
     });
+
+    const existingPay = await findPaymentByMerchantTranId(tranId);
+    if (existingPay) {
+        await updatePaymentByMerchantTranId(tranId, {
+            status: 'success',
+            gatewayTransactionId: validation.val_id || valId || '',
+            amount: paid,
+            paymentMethod: method,
+            financialEntity: validation.card_type || validation.card_issuer || '',
+            verifiedAt: new Date()
+        }).catch(() => {});
+    } else {
+        await createPaymentRecord({
+            bookingId: String(booking._id),
+            bookingCode: booking.bookingCode,
+            merchantTransactionId: tranId,
+            gatewayTransactionId: validation.val_id || valId || '',
+            gateway: 'sslcommerz',
+            status: 'success',
+            amount: paid,
+            currency: 'BDT',
+            paymentMethod: method,
+            financialEntity: validation.card_type || validation.card_issuer || '',
+            customerName: booking.captainName,
+            customerPhone: booking.captainPhone,
+            teamName: booking.teamName,
+            slotDate: booking.date,
+            slotNumber: booking.slotNumber,
+            slotDisplay: booking.displayTime,
+            verifiedAt: new Date(),
+            notes: `SSLCommerz verified (${source})`
+        }).catch(() => {});
+    }
 
     if (!updated) {
         const fresh = await Booking.findById(booking._id);

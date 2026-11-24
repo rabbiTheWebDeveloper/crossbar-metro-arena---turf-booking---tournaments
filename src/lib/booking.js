@@ -130,12 +130,15 @@ export function publicBookingView(b) {
     };
 }
 
-/** Map an SSLCommerz card_type string to our paymentMethod enum. */
+/** Map an EPS FinancialEntity or SSLCommerz card_type string to our paymentMethod enum. */
 export function mapGatewayMethod(cardType = '') {
     const t = String(cardType).toLowerCase();
     if (t.includes('bkash')) return 'bkash';
     if (t.includes('nagad')) return 'nagad';
     if (t.includes('rocket') || t.includes('dbbl mobile')) return 'rocket';
     if (t.includes('upay')) return 'upay';
+    if (t.includes('visa') || t.includes('master') || t.includes('amex') || t.includes('card')) return 'card';
+    if (t.includes('bank') || t.includes('ibbl') || t.includes('city') || t.includes('brac')) return 'bank';
+    if (t.includes('okwallet') || t.includes('eps')) return 'eps';
     return 'card';
 }

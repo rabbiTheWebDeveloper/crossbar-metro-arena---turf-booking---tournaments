@@ -89,6 +89,7 @@ export const ArenaProvider = ({ children }) => {
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [notice, setNotice] = useState(null); // { type: 'success'|'error'|'info', message }
+    const [paymentGateways, setPaymentGateways] = useState({ eps: false, sslcommerz: false, active: 'eps' });
 
     // ---- UI / modal state ----
     const [activeTicketPass, setActiveTicketPass] = useState(null);
@@ -123,6 +124,7 @@ export const ArenaProvider = ({ children }) => {
     const applySettings = useCallback((data) => {
         if (!data) return;
         if (data.settings) setSiteSettings(prev => ({ ...prev, ...data.settings }));
+        if (data.paymentGateways) setPaymentGateways(data.paymentGateways);
         const p = data.pricing || data.settings;
         if (p) {
             setPricing(prev => ({
@@ -521,12 +523,14 @@ export const ArenaProvider = ({ children }) => {
         return { ok: false, error: r.error };
     }, [sendSMSNotification, showNotice]);
 
-    /** Public online booking: creates a server-priced payment hold and returns the gateway URL. */
-    const startOnlinePayment = useCallback(async (pendingBooking) => {
-        const r = await api('/api/payment/sslcommerz/init', { method: 'POST', body: { pendingBooking } });
+    /** Public online booking: creates a server-priced payment hold and returns the EPS (or fallback SSLCommerz) gateway URL. */
+    const startOnlinePayment = useCallback(async (pendingBooking, preferredGateway) => {
+        const gw = preferredGateway || (paymentGateways.active === 'sslcommerz' ? 'sslcommerz' : 'eps');
+        const endpoint = gw === 'sslcommerz' ? '/api/payment/sslcommerz/init' : '/api/payment/eps/init';
+        const r = await api(endpoint, { method: 'POST', body: { pendingBooking } });
         if (r.ok && r.data.gatewayUrl) return { ok: true, ...r.data };
         return { ok: false, error: r.error || 'Could not start payment' };
-    }, []);
+    }, [paymentGateways.active]);
 
     /** Look up a booking by code (optionally with phone for full details). */
     const lookupBooking = useCallback(async (code, phone) => {
@@ -851,7 +855,7 @@ export const ArenaProvider = ({ children }) => {
     const value = useMemo(() => ({
         bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
-        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
+        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
         activeTicketPass, setActiveTicketPass, showSquadModal, setShowSquadModal, showAdminModal, setShowAdminModal,
@@ -876,7 +880,7 @@ export const ArenaProvider = ({ children }) => {
     }), [
         bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
-        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, isInitialized, isLoadingData, loadError, notice, showNotice,
+        isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
         activeTicketPass, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
