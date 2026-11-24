@@ -117,7 +117,7 @@ export const BULK_BOOKING_SCHEMA = {
     startDate: { type: 'date', required: true, label: 'Start date' },
     endDate: { type: 'date', required: true, label: 'End date' },
     paidPerSlot: { type: 'money', default: 0, label: 'Paid per slot' },
-    paymentMethod: { type: 'enum', values: PAYMENT_METHODS.filter(m => m !== 'pay_at_turf'), default: 'cash', label: 'Payment method' },
+    paymentMethod: { type: 'enum', values: [...PAYMENT_METHODS, 'bank'], default: 'cash', label: 'Payment method' },
     pricePerSlot: { type: 'money', label: 'Price per slot' },
     notes: { type: 'text', max: 500, default: '' },
     matchType: { type: 'enum', values: MATCH_TYPES, default: 'friendly', label: 'Match type' },

@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server';
 import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
+import { Payment } from '@/models/payment-model';
 import { Setting } from '@/models/setting-model';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
-import { readJson, validate, badRequest } from '@/lib/validate';
+import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
 import { requirePermission } from '@/lib/apiAuth';
 import { trackCustomer } from '@/lib/customers';
+import { expireStaleHolds, generateBookingCode, statusFromPayment, todayDhaka } from '@/lib/booking';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-
 
 /**
  * Expand a recurrence rule into concrete dates.
@@ -31,63 +31,72 @@ function expandDates({ startDate, endDate, weekdays }) {
     return out;
 }
 
-async function requireAdmin(request) {
-    const { denied } = await requirePermission(request, 'bookings');
-    return denied;
-}
-
 /**
  * POST /api/bookings/bulk
  * Create many bookings at once for a weekly fixed-slot customer
  * (e.g. every Friday & Saturday, slot 10, for the next 12 months).
  *
- * Body:
- *  { captainName, captainPhone, teamName, startDate, endDate, weekdays[], slotNumbers[],
- *    paidPerSlot (taka already collected for each booking), paymentMethod, pricePerSlot (optional override),
- *    notes, matchType, skipConflicts (bool), dryRun (bool) }
- *
- * dryRun = true returns the computed plan (dates, prices, conflicts) without writing anything.
+ * dryRun = true returns the computed plan (dates, prices, totals, conflicts) without writing anything.
  */
 export async function POST(request) {
     try {
-        const denied = await requireAdmin(request);
+        const { user: actor, denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
 
         const { body: raw, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
         const { data, error: inputError } = validate(raw, BULK_BOOKING_SCHEMA);
         if (inputError) return badRequest(inputError);
-        const { captainName, captainPhone, teamName, startDate, endDate, paidPerSlot, paymentMethod, pricePerSlot, notes, matchType, skipConflicts, dryRun, seriesLabel } = data;
+
+        const {
+            captainName, captainPhone, teamName, startDate, endDate,
+            paidPerSlot, paymentMethod, pricePerSlot, notes, matchType,
+            skipConflicts, dryRun, seriesLabel
+        } = data;
+
         if (endDate < startDate) return badRequest('End date must be on or after the start date.');
-        if ((parseLocalDate(endDate) - parseLocalDate(startDate)) / 86400000 > 800) return badRequest('A series can cover at most 800 days. Shorten the date range.');
-        const weekdays = Array.isArray(raw.weekdays) ? [...new Set(raw.weekdays.map(Number))] : [];
-        if (weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) return badRequest('Weekdays must be numbers from 0 (Sunday) to 6 (Saturday).');
-        const slotNumbers = Array.isArray(raw.slotNumbers) ? raw.slotNumbers : [];
-        await connectToDatabase();
-        const slots = [...new Set((slotNumbers || []).map(Number))].filter(n => n >= 1 && n <= 12).sort((a, b) => a - b);
-        if (slots.length === 0) {
-            return NextResponse.json({ error: 'Select at least one time slot.' }, { status: 400 });
+        if ((parseLocalDate(endDate) - parseLocalDate(startDate)) / 86400000 > 800) {
+            return badRequest('A series can cover at most 800 days. Shorten the date range.');
         }
+
+        const weekdays = Array.isArray(raw.weekdays) ? [...new Set(raw.weekdays.map(Number))] : [];
+        if (weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) {
+            return badRequest('Weekdays must be numbers from 0 (Sunday) to 6 (Saturday).');
+        }
+        const slotNumbers = Array.isArray(raw.slotNumbers) ? raw.slotNumbers : [];
+        const slots = [...new Set(slotNumbers.map(Number))]
+            .filter(n => Number.isInteger(n) && n >= 1 && n <= 12)
+            .sort((a, b) => a - b);
+        if (slots.length === 0) {
+            return badRequest('Select at least one time slot.');
+        }
+
         const dates = expandDates({ startDate, endDate, weekdays });
         if (dates.length === 0) {
-            return NextResponse.json({ error: 'No dates match the selected weekdays in that date range.' }, { status: 400 });
+            return badRequest('No dates match the selected weekdays in that date range.');
         }
         if (dates.length * slots.length > 800) {
-            return NextResponse.json({ error: `That is ${dates.length * slots.length} bookings. Please keep one series under 800 bookings (shorten the date range).` }, { status: 400 });
+            return badRequest(`That is ${dates.length * slots.length} bookings. Please keep one series under 800 bookings (shorten the date range).`);
         }
+
+        await connectToDatabase();
+        await expireStaleHolds();
 
         // Pricing from admin settings (falls back to defaults)
         const settings = await Setting.getOrCreateSettings();
-        const slotPrices = (settings.slotPrices && settings.slotPrices.length ? settings.slotPrices : SCHEDULE_SLOTS_DEFINITION);
+        const slotPrices = settings.slotPrices && settings.slotPrices.length ? settings.slotPrices : SCHEDULE_SLOTS_DEFINITION;
         const weekendDays = settings.weekendDays && settings.weekendDays.length ? settings.weekendDays : ['Friday', 'Saturday'];
 
-        // Existing (active) bookings in the range for conflict detection
+        // Existing active bookings (and live payment holds) in the range for conflict detection
         const existing = await Booking.find({
             date: { $gte: dates[0], $lte: dates[dates.length - 1] },
             slotNumber: { $in: slots },
             paymentStatus: { $ne: 'cancelled' }
-        }).select('date slotNumber teamName bookingCode');
+        }).select('date slotNumber teamName bookingCode paymentStatus').lean();
         const taken = new Map(existing.map(b => [`${b.date}#${b.slotNumber}`, b]));
+
+        const hasCustomPrice = pricePerSlot !== undefined && pricePerSlot !== null;
+        const paid = Math.max(0, Number(paidPerSlot) || 0);
 
         const plan = [];
         const conflicts = [];
@@ -95,13 +104,32 @@ export async function POST(request) {
             const dayName = DAY_NAMES[parseLocalDate(date).getDay()];
             const isWeekend = weekendDays.includes(dayName);
             for (const slotNumber of slots) {
-                const def = slotPrices.find(s => s.slotNumber === slotNumber) || SCHEDULE_SLOTS_DEFINITION.find(s => s.slotNumber === slotNumber);
-                const autoPrice = isWeekend ? def.weekendPrice : def.weekdayPrice;
-                const price = pricePerSlot && Number(pricePerSlot) > 0 ? Number(pricePerSlot) : autoPrice;
+                const def = slotPrices.find(s => Number(s.slotNumber) === slotNumber)
+                    || SCHEDULE_SLOTS_DEFINITION.find(s => s.slotNumber === slotNumber);
+                if (!def) continue;
+                const autoPrice = Number(isWeekend ? def.weekendPrice : def.weekdayPrice) || 0;
+                const price = hasCustomPrice ? Number(pricePerSlot) : autoPrice;
+                const advance = Math.min(paid, price);
+                const due = Math.max(0, price - advance);
                 const clash = taken.get(`${date}#${slotNumber}`);
-                const item = { date, dayName, slotNumber, startTime: def.startTime, endTime: def.endTime, displayTime: def.displayTime, price };
+                const item = {
+                    date,
+                    dayName,
+                    slotNumber,
+                    startTime: def.startTime,
+                    endTime: def.endTime,
+                    displayTime: def.displayTime,
+                    price,
+                    advance,
+                    due
+                };
                 if (clash) {
-                    conflicts.push({ ...item, bookedBy: clash.teamName, bookingCode: clash.bookingCode });
+                    conflicts.push({
+                        ...item,
+                        bookedBy: clash.teamName || 'Reserved',
+                        bookingCode: clash.bookingCode || '',
+                        paymentStatus: clash.paymentStatus || ''
+                    });
                 } else {
                     plan.push(item);
                 }
@@ -109,6 +137,8 @@ export async function POST(request) {
         }
 
         const totalValue = plan.reduce((s, p) => s + p.price, 0);
+        const totalCollected = plan.reduce((s, p) => s + p.advance, 0);
+        const totalDue = plan.reduce((s, p) => s + p.due, 0);
         const summary = {
             dates: dates.length,
             slots,
@@ -116,6 +146,8 @@ export async function POST(request) {
             bookable: plan.length,
             conflicts: conflicts.length,
             totalValue,
+            totalCollected,
+            totalDue,
             firstDate: dates[0],
             lastDate: dates[dates.length - 1]
         };
@@ -125,26 +157,43 @@ export async function POST(request) {
         }
         if (conflicts.length > 0 && !skipConflicts) {
             return NextResponse.json({
-                error: `${conflicts.length} of the requested slots are already booked. Tick "skip already-booked slots" to create the rest.`,
-                summary, conflicts
+                error: `${conflicts.length} of the requested slots are already booked. Tick "Skip already-booked slots" to create the rest.`,
+                summary,
+                conflicts
             }, { status: 409 });
         }
         if (plan.length === 0) {
-            return NextResponse.json({ error: 'Every requested slot is already booked.', summary, conflicts }, { status: 409 });
+            return NextResponse.json({
+                error: 'Every requested slot in this date range is already booked.',
+                summary,
+                conflicts
+            }, { status: 409 });
         }
 
         const seriesId = `SER-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
         const label = seriesLabel || `${teamName.trim()} · ${weekdays.length ? weekdays.map(d => DAY_NAMES[d].slice(0, 3)).join('/') : 'Daily'} · ${startDate} → ${endDate}`;
-        const paid = Math.max(0, Number(paidPerSlot) || 0);
+        const now = new Date();
 
-        const docs = plan.map((p, i) => {
-            const advance = Math.min(paid, p.price);
-            const due = Math.max(0, p.price - advance);
-            let paymentStatus = 'confirmed_unpaid';
-            if (advance >= p.price) paymentStatus = 'paid_full';
-            else if (advance > 0) paymentStatus = 'paid_advance';
+        // Generate collision-free booking codes across the batch
+        const usedCodes = new Set();
+        const nextCode = () => {
+            let code = generateBookingCode('CMA-R');
+            while (usedCodes.has(code)) code = generateBookingCode('CMA-R');
+            usedCodes.add(code);
+            return code;
+        };
+
+        const docs = plan.map((p) => {
+            const advance = p.advance;
+            const due = p.due;
+            const paymentStatus = statusFromPayment(advance, p.price);
+            const effectiveMethod = advance > 0
+                ? (paymentMethod === 'pay_at_turf' ? 'cash' : (paymentMethod || 'cash'))
+                : 'pay_at_turf';
+            const code = nextCode();
+
             return {
-                bookingCode: `CMA-R${(Date.now() + i).toString(36).slice(-4).toUpperCase()}${Math.random().toString(36).substring(2, 4).toUpperCase()}`,
+                bookingCode: code,
                 courtId: 'main-turf',
                 courtName: 'Crossbar Metro Arena (Main Turf)',
                 date: p.date,
@@ -161,12 +210,14 @@ export async function POST(request) {
                 courtPrice: p.price,
                 addOnsPrice: 0,
                 totalPrice: p.price,
-                paymentType: advance >= p.price ? 'full_payment' : (advance > 0 ? 'advance_500' : 'pay_at_turf'),
+                paymentType: advance >= p.price && p.price > 0 ? 'full_payment' : (advance > 0 ? 'advance_500' : 'pay_at_turf'),
                 advanceAmount: advance,
                 dueAmount: due,
-                paymentMethod,
+                paymentMethod: effectiveMethod,
+                paymentGateway: 'counter',
                 paymentStatus,
                 transactionId: `TX-${seriesId}`,
+                paidAt: advance > 0 ? now : undefined,
                 isWalkIn: true,
                 isRecurring: true,
                 seriesId,
@@ -180,26 +231,73 @@ export async function POST(request) {
         try {
             created = await Booking.insertMany(docs, { ordered: false });
         } catch (err) {
-            if (err && err.insertedDocs) {
+            if (err && Array.isArray(err.insertedDocs)) {
                 created = err.insertedDocs;
             } else {
                 throw err;
             }
         }
 
-        if (created.length > 0) await trackCustomer({ name: captainName, phone: captainPhone, source: 'fixed_slot' });
+        if (created.length === 0) {
+            return NextResponse.json({
+                error: 'All selected slots were booked by someone else just now. Please re-check availability.',
+                summary: { ...summary, created: 0 },
+                conflicts
+            }, { status: 409 });
+        }
+
+        // Track customer in CRM
+        await trackCustomer({ name: captainName, phone: captainPhone, source: 'fixed_slot' });
+
+        // Record counter payment entries for any upfront money collected so /admin/payments stays accurate
+        const paidDocs = created.filter(b => (Number(b.advanceAmount) || 0) > 0);
+        if (paidDocs.length > 0) {
+            const paymentRows = paidDocs.map(b => ({
+                bookingId: String(b._id),
+                bookingCode: b.bookingCode,
+                merchantTransactionId: `BULK-${b.bookingCode}-${seriesId.slice(-5)}`,
+                gatewayTransactionId: b.transactionId || `TX-${seriesId}`,
+                gateway: 'counter',
+                status: 'success',
+                amount: Number(b.advanceAmount),
+                currency: 'BDT',
+                paymentMethod: b.paymentMethod || 'cash',
+                financialEntity: String(b.paymentMethod || 'CASH').toUpperCase(),
+                customerName: b.captainName,
+                customerPhone: b.captainPhone,
+                teamName: b.teamName,
+                slotDate: b.date,
+                slotNumber: b.slotNumber,
+                slotDisplay: b.displayTime,
+                recordedBy: actor?.name || 'Admin Desk',
+                verifiedAt: now,
+                notes: `Bulk / fixed slot series (${seriesId})`
+            }));
+            await Payment.insertMany(paymentRows, { ordered: false }).catch(err => {
+                console.error('Bulk booking payment log failed:', err?.message || err);
+            });
+        }
+
+        const createdValue = created.reduce((s, b) => s + (Number(b.totalPrice) || 0), 0);
+        const createdCollected = created.reduce((s, b) => s + (Number(b.advanceAmount) || 0), 0);
+        const createdDue = created.reduce((s, b) => s + (Number(b.dueAmount) || 0), 0);
 
         return NextResponse.json({
             success: true,
-            message: `${created.length} bookings created for ${teamName.trim()}.`,
+            message: `${created.length} booking${created.length === 1 ? '' : 's'} created for ${teamName.trim()}.`,
             seriesId,
-            summary: { ...summary, created: created.length },
+            summary: {
+                ...summary,
+                created: created.length,
+                totalValue: createdValue,
+                totalCollected: createdCollected,
+                totalDue: createdDue
+            },
             conflicts,
             bookings: created.map(b => b.toJSON())
         }, { status: 201 });
     } catch (err) {
-        console.error('POST /api/bookings/bulk error:', err);
-        return NextResponse.json({ error: err.message || 'Failed to create bookings' }, { status: 500 });
+        return errorResponse(err, 'POST /api/bookings/bulk');
     }
 }
 
@@ -208,46 +306,71 @@ export async function POST(request) {
  */
 export async function GET(request) {
     try {
-        const denied = await requireAdmin(request);
+        const { denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
         await connectToDatabase();
-        const today = toIsoLocal(new Date());
+        const today = todayDhaka();
+        const collectedExpr = {
+            $switch: {
+                branches: [
+                    { case: { $eq: ['$paymentStatus', 'paid_full'] }, then: '$totalPrice' },
+                    { case: { $in: ['$paymentStatus', ['paid_advance', 'needs_refund']] }, then: '$advanceAmount' }
+                ],
+                default: 0
+            }
+        };
         const series = await Booking.aggregate([
-            { $match: { seriesId: { $exists: true, $ne: null } } },
-            { $group: {
-                _id: '$seriesId',
-                seriesLabel: { $first: '$seriesLabel' },
-                teamName: { $first: '$teamName' },
-                captainName: { $first: '$captainName' },
-                captainPhone: { $first: '$captainPhone' },
-                total: { $sum: 1 },
-                active: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, 1, 0] } },
-                upcoming: { $sum: { $cond: [{ $and: [{ $ne: ['$paymentStatus', 'cancelled'] }, { $gte: ['$date', today] }] }, 1, 0] } },
-                firstDate: { $min: '$date' },
-                lastDate: { $max: '$date' },
-                slots: { $addToSet: '$slotNumber' },
-                totalValue: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, '$totalPrice', 0] } },
-                collected: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, '$advanceAmount', 0] } },
-                createdAt: { $min: '$createdAt' }
-            } },
+            { $match: { seriesId: { $exists: true, $nin: [null, ''] } } },
+            {
+                $group: {
+                    _id: '$seriesId',
+                    seriesLabel: { $first: '$seriesLabel' },
+                    teamName: { $first: '$teamName' },
+                    captainName: { $first: '$captainName' },
+                    captainPhone: { $first: '$captainPhone' },
+                    total: { $sum: 1 },
+                    active: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, 1, 0] } },
+                    cancelled: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'cancelled'] }, 1, 0] } },
+                    upcoming: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $ne: ['$paymentStatus', 'cancelled'] }, { $gte: ['$date', today] }] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    firstDate: { $min: '$date' },
+                    lastDate: { $max: '$date' },
+                    slots: { $addToSet: '$slotNumber' },
+                    totalValue: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, '$totalPrice', 0] } },
+                    collected: { $sum: { $cond: [{ $ne: ['$paymentStatus', 'cancelled'] }, collectedExpr, 0] } },
+                    createdAt: { $min: '$createdAt' }
+                }
+            },
             { $sort: { createdAt: -1 } }
         ]);
         return NextResponse.json({
             success: true,
-            series: series.map(s => ({ ...s, seriesId: s._id, slots: (s.slots || []).sort((a, b) => a - b) }))
+            series: series.map(s => ({
+                ...s,
+                seriesId: s._id,
+                due: Math.max(0, (Number(s.totalValue) || 0) - (Number(s.collected) || 0)),
+                slots: (s.slots || []).sort((a, b) => a - b)
+            }))
         });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'GET /api/bookings/bulk');
     }
 }
 
 /**
  * DELETE /api/bookings/bulk?seriesId=...&scope=upcoming|all
- * Cancels every booking in a series (default: only today and future dates).
+ * Cancels every booking in a series (default: only today and future dates in Dhaka time).
  */
 export async function DELETE(request) {
     try {
-        const denied = await requireAdmin(request);
+        const { user: actor, denied } = await requirePermission(request, 'bookings');
         if (denied) return denied;
 
         await connectToDatabase();
@@ -255,17 +378,24 @@ export async function DELETE(request) {
         const seriesId = searchParams.get('seriesId');
         const scope = searchParams.get('scope') || 'upcoming';
         if (!seriesId) {
-            return NextResponse.json({ error: 'seriesId is required' }, { status: 400 });
+            return badRequest('seriesId is required');
         }
         const query = { seriesId, paymentStatus: { $ne: 'cancelled' } };
-        if (scope !== 'all') query.date = { $gte: toIsoLocal(new Date()) };
-        const result = await Booking.updateMany(query, { $set: { paymentStatus: 'cancelled' } });
+        if (scope !== 'all') query.date = { $gte: todayDhaka() };
+        const result = await Booking.updateMany(query, {
+            $set: {
+                paymentStatus: 'cancelled',
+                dueAmount: 0,
+                cancelledAt: new Date(),
+                cancelledBy: `admin:${actor?.name || 'Admin Desk'}`
+            }
+        });
         return NextResponse.json({
             success: true,
-            message: `${result.modifiedCount} bookings cancelled.`,
+            message: `${result.modifiedCount} booking${result.modifiedCount === 1 ? '' : 's'} cancelled.`,
             cancelled: result.modifiedCount
         });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return errorResponse(err, 'DELETE /api/bookings/bulk');
     }
 }

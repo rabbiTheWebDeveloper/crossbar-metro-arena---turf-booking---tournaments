@@ -584,15 +584,17 @@ export const ArenaProvider = ({ children }) => {
             setBookings(prev => { const codes = new Set(r.data.bookings.map(b => b.bookingCode)); return [...r.data.bookings, ...prev.filter(b => !codes.has(b.bookingCode))]; });
             const first = r.data.bookings[0];
             sendSMSNotification(first.captainPhone, `Crossbar Metro: ${r.data.bookings.length} fixed slots confirmed for ${first.teamName} (${first.displayTime}) from ${r.data.summary?.firstDate} to ${r.data.summary?.lastDate}.`, 'booking_confirmed');
+            showNotice('success', r.data.message || `${r.data.bookings.length} bookings created`);
         }
         return r.data;
-    }, [sendSMSNotification]);
+    }, [sendSMSNotification, showNotice]);
     const handleCancelSeries = useCallback(async (seriesId, scope = 'upcoming') => {
         const r = await api(`/api/bookings/bulk?seriesId=${encodeURIComponent(seriesId)}&scope=${scope}`, { method: 'DELETE' });
         if (!r.ok) throw new Error(r.error);
         await refreshBookings();
+        showNotice('success', r.data.message || 'Series cancelled');
         return r.data;
-    }, [refreshBookings]);
+    }, [refreshBookings, showNotice]);
 
     // ---- Finance (admin) ----
     const handleRecordRefund = useCallback(async (refundId, amount, method, transactionRef, status = 'completed') => {
