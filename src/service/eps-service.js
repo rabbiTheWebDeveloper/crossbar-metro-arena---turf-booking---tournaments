@@ -56,14 +56,23 @@ export async function createEpsClient() {
     if (!cfg.configured) {
         throw new Error('EPS payment gateway is not configured yet. Configure EPS credentials in Admin Settings or .env.');
     }
-    const client = new EPS({
-        username: cfg.username,
-        password: cfg.password,
-        hashKey: cfg.hashKey,
-        merchantId: cfg.merchantId,
-        storeId: cfg.storeId,
-        sandbox: cfg.sandbox
-    });
+    let client;
+    try {
+        client = new EPS({
+            username: cfg.username,
+            password: cfg.password,
+            hashKey: cfg.hashKey,
+            merchantId: cfg.merchantId,
+            storeId: cfg.storeId,
+            sandbox: cfg.sandbox
+        });
+    } catch (err) {
+        if (err instanceof EPSError && err.code === 'INVALID_CONFIG') {
+            // Config comes from Admin Settings (DB) first, then .env - say where to fix it.
+            throw new Error(`EPS gateway config is invalid: ${err.message}. Fix it in Admin Settings -> EPS Payment Gateway (or EPS_* in .env).`);
+        }
+        throw err;
+    }
     return { client, config: cfg };
 }
 
