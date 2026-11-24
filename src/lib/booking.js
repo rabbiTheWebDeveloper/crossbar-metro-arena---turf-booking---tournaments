@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { Setting } from '@/models/Setting';
-import { Booking } from '@/models/Booking';
+import { Setting } from '@/models/setting-model';
+import { Booking } from '@/models/booking-model';
 import { SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '@/data/initialData';
 
 export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

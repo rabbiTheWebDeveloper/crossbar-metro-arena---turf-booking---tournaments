@@ -1,7 +1,7 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Team } from '@/models/Team';
+import { Team } from '@/models/team-model';
 import { can, requireAuth, optionalAuth, isObjectId, escapeRegex } from '@/lib/apiAuth';
 import { sanitizePlayer, canManageTeam } from '@/lib/teams';
 

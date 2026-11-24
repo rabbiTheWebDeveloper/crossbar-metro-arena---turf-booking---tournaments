@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { requirePermission, escapeRegex, cleanPhone, isValidBdPhone } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { readJson, errorResponse } from '@/lib/validate';
-import { User } from '@/models/User';
+import { User } from '@/models/user-model';
 import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
+import { syncCustomerFromUser } from '@/lib/customers';
+import { safeSendWelcomeEmail } from '@/utils/mail';
 
 /** GET /api/users  (admin, or staff with the players / investors permission) */
 export async function GET(request) {
@@ -79,6 +81,13 @@ export async function POST(request) {
             ...(VALID_POSITIONS.includes(body.playingPosition) ? { playingPosition: body.playingPosition } : {})
         });
         await user.save(); // password is hashed by the pre-save hook
+        await syncCustomerFromUser(user, { source: 'manual' }); // player accounts also join the customer list
+        await safeSendWelcomeEmail({
+            toEmail: user.email,
+            fullName: user.name,
+            role: user.role,
+            phone: user.phone
+        });
 
         const [json] = await withStaffRoleNames([user.toJSON()]);
         return NextResponse.json({

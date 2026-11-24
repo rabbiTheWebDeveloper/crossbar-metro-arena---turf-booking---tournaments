@@ -3,7 +3,7 @@
  *
  * Account types (User.role):
  *   admin  - full access to everything, including users and roles. Cannot be restricted.
- *   staff  - can open the admin portal; what they can do comes from their staff role (models/Role.js),
+ *   staff  - can open the admin portal; what they can do comes from their staff role (models/role-model.js),
  *            which is a named list of the permission keys below.
  *   investor / player / visitor - no admin-portal access.
  *
@@ -14,7 +14,7 @@
 export const PERMISSIONS = [
     { key: 'bookings', group: 'Operations', label: 'Bookings & schedule', description: 'Today, schedule, all bookings, fixed weekly slots and walk-in bookings.' },
     { key: 'refunds', group: 'Operations', label: 'Refunds', description: 'Review refund requests and record refunds.' },
-    { key: 'players', group: 'Operations', label: 'Players', description: 'View and edit player accounts, reset their passwords and disable accounts.' },
+    { key: 'players', group: 'Operations', label: 'Customers & players', description: 'The customer list (add, edit, sync), plus player accounts: reset passwords and disable accounts.' },
     { key: 'finance', group: 'Money', label: 'Financial report', description: 'Financial report, expenses and other income.' },
     { key: 'investors', group: 'Money', label: 'Investors & payouts', description: 'Partner records, profit shares and payouts.' },
     { key: 'pricing', group: 'Money', label: 'Slot pricing & rules', description: 'Slot times, prices, advance amount and booking rules.' },
@@ -73,6 +73,7 @@ const ADMIN_PAGES = [
     { prefix: '/admin/products', permission: 'products' },
     { prefix: '/admin/registrations', permission: 'registrations' },
     { prefix: '/admin/players', permission: 'players' },
+    { prefix: '/admin/customers', permission: 'players' },
     { prefix: '/admin/events', permission: 'events' },
     { prefix: '/admin/match-results', permission: 'matches' },
     { prefix: '/admin/gallery', permission: 'gallery' }

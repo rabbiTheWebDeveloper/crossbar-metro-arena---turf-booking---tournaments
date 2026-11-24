@@ -1,9 +1,9 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { MatchResult } from '@/models/MatchResult';
-import { Team } from '@/models/Team';
-import { Setting } from '@/models/Setting';
+import { MatchResult } from '@/models/match-result-model';
+import { Team } from '@/models/team-model';
+import { Setting } from '@/models/setting-model';
 import { can, requireAuth, optionalAuth, cleanPhone, isObjectId } from '@/lib/apiAuth';
 import { applyResultToStandings, syncStandings } from '@/lib/standings';
 import { isIsoDate, todayDhaka } from '@/lib/booking';

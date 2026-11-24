@@ -2,8 +2,9 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest, setAuthCookies, clearAuthCookies, signJwtToken } from '@/lib/serverAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { User } from '@/models/User';
+import { User } from '@/models/user-model';
 import { isObjectId, loadAccess } from '@/lib/apiAuth';
+import { syncCustomerFromUser } from '@/lib/customers';
 
 const tokenPayload = (user) => ({
     userId: user._id.toString(),
@@ -89,7 +90,11 @@ export async function PUT(request) {
         if (body.email !== undefined) {
             const email = String(body.email || '').trim().toLowerCase();
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
-            user.email = email;
+            if (email !== (user.email || '').trim().toLowerCase()) {
+                user.email = email;
+                user.emailVerified = false;
+                user.emailVerifiedAt = null;
+            }
         }
         if (body.playingPosition !== undefined) {
             if (!['GK', 'DEF', 'MID', 'FWD'].includes(body.playingPosition)) return NextResponse.json({ error: 'Invalid playing position.' }, { status: 400 });
@@ -104,6 +109,7 @@ export async function PUT(request) {
         }
 
         await user.save();
+        await syncCustomerFromUser(user); // keep the customer list entry in step with the profile
         const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
         const response = NextResponse.json({ success: true, message: 'Profile updated successfully.', user: userJson });
         // Re-issue the token so the name/position in the JWT match the database

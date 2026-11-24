@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { User } from '@/models/User';
-import { Role } from '@/models/Role';
+import { User } from '@/models/user-model';
+import { Role } from '@/models/role-model';
 import { can, isObjectId } from '@/lib/apiAuth';
 
 /** Shared rules for the admin user-management routes (/api/users, /api/users/:id). */

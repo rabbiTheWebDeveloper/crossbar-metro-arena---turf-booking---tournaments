@@ -1,7 +1,7 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { MatchResult } from '@/models/MatchResult';
+import { MatchResult } from '@/models/match-result-model';
 import { can, requirePermission, requireAuth, isObjectId } from '@/lib/apiAuth';
 import { syncStandings, applyResultToStandings } from '@/lib/standings';
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Refund } from '@/models/Refund';
+import { Refund } from '@/models/refund-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { REFUND_UPDATE_SCHEMA } from '@/lib/schemas';
 

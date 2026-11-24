@@ -57,9 +57,9 @@ export function HomeHeader() {
     const phoneLabel = siteSettings.phoneFormatted || siteSettings.phone || '';
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
     const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-    const accountHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
+    const accountHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/customer';
     const dashboards = [
-        ...(!isVisitor && !isInvestor ? [{ href: '/player', label: 'Player dashboard' }] : []),
+        ...(!isVisitor && !isInvestor ? [{ href: '/customer', label: 'Customer panel' }] : []),
         ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin panel' }] : []),
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor dashboard' }] : [])
     ];

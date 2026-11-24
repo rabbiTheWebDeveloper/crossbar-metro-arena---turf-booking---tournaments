@@ -3,7 +3,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useArena, cleanPhone, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { PageHero } from '@/components/PageHero';
-import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock } from 'lucide-react';
+import { EmailVerificationBox } from '@/components/EmailVerificationBox';
+import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal } from 'lucide-react';
+import { DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, CHANNEL_LABELS, REMINDER_HOURS } from '@/lib/customerMeta';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
 
@@ -35,6 +37,14 @@ const CHALLENGE_STATUS = {
     closed: 'bg-white/10 text-slate-300'
 };
 const money = (n) => `৳${(Number(n) || 0).toLocaleString()}`;
+const BOOKING_TYPE_OPTIONS = [['friendly', 'Friendly scrimmage'], ['competitive', 'Competitive match'], ['practice', 'Squad training'], ['corporate', 'Corporate / office game']];
+const NOTIFY_OPTIONS = [
+    ['bookingConfirmations', 'Booking confirmations & cancellations', 'A message when a slot is confirmed or cancelled.'],
+    ['bookingReminders', 'Match-day reminders', 'A reminder before your kick-off.'],
+    ['matchResults', 'Match results & league updates', 'When a result involving your team is published.'],
+    ['tournamentUpdates', 'Tournament news', 'Registration status and fixtures for tournaments you entered.'],
+    ['offers', 'Offers & promotions', 'Occasional deals from the arena. Off unless you turn it on.']
+];
 
 const Skeleton = () => (<div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading your data">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -44,9 +54,10 @@ const Skeleton = () => (<div className="space-y-4 animate-pulse" aria-busy="true
     <div className="flex items-center gap-2 text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin"/> Loading your bookings, teams and results…</div>
   </div>);
 
-export default function PlayerDashboard() {
+export default function CustomerDashboard() {
     const {
         myBookings, teams, myMatchResults, myChallenges, currentUser, authChecked, isVisitor, pricing, smsLogs, siteSettings, isLoadingData,
+        myCustomer, customerSettings, handleSaveCustomerSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam,
         handleSaveMatchResult, handleDeleteMatchResult, handleCancelBooking,
         handleAddChallenge, handleUpdateChallenge, handleDeleteChallenge,
@@ -355,15 +366,38 @@ export default function PlayerDashboard() {
     // ---- Profile ----
     const [profileName, setProfileName] = useState('');
     const [profileEmail, setProfileEmail] = useState('');
-    const [profilePos, setProfilePos] = useState('MID');
+    const [profileArea, setProfileArea] = useState('');
     const [profileMsg, setProfileMsg] = useState(null);
     const [profileSubmitting, setProfileSubmitting] = useState(false);
     useEffect(() => {
         setProfileName(currentUser?.name || '');
         setProfileEmail(currentUser?.email || '');
-        setProfilePos(currentUser?.playingPosition || 'MID');
         setProfileMsg(null);
-    }, [currentUser?.id, currentUser?.name, currentUser?.email, currentUser?.playingPosition]);
+    }, [currentUser?.id, currentUser?.name, currentUser?.email]);
+    useEffect(() => { setProfileArea(myCustomer?.area || ''); }, [myCustomer?.area]);
+
+    // ---- Preferences (customer settings): how the arena may contact me, and booking defaults ----
+    const isCustomerAccount = !isVisitor && currentUser?.role === 'player';
+    const [prefChannel, setPrefChannel] = useState(DEFAULT_CUSTOMER_SETTINGS.preferredChannel);
+    const [prefNotify, setPrefNotify] = useState({ ...DEFAULT_CUSTOMER_SETTINGS.notifications });
+    const [prefDefaults, setPrefDefaults] = useState({ ...DEFAULT_CUSTOMER_SETTINGS.bookingDefaults });
+    const [prefMsg, setPrefMsg] = useState(null);
+    const [prefSubmitting, setPrefSubmitting] = useState(false);
+    useEffect(() => {
+        const s = customerSettings || DEFAULT_CUSTOMER_SETTINGS;
+        setPrefChannel(s.preferredChannel || DEFAULT_CUSTOMER_SETTINGS.preferredChannel);
+        setPrefNotify({ ...DEFAULT_CUSTOMER_SETTINGS.notifications, ...(s.notifications || {}) });
+        setPrefDefaults({ ...DEFAULT_CUSTOMER_SETTINGS.bookingDefaults, ...(s.bookingDefaults || {}) });
+    }, [customerSettings]);
+    const handlePrefsSubmit = async (e) => {
+        e.preventDefault();
+        if (!isCustomerAccount) return;
+        setPrefMsg(null);
+        setPrefSubmitting(true);
+        const r = await handleSaveCustomerSettings({ settings: { preferredChannel: prefChannel, notifications: prefNotify, bookingDefaults: prefDefaults } });
+        setPrefSubmitting(false);
+        setPrefMsg(r?.ok ? { type: 'success', text: 'Preferences saved. Your booking form will use these defaults.' } : { type: 'error', text: r?.error || 'Could not save your preferences.' });
+    };
     const [pwCurrent, setPwCurrent] = useState('');
     const [pwNew, setPwNew] = useState('');
     const [pwConfirm, setPwConfirm] = useState('');
@@ -377,7 +411,15 @@ export default function PlayerDashboard() {
         const name = profileName.trim();
         if (name.length < 2) { setProfileMsg({ type: 'error', text: 'Please enter your full name.' }); return; }
         setProfileSubmitting(true);
-        const r = await handleUpdateProfile({ name, email: profileEmail.trim(), playingPosition: profilePos });
+        const r = await handleUpdateProfile({ name, email: profileEmail.trim() });
+        if (r?.ok && isCustomerAccount && profileArea.trim() !== (myCustomer?.area || '')) {
+            const a = await handleSaveCustomerSettings({ profile: { area: profileArea.trim() } });
+            if (!a?.ok) {
+                setProfileSubmitting(false);
+                setProfileMsg({ type: 'error', text: `Your profile was saved, but the area was not: ${a?.error || 'please try again.'}` });
+                return;
+            }
+        }
         setProfileSubmitting(false);
         setProfileMsg(r?.ok ? { type: 'success', text: 'Profile updated.' } : { type: 'error', text: r?.error || 'Could not update your profile.' });
     };
@@ -459,11 +501,11 @@ export default function PlayerDashboard() {
     };
 
     return (<>
-      <PageHero crumb="Player & Team Portal" eyebrow="My Squad · Bookings · Match Records" eyebrowIcon={User} title="Player &amp; Team" highlight="Matchday Hub" description="Manage your bookings and passes, build your squad roster, submit match results to the public leaderboard, and challenge other teams." stats={[
+      <PageHero crumb="Customer Panel" eyebrow="My Bookings · Squad · Preferences" eyebrowIcon={User} title="Customer" highlight="Panel" description="Manage your bookings and passes, build your squad roster, submit match results to the public leaderboard, challenge other teams and set how the arena contacts you." stats={[
             { label: 'Upcoming Games', value: `${upcomingBookings.length} Matches`, icon: Calendar },
             { label: 'My Teams', value: `${myTeams.length} Squads`, icon: Users },
             { label: 'Goals Scored', value: `${myGoalsCount} Goals`, icon: Target },
-            { label: 'Account Role', value: (currentUser?.role || 'visitor').toUpperCase(), icon: Shield }
+            { label: 'Member Since', value: isVisitor || !currentUser?.createdAt ? '—' : new Date(currentUser.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }), icon: Shield }
         ]}/>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -511,9 +553,9 @@ export default function PlayerDashboard() {
                 <div className="text-[12px] text-slate-300 mt-1">From published results</div>
               </div>
               <div className="p-5 rounded-3xl bg-slate-900/80 border border-white/10">
-                <div className="text-xs text-slate-400">Preferred Position</div>
-                <div className="text-3xl font-black font-display text-white mt-1">{currentUser?.playingPosition || '—'}</div>
-                <div className="text-[12px] text-emerald-400 mt-1">Player Profile</div>
+                <div className="text-xs text-slate-400">Total Bookings</div>
+                <div className="text-3xl font-black font-display text-white mt-1">{myBookings.length}</div>
+                <div className="text-[12px] text-emerald-400 mt-1">Customer Profile</div>
               </div>
             </div>
 
@@ -939,7 +981,7 @@ export default function PlayerDashboard() {
         {activeTab === 'profile' && (<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-8">
               <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
-                <h3 className="text-lg font-black uppercase text-white font-display">Player Profile</h3>
+                <h3 className="text-lg font-black uppercase text-white font-display">Customer Profile</h3>
                 {isVisitor ? (<div className="text-xs text-slate-400">
                     Log in to edit your profile. <button type="button" onClick={openLogin} className="text-emerald-400 font-bold hover:underline cursor-pointer">Log in</button>
                   </div>) : (<>
@@ -952,13 +994,12 @@ export default function PlayerDashboard() {
                     <div>
                       <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
                       <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} className={INPUT}/>
+                      <EmailVerificationBox email={profileEmail} accent="emerald"/>
                     </div>
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Playing Position</label>
-                      <select value={profilePos} onChange={e => setProfilePos(e.target.value)} className={INPUT}>
-                        {POSITIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                      </select>
-                    </div>
+                    {isCustomerAccount && (<div>
+                      <label className="block text-slate-300 font-semibold mb-1">Area / Locality</label>
+                      <input type="text" maxLength={80} placeholder="e.g. Sector 11, Uttara" value={profileArea} onChange={e => setProfileArea(e.target.value)} className={INPUT}/>
+                    </div>)}
                     <div>
                       <label className="block text-slate-300 font-semibold mb-1">Registered Mobile</label>
                       <input type="text" disabled value={currentUser?.phone || ''} className={`${INPUT_DISABLED} font-mono`}/>
@@ -998,6 +1039,74 @@ export default function PlayerDashboard() {
                 </div>)}
             </div>
 
+            <div className="space-y-8">
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <SlidersHorizontal className="w-4 h-4"/><span>Preferences</span>
+              </div>
+              {!isCustomerAccount ? (<div className="text-xs text-slate-400">
+                  {isVisitor ? (<>Log in to set how the arena contacts you and to save your booking defaults. <button type="button" onClick={openLogin} className="text-emerald-400 font-bold hover:underline cursor-pointer">Log in</button></>) : 'Preferences are saved for customer accounts.'}
+                </div>) : (<>
+                <p className="text-[11px] text-slate-500">Choose what the arena may message you about, and pre-fill your booking form. The arena desk can see your preferred contact method.</p>
+                {renderMsg(prefMsg)}
+                <form onSubmit={handlePrefsSubmit} className="space-y-5 text-xs">
+                  <div>
+                    <div className="block text-slate-300 font-semibold mb-1.5">Preferred way to reach me</div>
+                    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Preferred contact method">
+                      {CONTACT_CHANNELS.map(ch => (<button key={ch} type="button" role="radio" aria-checked={prefChannel === ch} onClick={() => setPrefChannel(ch)} className={`py-2 rounded-xl border font-bold transition-colors cursor-pointer ${prefChannel === ch ? 'bg-emerald-500 text-slate-950 border-emerald-500' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'}`}>
+                          {CHANNEL_LABELS[ch]}
+                        </button>))}
+                    </div>
+                  </div>
+
+                  <fieldset className="space-y-2.5">
+                    <legend className="block text-slate-300 font-semibold mb-1.5">Messages I want</legend>
+                    {NOTIFY_OPTIONS.map(([key, label, hint]) => (<label key={key} className="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" checked={Boolean(prefNotify[key])} onChange={e => setPrefNotify(p => ({ ...p, [key]: e.target.checked }))} className="mt-0.5 w-4 h-4 accent-emerald-500 shrink-0"/>
+                        <span>
+                          <span className="block text-slate-200 font-semibold">{label}</span>
+                          <span className="block text-[11px] text-slate-500">{hint}</span>
+                        </span>
+                      </label>))}
+                    {prefNotify.bookingReminders && (<div className="flex items-center gap-2 pl-6">
+                        <label htmlFor="pref-remind" className="text-slate-400">Remind me</label>
+                        <select id="pref-remind" value={prefNotify.reminderHoursBefore} onChange={e => setPrefNotify(p => ({ ...p, reminderHoursBefore: Number(e.target.value) }))} className={`${INPUT} !w-auto`}>
+                          {REMINDER_HOURS.map(h => <option key={h} value={h}>{h} hours before</option>)}
+                        </select>
+                      </div>)}
+                  </fieldset>
+
+                  <div className="space-y-3 pt-4 border-t border-white/10">
+                    <div className="block text-slate-300 font-semibold">Booking defaults</div>
+                    <div>
+                      <label htmlFor="pref-team" className="block text-slate-400 mb-1">Default squad name</label>
+                      <input id="pref-team" type="text" list="pref-team-list" maxLength={60} placeholder="e.g. Uttara Metro FC" value={prefDefaults.teamName} onChange={e => setPrefDefaults(p => ({ ...p, teamName: e.target.value }))} className={INPUT}/>
+                      <datalist id="pref-team-list">{myTeams.map(t => <option key={t.id} value={t.name}/>)}</datalist>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="pref-match" className="block text-slate-400 mb-1">Usual match type</label>
+                        <select id="pref-match" value={prefDefaults.matchType} onChange={e => setPrefDefaults(p => ({ ...p, matchType: e.target.value }))} className={INPUT}>
+                          {BOOKING_TYPE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="pref-pay" className="block text-slate-400 mb-1">Usual payment</label>
+                        <select id="pref-pay" value={prefDefaults.paymentChoice} onChange={e => setPrefDefaults(p => ({ ...p, paymentChoice: e.target.value }))} className={INPUT}>
+                          <option value="advance_500">Advance now, balance at arena</option>
+                          <option value="full_payment">Pay in full</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={prefSubmitting} className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold uppercase text-xs disabled:opacity-60 cursor-pointer">
+                    {prefSubmitting ? 'Saving…' : 'Save Preferences'}
+                  </button>
+                </form>
+              </>)}
+            </div>
+
             <div className="p-6 rounded-3xl bg-slate-900/80 border border-white/10 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
                 <Bell className="w-4 h-4"/><span>Notification log</span>
@@ -1013,6 +1122,7 @@ export default function PlayerDashboard() {
                     <p className="text-slate-300 text-[12px] leading-relaxed">{log.message}</p>
                   </div>))}
               </div>
+            </div>
             </div>
           </div>)}
 

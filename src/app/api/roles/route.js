@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Role } from '@/models/Role';
+import { Role } from '@/models/role-model';
 import { requireAdmin } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { PERMISSIONS } from '@/lib/permissions';

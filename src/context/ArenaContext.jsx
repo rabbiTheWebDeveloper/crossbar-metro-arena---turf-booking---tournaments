@@ -77,6 +77,8 @@ export const ArenaProvider = ({ children }) => {
     const [galleryPhotos, setGalleryPhotos] = useState([]);
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]); // staff roles (admin only)
+    const [myCustomer, setMyCustomer] = useState(null); // the signed-in player's customer-list record
+    const [customerSettings, setCustomerSettings] = useState(null); // their own preferences (null until loaded)
     const [currentUser, setCurrentUser] = useState(VISITOR);
     const [authChecked, setAuthChecked] = useState(false);
     const [smsLogs, setSmsLogs] = useState([]);
@@ -167,7 +169,7 @@ export const ArenaProvider = ({ children }) => {
                 Object.assign(roleCalls, {
                     myBookings: get('/api/bookings?mine=1'), myResults: get('/api/match-results?mine=1'),
                     myChallenges: get('/api/challenges?mine=1'), myRegistrations: get('/api/registrations?mine=1'),
-                    myOrders: get('/api/shop-orders?mine=1')
+                    myOrders: get('/api/shop-orders?mine=1'), customerSettings: get('/api/customer/settings')
                 });
             }
             const keys = [...Object.keys(publicCalls), ...Object.keys(roleCalls)];
@@ -205,6 +207,10 @@ export const ArenaProvider = ({ children }) => {
             if (r.myRegistrations && r.myRegistrations.ok) setRegistrations(unwrap(r.myRegistrations.data, 'registrations') || []);
             if (r.users && r.users.ok) setUsers(unwrap(r.users.data, 'users') || []);
             if (r.roles && r.roles.ok) setRoles(unwrap(r.roles.data, 'roles') || []);
+            if (r.customerSettings && r.customerSettings.ok) {
+                setMyCustomer(r.customerSettings.data.customer || null);
+                setCustomerSettings(r.customerSettings.data.settings || null);
+            }
         } catch (err) {
             console.warn('loadRealBackendData caught error:', err);
             setLoadError('Could not load arena data.');
@@ -332,8 +338,8 @@ export const ArenaProvider = ({ children }) => {
     const isLossMonth = currentMonthFinance.isLossMonth;
 
     // ---- Auth ----
-    const login = useCallback(async (phone, password) => {
-        const r = await api('/api/auth/login', { method: 'POST', body: { phone, password } });
+    const login = useCallback(async (identifier, password) => {
+        const r = await api('/api/auth/login', { method: 'POST', body: { identifier, password } });
         if (r.ok && r.data.user) {
             setCurrentUser(r.data.user);
             saveCurrentUser(r.data.user);
@@ -359,6 +365,7 @@ export const ArenaProvider = ({ children }) => {
         setCurrentUser(VISITOR);
         saveCurrentUser(VISITOR);
         setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+        setMyCustomer(null); setCustomerSettings(null);
         loadRealBackendData('visitor');
     }, [loadRealBackendData]);
 
@@ -389,6 +396,46 @@ export const ArenaProvider = ({ children }) => {
         const r = await api('/api/auth/me', { method: 'PUT', body: { currentPassword, newPassword } });
         if (r.ok) { showNotice('success', 'Password changed'); return { ok: true }; }
         showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleSendEmailVerification = useCallback(async (email) => {
+        const r = await api('/api/auth/verify-email/send', { method: 'POST', body: email ? { email } : {} });
+        if (r.ok) {
+            if (r.data?.email && currentUser && r.data.email !== currentUser.email) {
+                const updated = { ...currentUser, email: r.data.email, emailVerified: false, emailVerifiedAt: null };
+                setCurrentUser(updated);
+                saveCurrentUser(updated);
+            }
+            return { ok: true, message: r.data?.message || 'Verification code sent.', alreadyVerified: Boolean(r.data?.alreadyVerified), email: r.data?.email };
+        }
+        return { ok: false, error: r.error || 'Could not send verification code.' };
+    }, [currentUser]);
+
+    const handleConfirmEmailVerification = useCallback(async (code) => {
+        const r = await api('/api/auth/verify-email/confirm', { method: 'POST', body: { code } });
+        if (r.ok && r.data?.user) {
+            setCurrentUser(r.data.user);
+            saveCurrentUser(r.data.user);
+            showNotice('success', r.data.message || 'Email verified');
+            return { ok: true, message: r.data.message, user: r.data.user };
+        }
+        return { ok: false, error: r.error || 'Verification failed.' };
+    }, [showNotice]);
+
+    /**
+     * Save the player's own preferences and/or their area: { settings?: { preferredChannel, notifications, bookingDefaults }, profile?: { area } }.
+     * The server returns what it stored, which replaces the local copy.
+     */
+    const handleSaveCustomerSettings = useCallback(async (patch) => {
+        const r = await api('/api/customer/settings', { method: 'PUT', body: patch });
+        if (r.ok) {
+            if (r.data.customer) setMyCustomer(r.data.customer);
+            if (r.data.settings) setCustomerSettings(r.data.settings);
+            showNotice('success', r.data.message || 'Settings saved');
+            return { ok: true, settings: r.data.settings, customer: r.data.customer };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
     }, [showNotice]);
 
     // ---- Admin: users ----
@@ -811,7 +858,8 @@ export const ArenaProvider = ({ children }) => {
         showPassesDrawer, setShowPassesDrawer, showInstallModal, setShowInstallModal, showAuthModal, setShowAuthModal,
         authModalInitialTab, setAuthModalInitialTab, showSSLCommerzModal, setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
         showHandoverGuide, setShowHandoverGuide,
-        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, demoMode: DEMO_MODE,
+        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, handleSendEmailVerification, handleConfirmEmailVerification, demoMode: DEMO_MODE,
+        myCustomer, customerSettings, handleSaveCustomerSettings,
         handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
         refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
@@ -833,7 +881,8 @@ export const ArenaProvider = ({ children }) => {
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
         activeTicketPass, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
         showSSLCommerzModal, pendingBookingData, showHandoverGuide,
-        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword,
+        login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, handleSendEmailVerification, handleConfirmEmailVerification,
+        myCustomer, customerSettings, handleSaveCustomerSettings,
         handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
         refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,

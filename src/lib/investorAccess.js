@@ -1,4 +1,4 @@
-import { Investor } from '@/models/Investor';
+import { Investor } from '@/models/investor-model';
 import { isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 /**

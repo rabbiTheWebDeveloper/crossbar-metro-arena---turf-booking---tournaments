@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Setting } from '@/models/Setting';
+import { Setting } from '@/models/setting-model';
 import { requirePermission, can } from '@/lib/apiAuth';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';

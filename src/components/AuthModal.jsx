@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
 import { CrossbarLogo } from './CrossbarLogo';
-import { X, ShieldCheck, CheckCircle2, AlertCircle, TrendingUp, ArrowRight, MessageSquare, UserCheck } from 'lucide-react';
+import { ForgotPasswordFlow } from './ForgotPasswordFlow';
+import { X, ShieldCheck, CheckCircle2, AlertCircle, TrendingUp, ArrowRight, UserCheck } from 'lucide-react';
 
 const PHONE_RE = /^01[3-9]\d{8}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Login / sign-up modal. It is mounted only while `showAuthModal` is true (see GlobalModals),
@@ -13,10 +15,11 @@ const PHONE_RE = /^01[3-9]\d{8}$/;
 export const AuthModal = () => {
     const { setShowAuthModal, authModalInitialTab, currentUser, login, signup, switchDemoUser, demoMode, siteSettings } = useArena();
     const [activeTab, setActiveTab] = useState(authModalInitialTab === 'signup' ? 'signup' : 'login');
+    const [identifier, setIdentifier] = useState('');
     const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [position, setPosition] = useState('MID');
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,18 +45,28 @@ export const AuthModal = () => {
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        const digits = cleanPhone(phone);
-        if (!PHONE_RE.test(digits)) { setError('Enter a valid 11-digit Bangladeshi mobile number (01XXXXXXXXX).'); return; }
+        const trimmed = identifier.trim();
+        let normalized = '';
+        if (trimmed.includes('@')) {
+            const email = trimmed.toLowerCase();
+            if (!EMAIL_RE.test(email)) { setError('Please enter a valid email address.'); return; }
+            normalized = email;
+        }
+        else {
+            const digits = cleanPhone(trimmed);
+            if (!PHONE_RE.test(digits)) { setError('Enter a valid 11-digit Bangladeshi mobile number (01XXXXXXXXX) or email address.'); return; }
+            normalized = digits;
+        }
         if (!password) { setError('Please enter your password.'); return; }
         setIsSubmitting(true);
-        const res = await login(digits, password);
+        const res = await login(normalized, password);
         setIsSubmitting(false);
         if (res.success) {
             setSuccessMsg(res.message || 'Signed in successfully.');
             setTimeout(() => handleClose(), 600);
         }
         else {
-            setError(res.message || 'Sign in failed. Please check your number and password.');
+            setError(res.message || 'Sign in failed. Please check your credentials and try again.');
         }
     };
 
@@ -61,14 +74,16 @@ export const AuthModal = () => {
         e.preventDefault();
         setError('');
         const digits = cleanPhone(phone);
+        const cleanEmail = email.trim().toLowerCase();
         if (!name.trim() || name.trim().length < 2) { setError('Please enter your full name.'); return; }
         if (!PHONE_RE.test(digits)) { setError('Enter a valid 11-digit Bangladeshi mobile number (01XXXXXXXXX).'); return; }
+        if (cleanEmail && !EMAIL_RE.test(cleanEmail)) { setError('Please enter a valid email address.'); return; }
         if (!password || password.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setIsSubmitting(true);
-        const res = await signup({ name: name.trim(), phone: digits, password, playingPosition: position });
+        const res = await signup({ name: name.trim(), phone: digits, email: cleanEmail || undefined, password });
         setIsSubmitting(false);
         if (res.success) {
-            setSuccessMsg(res.message || 'Player account created. Welcome to Crossbar Metro Arena!');
+            setSuccessMsg(res.message || 'Customer account created. Welcome to Crossbar Metro Arena!');
             setTimeout(() => handleClose(), 800);
         }
         else {
@@ -104,12 +119,12 @@ export const AuthModal = () => {
           </div>
           <h3 id="auth-modal-title" className="text-xl font-black text-white font-display uppercase tracking-wide">
             {activeTab === 'login' && 'Account Login'}
-            {activeTab === 'signup' && 'Player Sign Up'}
+            {activeTab === 'signup' && 'Customer Sign Up'}
             {activeTab === 'demo' && 'Demo Role Switcher'}
           </h3>
           <p className="text-xs text-slate-400 mt-1">
-            {activeTab === 'login' && 'Log in with your Bangladeshi mobile number'}
-            {activeTab === 'signup' && 'Join the arena to book slots and post match results'}
+            {activeTab === 'login' && 'Log in with your mobile number or email address'}
+            {activeTab === 'signup' && 'Create a customer account to book slots and manage your passes'}
             {activeTab === 'demo' && 'Demo accounts are enabled on this build only'}
           </p>
 
@@ -131,32 +146,40 @@ export const AuthModal = () => {
             </div>)}
         </div>
 
-        {activeTab === 'login' && (<form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
+        {activeTab === 'login' && showForgotHelp && (
+          <div className="p-6 space-y-4">
+            <ForgotPasswordFlow
+              initialIdentifier={identifier}
+              whatsappUrl={siteSettings.whatsappUrl}
+              deskPhone={siteSettings.phone}
+              deskPhoneFormatted={siteSettings.phoneFormatted}
+              onSuccess={(resetId) => {
+                if (resetId) setIdentifier(resetId);
+                setPassword('');
+              }}
+              onBackToLogin={() => setShowForgotHelp(false)}
+            />
+            <button type="button" onClick={() => setShowForgotHelp(false)} className="w-full text-center text-xs text-emerald-400 font-bold hover:underline cursor-pointer">
+              ← Back to Login
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'login' && !showForgotHelp && (<form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
             <div>
-              <label htmlFor="auth-login-phone" className="block text-xs font-semibold text-slate-300 mb-1.5">Mobile Number</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">+880</span>
-                <input id="auth-login-phone" type="tel" inputMode="numeric" autoComplete="tel-national" required placeholder="01XXXXXXXXX" value={phone} onChange={e => setPhone(e.target.value)} className="w-full pl-16 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
-              </div>
+              <label htmlFor="auth-login-identifier" className="block text-xs font-semibold text-slate-300 mb-1.5">Mobile Number or Email</label>
+              <input id="auth-login-identifier" type="text" autoComplete="username" required placeholder="01XXXXXXXXX or name@email.com" value={identifier} onChange={e => setIdentifier(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label htmlFor="auth-login-password" className="text-xs font-semibold text-slate-300">Password</label>
-                <button type="button" onClick={() => setShowForgotHelp(v => !v)} className="text-xs text-emerald-400 hover:underline cursor-pointer">
+                <button type="button" onClick={() => setShowForgotHelp(true)} className="text-xs text-emerald-400 hover:underline cursor-pointer">
                   Forgot password?
                 </button>
               </div>
               <input id="auth-login-password" type="password" autoComplete="current-password" required placeholder="Your password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
             </div>
-
-            {showForgotHelp && (<div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-slate-300 space-y-2">
-                <p>Password reset by SMS is not available yet. Message the arena desk on WhatsApp from your registered number and the team will reset it for you.</p>
-                <a href={siteSettings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[#25D366] font-bold hover:underline">
-                  <MessageSquare className="w-3.5 h-3.5"/>
-                  <span>Message the arena desk</span>
-                </a>
-              </div>)}
 
             <button type="submit" disabled={isSubmitting} className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               {isSubmitting ? 'Signing in...' : 'Log In to Account'}
@@ -165,7 +188,7 @@ export const AuthModal = () => {
             <div className="pt-2 text-center text-xs text-slate-400">
               Don&apos;t have an account?{' '}
               <button type="button" onClick={() => switchTab('signup')} className="text-emerald-400 font-bold hover:underline cursor-pointer">
-                Sign up as a player
+                Create customer account
               </button>
             </div>
           </form>)}
@@ -184,24 +207,18 @@ export const AuthModal = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="auth-signup-position" className="block text-xs font-semibold text-slate-300 mb-1.5">Playing Position</label>
-                <select id="auth-signup-position" value={position} onChange={e => setPosition(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500">
-                  <option value="FWD">Forward (FWD)</option>
-                  <option value="MID">Midfielder (MID)</option>
-                  <option value="DEF">Defender (DEF)</option>
-                  <option value="GK">Goalkeeper (GK)</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="auth-signup-password" className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
-                <input id="auth-signup-password" type="password" autoComplete="new-password" required minLength={6} placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500"/>
-              </div>
+            <div>
+              <label htmlFor="auth-signup-email" className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address <span className="text-slate-500 font-normal">(optional — for welcome mail &amp; password reset)</span></label>
+              <input id="auth-signup-email" type="email" autoComplete="email" placeholder="name@email.com" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
+            </div>
+
+            <div>
+              <label htmlFor="auth-signup-password" className="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+              <input id="auth-signup-password" type="password" autoComplete="new-password" required minLength={6} placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"/>
             </div>
 
             <button type="submit" disabled={isSubmitting} className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-              {isSubmitting ? 'Creating profile...' : 'Create Player Account'}
+              {isSubmitting ? 'Creating account...' : 'Create Customer Account'}
             </button>
 
             <div className="pt-2 text-center text-xs text-slate-400">

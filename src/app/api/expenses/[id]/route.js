@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Expense } from '@/models/Expense';
+import { Expense } from '@/models/expense-model';
 
 export async function DELETE(request, { params }) {
     try {

@@ -26,6 +26,9 @@ importers:
       next:
         specifier: ^15.2.0
         version: 15.5.29(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      nodemailer:
+        specifier: ^10.6.1
+        version: 10.6.1
       react:
         specifier: ^19.0.0
         version: 19.3.1
@@ -621,6 +624,10 @@ packages:
       sass:
         optional: true
 
+  nodemailer@10.6.1:
+    resolution: {integrity: sha512-d7kfFfS/tR4Aca+SBvRaQ+MXKNv7d2JiRe5TxaRcFT/kYMh4GGPnW9aKksTIEvyEbA7d/7HYWE4YPDEHxzJj/g==}
+    engines: {node: '>=20.0.0'}
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -1142,6 +1149,8 @@ snapshots:
       - '@babel/core'
       - '@types/node'
       - babel-plugin-macros
+
+  nodemailer@10.6.1: {}
 
   picocolors@1.1.1: {}
 

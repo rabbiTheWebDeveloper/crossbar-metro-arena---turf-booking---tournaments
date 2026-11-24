@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Booking } from '@/models/Booking';
+import { Booking } from '@/models/booking-model';
 import { publicBaseUrl } from '@/lib/sslcommerz';
 import { confirmGatewayPayment } from '@/lib/paymentConfirm';
 

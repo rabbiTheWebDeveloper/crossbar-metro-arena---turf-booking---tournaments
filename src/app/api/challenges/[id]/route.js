@@ -1,7 +1,7 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Challenge } from '@/models/Challenge';
+import { Challenge } from '@/models/challenge-model';
 import { can, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
 
 const isOwner = (user, c) => user && (c.userId === String(user.userId || user.id) || (cleanPhone(user.phone) && cleanPhone(user.phone) === cleanPhone(c.captainPhone)));

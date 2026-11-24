@@ -1,7 +1,7 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Booking } from '@/models/Booking';
+import { Booking } from '@/models/booking-model';
 import { initiateSSLSession, publicBaseUrl, isGatewayConfigured } from '@/lib/sslcommerz';
 import { optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
 import {

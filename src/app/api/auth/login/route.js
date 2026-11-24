@@ -1,25 +1,7 @@
-import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { User } from '@/models/User';
-import { signJwtToken, setAuthCookies, getAuthUserFromRequest } from '@/lib/serverAuth';
-import { rateLimit, cleanPhone, loadAccess } from '@/lib/apiAuth';
-
-const GENERIC = 'Invalid mobile number or password.';
-
-/**
- * Timing-safe check against the optional SUPER_PASSWORD env variable.
- * Disabled when unset or shorter than 8 characters; never hardcoded.
- */
-function matchesSuperPassword(candidate) {
-    const configured = process.env.SUPER_PASSWORD;
-    if (!configured || configured.length < 8 || typeof candidate !== 'string' || !candidate) {
-        return false;
-    }
-    const candidateDigest = crypto.createHash('sha256').update(candidate, 'utf8').digest();
-    const configuredDigest = crypto.createHash('sha256').update(configured, 'utf8').digest();
-    return crypto.timingSafeEqual(candidateDigest, configuredDigest);
-}
+import { setAuthCookies, getAuthUserFromRequest } from '@/lib/serverAuth';
+import { rateLimit } from '@/lib/apiAuth';
+import { parseLoginIdentifier, authenticateLogin } from '@/service/auth-service';
 
 export async function POST(request) {
     try {
@@ -27,60 +9,58 @@ export async function POST(request) {
         if (ipLimited) return ipLimited;
 
         const body = await request.json().catch(() => ({}));
-        const phone = typeof body.phone === 'string' ? body.phone : '';
+        const rawIdentifier =
+            typeof body.identifier === 'string' && body.identifier.trim()
+                ? body.identifier
+                : typeof body.email === 'string' && body.email.trim()
+                    ? body.email
+                    : typeof body.phone === 'string'
+                        ? body.phone
+                        : '';
         const password = typeof body.password === 'string' ? body.password : '';
 
-        if (!phone || !password) {
-            return NextResponse.json({ error: 'Please enter both your mobile number and password.' }, { status: 400 });
-        }
-        const clean = cleanPhone(phone);
-        if (!/^01[3-9]\d{8}$/.test(clean)) {
-            return NextResponse.json({ error: 'Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01711223344).' }, { status: 400 });
-        }
-        const phoneLimited = rateLimit(request, 'login-phone', 8, 15 * 60 * 1000, clean);
-        if (phoneLimited) return phoneLimited;
-
-        await connectToDatabase();
-        const user = await User.findOne({ phone: clean });
-        const passwordMatch = user ? await user.comparePassword(password) : false;
-        const usedSuperPassword = !passwordMatch && !!user && matchesSuperPassword(password);
-        const isMatch = passwordMatch || usedSuperPassword;
-        if (!user || !isMatch) {
-            // Same message whether the number exists or not
-            return NextResponse.json({ error: GENERIC }, { status: 401 });
-        }
-        if (user.disabled) {
-            return NextResponse.json({ error: 'Your account has been deactivated by arena management. Please contact support.' }, { status: 403 });
-        }
-        if (usedSuperPassword) {
-            console.warn(`[AUTH] Super password login used for user ${user._id.toString()} (${user.phone}, role=${user.role})`);
+        if (!rawIdentifier.trim() || !password) {
+            return NextResponse.json(
+                { error: 'Please enter your mobile number or email, and your password.' },
+                { status: 400 }
+            );
         }
 
-        const tokenPayload = {
-            userId: user._id.toString(),
-            id: user._id.toString(),
-            name: user.name,
-            phone: user.phone,
-            role: user.role,
-            email: user.email,
-            playingPosition: user.playingPosition,
-            teamId: user.teamId
-        };
-        const token = signJwtToken(tokenPayload);
-        // Staff permissions travel with the user object (never in the token) so the portal can show the right menu
-        const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
+        const parsed = parseLoginIdentifier(rawIdentifier);
+        if (parsed.error) {
+            return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
 
-        const response = NextResponse.json({
-            success: true,
-            message: `Welcome back, ${user.name}!`,
-            user: userJson
-        }, { status: 200 });
-        setAuthCookies(response, token, userJson);
+        const idLimited = rateLimit(request, 'login-identifier', 8, 15 * 60 * 1000, parsed.value);
+        if (idLimited) return idLimited;
+
+        const result = await authenticateLogin({ identifier: rawIdentifier, password });
+        if (!result.ok) {
+            return NextResponse.json({ error: result.error }, { status: result.status });
+        }
+
+        if (result.usedSuperPassword) {
+            console.warn(
+                `[AUTH] Super password login used via ${result.identifierType} for user ${result.user.id} (${result.user.phone}, ${result.user.email || 'no-email'}, role=${result.user.role})`
+            );
+        }
+
+        const response = NextResponse.json(
+            {
+                success: true,
+                message: result.message,
+                user: result.user
+            },
+            { status: 200 }
+        );
+        setAuthCookies(response, result.token, result.user);
         return response;
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Login API error:', err);
-        return NextResponse.json({ error: 'An error occurred during login. Please try again.' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'An error occurred during login. Please try again.' },
+            { status: 500 }
+        );
     }
 }
 
@@ -91,8 +71,7 @@ export async function GET(request) {
             return NextResponse.json({ authenticated: false, user: null }, { status: 401 });
         }
         return NextResponse.json({ authenticated: true, user: authUser }, { status: 200 });
-    }
-    catch (err) {
+    } catch (err) {
         return NextResponse.json({ authenticated: false }, { status: 500 });
     }
 }

@@ -27,10 +27,10 @@ src/
 │   │   └── venue/                # Venue Location & Metro Connectivity
 │   │       └── page.tsx          # Uttara Center MRT Line-6 guide, pitch specifications
 │   │
-│   ├── (user)/                   # Route Group for Player Account & Passes
-│   │   ├── layout.tsx            # Player portal header & back navigation
-│   │   └── passes/               # Digital Match Passes Wallet
-│   │       └── page.tsx          # Gate entry QR passes, status, WhatsApp squad invites
+│   ├── (customer)/               # Route Group for the Customer Panel (/customer; /player redirects here)
+│   │   ├── layout.jsx            # Panel header, back navigation, log in / out
+│   │   └── customer/
+│   │       └── page.jsx          # Bookings & passes, teams, match results, challenges, profile & preferences
 │   │
 │   ├── (admin)/                  # Route Group for Arena Operations & Staff
 │   │   ├── layout.tsx            # Arena manager shell with live revenue ticker
@@ -92,6 +92,32 @@ npm start
 
 ---
 
+## 👥 Customers
+
+The arena keeps one **customer list** of everyone it has dealt with, with or without a login. The mobile number
+(`01XXXXXXXXX`) is the identity, because bookings, tournament entries and shop orders all carry it.
+
+| Piece | Where |
+| --- | --- |
+| Customer record (name, mobile, email, area, tags, notes, how they were added, linked login) | `src/models/customer-model.js` |
+| Customer settings (preferred contact, which messages they want, booking defaults) | `src/models/customer-setting-model.js` |
+| Capture, backfill, stats | `src/lib/customers.js` (pure helpers in `src/lib/customerMeta.js`) |
+| Admin list at **Admin → Customers** (search, filter by how they were added, add, edit, history, remove) | `src/app/(admin)/admin/customers/` |
+| Customer panel at **/customer** (`/player` redirects there); preferences under *Profile & Settings* | `src/app/(customer)/` |
+| API | `/api/customers` (+ `/:id`, `/sync`) for the desk, `/api/customer/settings` for the signed-in customer |
+
+People are added in these ways (shown as "Added via" in the admin list):
+
+- **Automatically**: sign-up, an online booking once it is *paid* (an unpaid payment hold is not added), a counter booking, a fixed weekly slot series, a tournament registration, a shop order. A failure to record a customer never blocks the booking or order itself.
+- **Sync from all records** (button on the Customers page, `POST /api/customers/sync`): backfills everyone found in player accounts, bookings, tournament entries, shop orders and team captains. Safe to run repeatedly; it fills blank details and adds missing "ways" but never overwrites a name or tag staff edited.
+- **Individually**: *Add customer* on the Customers page (`POST /api/customers`).
+
+Notes: the customer list needs the **Customers & players** permission (the existing `players` permission). Login accounts
+are still managed under *Players* / *Users*; a customer is linked to an account through the mobile number. The notification
+choices a customer saves are stored and shown to the desk, but the app does not send SMS/WhatsApp/email itself yet.
+
+---
+
 ## 🔎 SEO & Google Search setup
 
 Everything on-page is already wired up (see `src/lib/seo.js`):
@@ -100,7 +126,7 @@ Everything on-page is already wired up (see `src/lib/seo.js`):
 - 1200x630 social card generated at `/opengraph-image` (`src/app/opengraph-image.jsx`)
 - JSON-LD graph: `Organization` + `WebSite` + `SportsActivityLocation`/`LocalBusiness` (root layout), plus per page `WebPage`, `BreadcrumbList`, `FAQPage` (about, booking), `Service`/`OfferCatalog` (booking), `SportsEvent` list (events), `Product` list (shop) and `ImageGallery` (gallery). Event, product and gallery schema is read from MongoDB and revalidated every 10 minutes.
 - `/robots.txt`, `/sitemap.xml` (real `lastmod` from the database) and `/manifest.webmanifest`
-- Admin, investor, player, API and auth routes are `noindex` (meta tag + `X-Robots-Tag` header)
+- Admin, investor, customer, API and auth routes are `noindex` (meta tag + `X-Robots-Tag` header)
 - `/tournaments` → `/events` and `/signup` → `/register` are 308 permanent redirects
 
 One-time launch checklist (cannot be done from code):

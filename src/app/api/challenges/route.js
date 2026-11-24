@@ -1,7 +1,7 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Challenge } from '@/models/Challenge';
+import { Challenge } from '@/models/challenge-model';
 import { can, requireAuth, optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
 import { isIsoDate, todayDhaka } from '@/lib/booking';
 

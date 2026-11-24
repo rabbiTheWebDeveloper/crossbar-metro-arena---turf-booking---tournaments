@@ -1,10 +1,11 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ShopReservation } from '@/models/ShopReservation';
-import { Product } from '@/models/Product';
+import { ShopReservation } from '@/models/shop-reservation-model';
+import { Product } from '@/models/product-model';
 import { can, optionalAuth, cleanPhone, isObjectId, rateLimit } from '@/lib/apiAuth';
 import { generateBookingCode } from '@/lib/booking';
+import { trackCustomer } from '@/lib/customers';
 
 /** GET /api/shop-orders  (admin: all; signed-in customer: ?mine=1 own orders) */
 export async function GET(request) {
@@ -89,6 +90,8 @@ export async function POST(request) {
             }
         }
         if (!reservation) return NextResponse.json({ error: 'Could not allocate an order code, please retry.' }, { status: 500 });
+
+        await trackCustomer({ name: customerName, phone: customerPhone, source: 'shop' });
 
         return NextResponse.json({ success: true, message: 'Shop order placed successfully', reservation: reservation.toJSON() }, { status: 201 });
     } catch (err) {

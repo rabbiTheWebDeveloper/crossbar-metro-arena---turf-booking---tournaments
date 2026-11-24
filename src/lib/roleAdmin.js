@@ -1,5 +1,5 @@
-import { Role } from '@/models/Role';
-import { User } from '@/models/User';
+import { Role } from '@/models/role-model';
+import { User } from '@/models/user-model';
 import { PERMISSION_KEYS } from '@/lib/permissions';
 
 /** Shared helpers for the staff-role routes (/api/roles, /api/roles/:id). */

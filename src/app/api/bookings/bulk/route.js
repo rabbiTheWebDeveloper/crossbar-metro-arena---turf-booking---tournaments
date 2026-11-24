@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Booking } from '@/models/Booking';
-import { Setting } from '@/models/Setting';
+import { Booking } from '@/models/booking-model';
+import { Setting } from '@/models/setting-model';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { readJson, validate, badRequest } from '@/lib/validate';
 import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
 import { requirePermission } from '@/lib/apiAuth';
+import { trackCustomer } from '@/lib/customers';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -185,6 +186,8 @@ export async function POST(request) {
                 throw err;
             }
         }
+
+        if (created.length > 0) await trackCustomer({ name: captainName, phone: captainPhone, source: 'fixed_slot' });
 
         return NextResponse.json({
             success: true,

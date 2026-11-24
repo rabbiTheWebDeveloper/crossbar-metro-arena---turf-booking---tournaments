@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Investor } from '@/models/Investor';
+import { Investor } from '@/models/investor-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { findInvestorForUser } from '@/lib/investorAccess';
+import { safeSendWelcomeEmail } from '@/utils/mail';
 
 /** Fields an investor may see about other partners (no contact details). */
 const publicView = (i) => ({
@@ -105,6 +106,12 @@ export async function POST(request) {
                 status: item.status || 'active'
             });
             await created.save();
+            await safeSendWelcomeEmail({
+                toEmail: created.email,
+                fullName: created.name,
+                role: 'investor',
+                phone: created.phone
+            });
             results.push(created.toJSON());
         }
 

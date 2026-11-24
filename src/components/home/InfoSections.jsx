@@ -174,7 +174,7 @@ export function HomeFooter() {
             links: isVisitor
                 ? [{ label: 'Log in', href: '/login' }, { label: 'Create an account', href: '/register' }, { label: 'Find my booking', href: '/booking' }]
                 : [
-                    ...(!isInvestor ? [{ label: 'Player dashboard', href: '/player' }] : []),
+                    ...(!isInvestor ? [{ label: 'Customer panel', href: '/customer' }] : []),
                     ...(canAccessAdmin ? [{ label: 'Admin panel', href: '/admin' }] : []),
                     ...(isAdmin || isInvestor ? [{ label: 'Investor dashboard', href: '/investor' }] : [])
                 ]

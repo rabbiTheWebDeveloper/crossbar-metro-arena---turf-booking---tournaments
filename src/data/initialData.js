@@ -43,7 +43,7 @@ export const COURTS = [
  *   weekdayPrice / weekendPrice              -> what the customer pays (the "offer price")
  *   weekdayActualPrice / weekendActualPrice  -> the regular price, shown struck through while it is higher
  * Bump SLOT_SCHEDULE_VERSION whenever these defaults change: the stored settings are replaced once
- * with this list the next time the server reads them (see models/Setting.js).
+ * with this list the next time the server reads them (see models/setting-model.js).
  */
 export const SLOT_SCHEDULE_VERSION = 2;
 export const SCHEDULE_SLOTS_DEFINITION = [

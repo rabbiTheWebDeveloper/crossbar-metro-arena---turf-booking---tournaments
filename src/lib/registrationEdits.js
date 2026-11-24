@@ -1,7 +1,7 @@
 import { validate } from '@/lib/validate';
 import { REGISTRATION_EDIT_SCHEMA } from '@/lib/schemas';
-import { Tournament } from '@/models/Tournament';
-import { OtherIncome } from '@/models/OtherIncome';
+import { Tournament } from '@/models/tournament-model';
+import { OtherIncome } from '@/models/other-income-model';
 
 // The admin UI historically used "verified"; the model stores "confirmed".
 export const normalizeStatus = (s) => (s === 'verified' ? 'confirmed' : s);

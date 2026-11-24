@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Investor } from '@/models/Investor';
+import { Investor } from '@/models/investor-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_PAYOUT_DETAILS_SCHEMA, MOBILE_WALLET_METHODS } from '@/lib/schemas';
 import { requirePermission, isObjectId, isValidBdPhone, cleanPhone } from '@/lib/apiAuth';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Tournament } from '@/models/Tournament';
+import { Tournament } from '@/models/tournament-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { TOURNAMENT_SCHEMA } from '@/lib/schemas';
 

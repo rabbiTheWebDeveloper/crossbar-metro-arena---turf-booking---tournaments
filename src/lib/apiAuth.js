@@ -19,7 +19,7 @@ async function liveUser(tokenUser) {
     if (!isObjectId(id)) return tokenUser;
     try {
         const { connectToDatabase } = await import('./mongodb');
-        const { User } = await import('@/models/User');
+        const { User } = await import('@/models/user-model');
         await connectToDatabase();
         const doc = await User.findById(id).select('name phone role disabled email playingPosition teamId staffRoleId').lean();
         if (!doc || doc.disabled) return null;
@@ -42,7 +42,7 @@ export async function loadAccess(userDoc) {
     if (!userDoc || userDoc.role !== 'staff') return { permissions: [], staffRoleId: '', staffRoleName: '' };
     const roleId = String(userDoc.staffRoleId || '');
     if (!isObjectId(roleId)) return { permissions: [], staffRoleId: '', staffRoleName: '' };
-    const { Role } = await import('@/models/Role');
+    const { Role } = await import('@/models/role-model');
     const role = await Role.findById(roleId).select('name permissions').lean();
     if (!role) return { permissions: [], staffRoleId: '', staffRoleName: '' };
     return { permissions: cleanPermissions(role.permissions), staffRoleId: roleId, staffRoleName: role.name };

@@ -1,9 +1,9 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ShopReservation } from '@/models/ShopReservation';
-import { Product } from '@/models/Product';
-import { OtherIncome } from '@/models/OtherIncome';
+import { ShopReservation } from '@/models/shop-reservation-model';
+import { Product } from '@/models/product-model';
+import { OtherIncome } from '@/models/other-income-model';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 
 /**

@@ -106,7 +106,7 @@ export default function ResultsPage() {
             </button>
           </div>
 
-          <Link href="/player" className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20">
+          <Link href="/customer" className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors shadow-md shadow-emerald-500/20">
             <PlusCircle className="w-4 h-4"/>
             <span>Post Match Result</span>
           </Link>
@@ -141,7 +141,7 @@ export default function ResultsPage() {
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   Captains can post match scores directly from their Player Portal after full-time.
                 </p>
-                <Link href="/player" className="inline-block mt-2 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase">
+                <Link href="/customer" className="inline-block mt-2 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase">
                   Post a Score
                 </Link>
               </div>) : (<div className="space-y-4">

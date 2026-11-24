@@ -1,7 +1,8 @@
-import { Booking } from '@/models/Booking';
-import { Refund } from '@/models/Refund';
+import { Booking } from '@/models/booking-model';
+import { Refund } from '@/models/refund-model';
 import { validateSSLTransaction, verifyValidation } from '@/lib/sslcommerz';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
+import { trackCustomer } from '@/lib/customers';
 
 /**
  * Confirm a gateway payment for the pending booking identified by tran_id.
@@ -36,6 +37,10 @@ export async function confirmGatewayPayment({ tranId, valId, source = 'callback'
 
     const paid = Number(validation.amount);
     const method = mapGatewayMethod(validation.card_type || validation.card_issuer);
+
+    // Money really arrived, so this person is a customer, whether or not the slot can still be given to them.
+    // (An unpaid hold that is never completed is deliberately not added.)
+    await trackCustomer({ name: booking.captainName, phone: booking.captainPhone, source: 'online_booking' });
 
     // Atomic: only the first confirmation moves the hold to paid. Expired holds are revived here too,
     // since the money has really arrived.

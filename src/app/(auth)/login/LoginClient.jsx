@@ -3,12 +3,15 @@ import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena, cleanPhone } from '@/context/ArenaContext';
-import { Phone, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Zap, UserCheck, TrendingUp, MessageSquare, X } from 'lucide-react';
+import { ForgotPasswordFlow } from '@/components/ForgotPasswordFlow';
+import { Phone, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, Zap, UserCheck, TrendingUp, X } from 'lucide-react';
 
 // Only same-origin relative paths are accepted as a post-login destination.
 const SAFE_PATH = /^\/(?![\/\\])/;
+const PHONE_RE = /^01[3-9]\d{8}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const safeCallback = (raw) => (raw && SAFE_PATH.test(raw) ? raw : null);
-const destinationForRole = (role) => (role === 'admin' || role === 'staff' ? '/admin' : role === 'investor' ? '/investor' : '/player');
+const destinationForRole = (role) => (role === 'admin' || role === 'staff' ? '/admin' : role === 'investor' ? '/investor' : '/customer');
 
 function LoginForm() {
     const router = useRouter();
@@ -16,7 +19,7 @@ function LoginForm() {
     const callbackUrl = safeCallback(searchParams.get('callbackUrl'));
     const { login, demoMode, siteSettings } = useArena();
     const queryError = searchParams.get('error');
-    const [phone, setPhone] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(queryError ? 'Please sign in to continue.' : '');
@@ -25,14 +28,29 @@ function LoginForm() {
     const [, startTransition] = useTransition();
     const [showForgotHelp, setShowForgotHelp] = useState(false);
 
+    const isEmailInput = identifier.includes('@') || /[a-zA-Z]/.test(identifier);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
-        const digits = cleanPhone(phone);
-        if (!/^01[3-9]\d{8}$/.test(digits)) {
-            setError('Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01XXXXXXXXX).');
-            return;
+        const trimmed = identifier.trim();
+        let normalized = '';
+        if (trimmed.includes('@')) {
+            const email = trimmed.toLowerCase();
+            if (!EMAIL_RE.test(email)) {
+                setError('Please enter a valid email address.');
+                return;
+            }
+            normalized = email;
+        }
+        else {
+            const digits = cleanPhone(trimmed);
+            if (!PHONE_RE.test(digits)) {
+                setError('Please enter a valid 11-digit Bangladeshi mobile number (e.g. 01XXXXXXXXX) or email address.');
+                return;
+            }
+            normalized = digits;
         }
         if (!password) {
             setError('Please enter your password.');
@@ -40,7 +58,7 @@ function LoginForm() {
         }
         setIsSubmitting(true);
         try {
-            const res = await login(digits, password);
+            const res = await login(normalized, password);
             if (res.success) {
                 setSuccess(res.message || 'Signed in. Taking you to your dashboard...');
                 const dest = callbackUrl || destinationForRole(res.user?.role);
@@ -50,7 +68,7 @@ function LoginForm() {
                 });
             }
             else {
-                setError(res.message || 'Sign in failed. Please check your number and password.');
+                setError(res.message || 'Sign in failed. Please check your credentials and try again.');
             }
         }
         catch {
@@ -61,8 +79,8 @@ function LoginForm() {
         }
     };
 
-    const fillDemoCredentials = (demoPhone, demoPass) => {
-        setPhone(demoPhone);
+    const fillDemoCredentials = (demoId, demoPass) => {
+        setIdentifier(demoId);
         setPassword(demoPass);
         setError('');
         setSuccess('');
@@ -81,7 +99,7 @@ function LoginForm() {
             Welcome to the Pitch
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
-            Enter your mobile number and password to access your turf bookings &amp; arena dashboard.
+            Enter your mobile number or email and password to access your turf bookings &amp; arena dashboard.
           </p>
         </div>
 
@@ -97,16 +115,15 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="login-phone" className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span>Mobile Number</span>
-              <span className="text-[11px] font-mono text-emerald-400 font-normal">Bangladesh (+880)</span>
+            <label htmlFor="login-identifier" className="text-xs font-bold text-slate-300 flex items-center justify-between">
+              <span>Mobile Number or Email</span>
+              <span className="text-[11px] font-mono text-emerald-400 font-normal">01XXXXXXXXX / email</span>
             </label>
             <div className="relative flex items-center">
-              <div className="absolute left-3.5 flex items-center gap-1.5 pointer-events-none text-slate-400">
-                <Phone className="w-4 h-4 text-emerald-400"/>
-                <span className="text-xs font-mono font-bold text-slate-400 border-r border-white/10 pr-2">+88</span>
+              <div className="absolute left-3.5 pointer-events-none text-slate-400">
+                {isEmailInput ? <Mail className="w-4 h-4 text-emerald-400"/> : <Phone className="w-4 h-4 text-emerald-400"/>}
               </div>
-              <input id="login-phone" type="tel" inputMode="numeric" autoComplete="tel-national" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01XXXXXXXXX" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-20 pr-4 text-sm text-white placeholder:text-slate-500 font-mono transition-colors outline-none"/>
+              <input id="login-identifier" type="text" autoComplete="username" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="01XXXXXXXXX or name@email.com" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
             </div>
           </div>
 
@@ -180,21 +197,24 @@ function LoginForm() {
       </div>
 
       {showForgotHelp && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <h3 id="forgot-title" className="text-sm font-bold text-white font-display">Forgot your password?</h3>
-              <button type="button" onClick={() => setShowForgotHelp(false)} className="text-slate-400 hover:text-white p-1" aria-label="Close">
+              <h3 id="forgot-title" className="text-sm font-bold text-white font-display">Reset your password</h3>
+              <button type="button" onClick={() => setShowForgotHelp(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close">
                 <X className="w-4 h-4"/>
               </button>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Password reset by SMS is not available yet. Message the arena desk on WhatsApp from your registered number and the team will reset it for you.
-            </p>
-            <a href={siteSettings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-colors">
-              <MessageSquare className="w-4 h-4"/>
-              <span>Message the arena desk</span>
-            </a>
-            {siteSettings.phone && (<p className="text-[12px] text-center text-slate-400">or call <a href={`tel:${cleanPhone(siteSettings.phone)}`} className="text-emerald-400 font-mono font-bold">{siteSettings.phoneFormatted || siteSettings.phone}</a></p>)}
+            <ForgotPasswordFlow
+              initialIdentifier={identifier}
+              whatsappUrl={siteSettings.whatsappUrl}
+              deskPhone={siteSettings.phone}
+              deskPhoneFormatted={siteSettings.phoneFormatted}
+              onSuccess={(resetId) => {
+                if (resetId) setIdentifier(resetId);
+                setPassword('');
+              }}
+              onBackToLogin={() => setShowForgotHelp(false)}
+            />
           </div>
         </div>)}
     </div>);

@@ -11,7 +11,7 @@ import { X, Shield, Phone, User, Users, AlertCircle, Timer, Check, ArrowRight } 
  * server-priced payment. No prices are ever sent to the server from here.
  */
 export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
-    const { handlePlaceSlotHold, handleReleaseSlotHold, currentUser, isVisitor, pricing, teams, setShowSSLCommerzModal, setPendingBookingData } = useArena();
+    const { handlePlaceSlotHold, handleReleaseSlotHold, currentUser, isVisitor, pricing, teams, setShowSSLCommerzModal, setPendingBookingData, customerSettings } = useArena();
 
     const captainTeams = useMemo(() => {
         if (!currentUser || currentUser.role !== 'player') return [];
@@ -21,10 +21,12 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
 
     const [captainName, setCaptainName] = useState(!isVisitor ? (currentUser?.name || '') : '');
     const [captainPhone, setCaptainPhone] = useState(!isVisitor ? (currentUser?.phone || '') : '');
-    const [teamName, setTeamName] = useState(captainTeams[0]?.name || '');
-    const [matchType, setMatchType] = useState('friendly');
+    // The player's saved booking defaults (customer panel > Settings) pre-fill the form; they can still change anything here
+    const saved = !isVisitor && currentUser?.role === 'player' ? customerSettings?.bookingDefaults : null;
+    const [teamName, setTeamName] = useState(saved?.teamName || captainTeams[0]?.name || '');
+    const [matchType, setMatchType] = useState(saved?.matchType || 'friendly');
     const [selectedAddOnIds, setSelectedAddOnIds] = useState([]);
-    const [paymentChoice, setPaymentChoice] = useState('advance_500');
+    const [paymentChoice, setPaymentChoice] = useState(saved?.paymentChoice === 'full_payment' ? 'full_payment' : 'advance_500');
     const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);

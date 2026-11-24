@@ -1,8 +1,9 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Booking } from '@/models/Booking';
+import { Booking } from '@/models/booking-model';
 import { can, requirePermission, optionalAuth, escapeRegex, cleanPhone } from '@/lib/apiAuth';
+import { trackCustomer } from '@/lib/customers';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate, generateBookingCode,
     expireStaleHolds, findActiveBooking, statusFromPayment, publicBookingView, todayDhaka, addDays, isIsoDate
@@ -164,6 +165,8 @@ export async function POST(request) {
             }
         }
         if (!booking) return NextResponse.json({ error: 'Could not allocate a booking code, please retry.' }, { status: 500 });
+
+        await trackCustomer({ name: booking.captainName, phone: booking.captainPhone, source: 'walk_in' });
 
         return NextResponse.json({ success: true, message: 'Booking created successfully!', booking: booking.toJSON() }, { status: 201 });
     } catch (err) {

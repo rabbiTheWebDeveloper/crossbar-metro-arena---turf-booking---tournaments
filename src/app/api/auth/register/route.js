@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { User } from '@/models/User';
+import { User } from '@/models/user-model';
 import { signJwtToken, setAuthCookies } from '@/lib/serverAuth';
 import { rateLimit } from '@/lib/apiAuth';
+import { syncCustomerFromUser } from '@/lib/customers';
+import { safeSendWelcomeEmail } from '@/utils/mail';
 
 export async function POST(request) {
     try {
@@ -29,6 +31,15 @@ export async function POST(request) {
         if (!phoneRegex.test(cleanPhone)) {
             return NextResponse.json(
                 { error: 'Please enter a valid 11-digit Bangladeshi mobile number starting with 01 (e.g. 01711223344).' },
+                { status: 400 }
+            );
+        }
+
+        // Validate optional email if provided
+        const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+        if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            return NextResponse.json(
+                { error: 'Please enter a valid email address.' },
                 { status: 400 }
             );
         }
@@ -63,11 +74,22 @@ export async function POST(request) {
             password,
             role: assignedRole,
             playingPosition: playingPosition || 'MID',
-            email: email?.trim().toLowerCase() || `${cleanPhone}@bookcrossbar.com`,
+            email: cleanEmail || `${cleanPhone}@bookcrossbar.com`,
             disabled: false
         });
 
         await newUser.save();
+
+        // Add them to the customer list (never blocks sign-up; a customer added earlier at the counter is linked)
+        await syncCustomerFromUser(newUser, { source: 'signup' });
+
+        // Send welcome email when a real email address was provided (never blocks registration)
+        await safeSendWelcomeEmail({
+            toEmail: newUser.email,
+            fullName: newUser.name,
+            role: newUser.role,
+            phone: newUser.phone
+        });
 
         // Generate JWT
         const tokenPayload = {

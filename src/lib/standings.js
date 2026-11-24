@@ -1,4 +1,4 @@
-import { Team } from '@/models/Team';
+import { Team } from '@/models/team-model';
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Role } from '@/models/Role';
-import { User } from '@/models/User';
+import { Role } from '@/models/role-model';
+import { User } from '@/models/user-model';
 import { requireAdmin, isObjectId } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parseRoleInput, rolesWithCounts } from '@/lib/roleAdmin';

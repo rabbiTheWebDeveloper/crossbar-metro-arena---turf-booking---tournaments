@@ -26,13 +26,19 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // The player portal became the customer panel: old links, bookmarks and QR codes keep working
+  async redirects() {
+    return [
+      { source: '/player/:path*', destination: '/customer/:path*', permanent: false },
+    ];
+  },
   async headers() {
     return [
       { source: '/(.*)', headers: securityHeaders },
       // API responses must never be cached by the browser or a CDN, and never indexed
       { source: '/api/(.*)', headers: [{ key: 'Cache-Control', value: 'no-store' }, { key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
       // Private portals and auth pages: keep them out of search results at the HTTP level too
-      ...['/admin/:path*', '/investor/:path*', '/player/:path*', '/login', '/register', '/signup', '/logout'].map(source => ({
+      ...['/admin/:path*', '/investor/:path*', '/customer/:path*', '/player/:path*', '/login', '/register', '/signup', '/logout'].map(source => ({
         source,
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }]
       })),

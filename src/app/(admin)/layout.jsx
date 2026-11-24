@@ -9,7 +9,7 @@ import { canOpenAdminPath } from '../../lib/permissions';
 import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
-    Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound,
+    Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
     PanelLeftClose, PanelLeftOpen, ExternalLink
 } from 'lucide-react';
 
@@ -147,6 +147,7 @@ export default function AdminLayout({ children }) {
                     { label: 'All Bookings', href: '/admin/all-bookings', altHref: '/admin/bookings', icon: Layers },
                     { label: 'Fixed Slots', href: '/admin/recurring', icon: Repeat },
                     { label: 'Refunds', href: '/admin/refunds', icon: AlertCircle, badge: pendingRefundsCount, badgeTone: 'rose' },
+                    { label: 'Customers', href: '/admin/customers', icon: Contact },
                     { label: 'Players', href: '/admin/players', icon: UsersRound },
                 ]
             },
@@ -214,6 +215,7 @@ export default function AdminLayout({ children }) {
         if (pathname.includes('/all-bookings') || pathname.includes('/bookings')) return { section: 'Operations', title: 'All Bookings' };
         if (pathname.includes('/recurring')) return { section: 'Operations', title: 'Fixed Weekly Slots' };
         if (pathname.includes('/refunds')) return { section: 'Operations', title: 'Refunds Queue' };
+        if (pathname.includes('/customers')) return { section: 'Operations', title: 'Customers' };
         if (pathname.includes('/players')) return { section: 'Operations', title: 'Registered Players' };
         if (pathname.includes('/financial-report')) {
             const monthLabel = parseLocalDate(todayDateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -557,7 +559,7 @@ export default function AdminLayout({ children }) {
                                 title="Switch to Player demo"
                                 onClick={async () => {
                                     const r = await switchDemoUser('player');
-                                    if (r?.success) router.push('/player');
+                                    if (r?.success) router.push('/customer');
                                 }}
                                 className={`w-full flex items-center gap-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[0.04] transition-colors text-left ${
                                     sidebarCollapsed ? 'px-3 py-2 md:justify-center md:px-0' : 'px-3 py-2'

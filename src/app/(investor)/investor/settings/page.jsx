@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { useInvestor } from '@/context/InvestorContext';
+import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { formatMoney, formatDate, PAYOUT_METHODS, MOBILE_WALLET_METHODS, paymentMethodLabel, payoutDetailsSummary } from '@/data/finance';
 import { isValidBdPhone } from '@/lib/phone';
 import { Wallet, User, Lock, PieChart, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -273,6 +274,7 @@ export default function InvestorSettingsPage() {
                             <div>
                                 <label htmlFor="account-email" className={LABEL}>Email address</label>
                                 <input id="account-email" type="email" maxLength={120} autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className={INPUT}/>
+                                <EmailVerificationBox email={email} accent="emerald"/>
                             </div>
                             <div>
                                 <label htmlFor="account-phone" className={LABEL}>Registered mobile</label>

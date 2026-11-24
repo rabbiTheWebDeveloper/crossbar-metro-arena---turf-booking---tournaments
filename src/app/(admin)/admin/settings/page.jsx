@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
+import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { Building2, Phone, MapPin, Share2, Save, RotateCcw, Download, Lock, User, ExternalLink, Tag, CheckCircle2, AlertCircle, Database } from 'lucide-react';
 
@@ -318,6 +319,7 @@ export default function AdminSettingsPage() {
               <div>
                 <label htmlFor="admin-email" className={LABEL}>Email address</label>
                 <input id="admin-email" type="email" maxLength={120} autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className={`${INPUT} border-white/10`}/>
+                <EmailVerificationBox email={email} accent="lime"/>
               </div>
               <div>
                 <label htmlFor="admin-phone" className={LABEL}>Login mobile</label>

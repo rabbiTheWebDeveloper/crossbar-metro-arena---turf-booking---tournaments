@@ -7,7 +7,7 @@ import { Footer } from '@/components/Footer';
 import { ArrowLeft, Calendar, LogOut, LogIn, UserCircle2 } from 'lucide-react';
 import { useArena } from '@/context/ArenaContext';
 
-export default function UserLayout({ children }) {
+export default function CustomerLayout({ children }) {
     const { currentUser, isVisitor, authChecked, logout, setShowAuthModal, setAuthModalInitialTab } = useArena();
     const router = useRouter();
     const [loggingOut, setLoggingOut] = useState(false);
@@ -28,7 +28,7 @@ export default function UserLayout({ children }) {
           <div className="hidden sm:block h-5 w-px bg-white/20"></div>
           <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>Player &amp; Team Portal</span>
+            <span>Customer Panel</span>
           </div>
         </div>
 
@@ -36,8 +36,8 @@ export default function UserLayout({ children }) {
           {authChecked && !isVisitor && (<div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 max-w-[220px]" title={currentUser?.phone || ''}>
               <UserCircle2 className="w-4 h-4 text-emerald-400 shrink-0"/>
               <div className="min-w-0 leading-tight">
-                <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Player'}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-400">{currentUser?.role || 'player'}</div>
+                <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Customer'}</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400">{currentUser?.role === 'player' || !currentUser?.role ? 'customer' : currentUser.role}</div>
               </div>
             </div>)}
 

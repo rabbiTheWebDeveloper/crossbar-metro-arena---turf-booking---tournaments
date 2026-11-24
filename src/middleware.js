@@ -52,7 +52,7 @@ export async function middleware(request) {
     const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/signup';
     const isAdminRoute = pathname.startsWith('/admin');
     const isInvestorRoute = pathname.startsWith('/investor');
-    const isPlayerRoute = pathname.startsWith('/player');
+    const isCustomerRoute = pathname === '/customer' || pathname.startsWith('/customer/');
 
     // 1. If user is already authenticated and visits Login/Register/Signup
     if (isAuthRoute) {
@@ -74,7 +74,7 @@ export async function middleware(request) {
             if (user.role === 'investor') {
                 return NextResponse.redirect(new URL('/investor', request.url));
             }
-            return NextResponse.redirect(new URL('/player', request.url));
+            return NextResponse.redirect(new URL('/customer', request.url));
         }
 
         return NextResponse.next();
@@ -92,7 +92,7 @@ export async function middleware(request) {
         // Staff may enter; which pages and actions they get is decided by their role (admin layout + API guards)
         if (user.role !== 'admin' && user.role !== 'staff') {
             // Non-admin attempting to access admin portal
-            const target = user.role === 'investor' ? '/investor' : '/player';
+            const target = user.role === 'investor' ? '/investor' : '/customer';
             const redirectUrl = new URL(target, request.url);
             return NextResponse.redirect(redirectUrl);
         }
@@ -108,17 +108,18 @@ export async function middleware(request) {
         }
 
         if (user.role !== 'investor' && user.role !== 'admin') {
-            // Player (or staff) attempting to access investor portal
-            return NextResponse.redirect(new URL(user.role === 'staff' ? '/admin' : '/player', request.url));
+            // Customer (or staff) attempting to access investor portal
+            return NextResponse.redirect(new URL(user.role === 'staff' ? '/admin' : '/customer', request.url));
         }
     }
 
-    // 4. Private Route Protection: PLAYER (/player & /player/*)
-    if (isPlayerRoute) {
+    // 4. Private Route Protection: CUSTOMER PANEL (/customer & /customer/*). The old /player URLs are redirected
+    //    to it by next.config.mjs before they reach this middleware.
+    if (isCustomerRoute) {
         if (!user) {
             const loginUrl = new URL('/login', request.url);
             loginUrl.searchParams.set('callbackUrl', pathname + search);
-            loginUrl.searchParams.set('error', 'Please sign in or register to access your player pass and wallet.');
+            loginUrl.searchParams.set('error', 'Please sign in or register to access your bookings, passes and team.');
             return NextResponse.redirect(loginUrl);
         }
     }
@@ -143,7 +144,7 @@ export const config = {
     matcher: [
         '/admin/:path*',
         '/investor/:path*',
-        '/player/:path*',
+        '/customer/:path*',
         '/login',
         '/register',
         '/signup'

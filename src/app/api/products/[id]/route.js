@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Product } from '@/models/Product';
+import { Product } from '@/models/product-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { PRODUCT_SCHEMA } from '@/lib/schemas';
 

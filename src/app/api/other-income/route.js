@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, escapeRegex } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { OtherIncome } from '@/models/OtherIncome';
+import { OtherIncome } from '@/models/other-income-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { OTHER_INCOME_SCHEMA } from '@/lib/schemas';
 

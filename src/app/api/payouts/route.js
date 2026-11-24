@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Payout } from '@/models/Payout';
-import { Investor } from '@/models/Investor';
+import { Payout } from '@/models/payout-model';
+import { Investor } from '@/models/investor-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { PAYOUT_SCHEMA } from '@/lib/schemas';
 import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';

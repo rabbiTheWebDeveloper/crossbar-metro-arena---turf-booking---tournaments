@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { TournamentRegistration } from '@/models/TournamentRegistration';
+import { TournamentRegistration } from '@/models/tournament-registration-model';
 import { readJson, badRequest } from '@/lib/validate';
 import { parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 

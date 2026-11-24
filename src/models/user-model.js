@@ -29,7 +29,7 @@ const UserSchema = new Schema({
         },
         default: 'player'
     },
-    // For role "staff": the staff role (models/Role.js) that decides what they can do in the admin portal
+    // For role "staff": the staff role (models/role-model.js) that decides what they can do in the admin portal
     staffRoleId: {
         type: String,
         trim: true,
@@ -43,7 +43,16 @@ const UserSchema = new Schema({
     email: {
         type: String,
         trim: true,
-        lowercase: true
+        lowercase: true,
+        index: true
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    emailVerifiedAt: {
+        type: Date,
+        default: null
     },
     teamId: {
         type: String,

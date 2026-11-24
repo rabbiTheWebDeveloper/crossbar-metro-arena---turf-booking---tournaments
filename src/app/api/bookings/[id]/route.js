@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Booking } from '@/models/Booking';
-import { Refund } from '@/models/Refund';
+import { Booking } from '@/models/booking-model';
+import { Refund } from '@/models/refund-model';
 import { can, requirePermission, optionalAuth, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { loadPricing, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
 

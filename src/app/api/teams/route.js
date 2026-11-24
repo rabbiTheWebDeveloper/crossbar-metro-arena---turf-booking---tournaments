@@ -1,8 +1,8 @@
 import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Team } from '@/models/Team';
-import { User } from '@/models/User';
+import { Team } from '@/models/team-model';
+import { User } from '@/models/user-model';
 import { can, requireAuth, optionalAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
 import { sanitizePlayer } from '@/lib/teams';
 

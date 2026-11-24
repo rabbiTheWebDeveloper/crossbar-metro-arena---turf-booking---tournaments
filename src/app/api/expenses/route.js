@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, escapeRegex } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Expense } from '@/models/Expense';
+import { Expense } from '@/models/expense-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { EXPENSE_SCHEMA } from '@/lib/schemas';
 

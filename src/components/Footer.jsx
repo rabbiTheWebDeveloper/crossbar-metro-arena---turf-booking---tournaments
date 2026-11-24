@@ -16,7 +16,7 @@ export const Footer = () => {
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
     const year = new Date().getFullYear();
     const dashboards = [
-        ...(!isVisitor && !isInvestor ? [{ href: '/player', label: 'Player Dashboard (passes, teams, post scores)' }] : []),
+        ...(!isVisitor && !isInvestor ? [{ href: '/customer', label: 'Customer Panel (passes, teams, post scores)' }] : []),
         ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin Panel (bookings, pricing, expenses)' }] : []),
         ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor Dashboard (monthly reports)' }] : [])
     ];

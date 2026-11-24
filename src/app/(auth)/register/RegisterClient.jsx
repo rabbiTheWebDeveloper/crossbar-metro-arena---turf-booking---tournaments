@@ -3,18 +3,11 @@ import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena, cleanPhone } from '@/context/ArenaContext';
-import { User, Phone, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle, Trophy } from 'lucide-react';
+import { User, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle, Trophy } from 'lucide-react';
 
 // Only same-origin relative paths are accepted as a post-signup destination.
 const SAFE_PATH = /^\/(?![\/\\])/;
 const safeCallback = (raw) => (raw && SAFE_PATH.test(raw) ? raw : null);
-
-const POSITIONS = [
-    { id: 'GK', label: 'GK', desc: 'Goalkeeper' },
-    { id: 'DEF', label: 'DEF', desc: 'Defender' },
-    { id: 'MID', label: 'MID', desc: 'Midfielder' },
-    { id: 'FWD', label: 'FWD', desc: 'Forward' }
-];
 
 function RegisterForm() {
     const router = useRouter();
@@ -23,9 +16,9 @@ function RegisterForm() {
     const { signup, pricing } = useArena();
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [position, setPosition] = useState('MID');
     const [agreeTerms, setAgreeTerms] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -46,6 +39,11 @@ function RegisterForm() {
             setError('Please enter a valid 11-digit Bangladeshi mobile number starting with 01.');
             return;
         }
+        const cleanEmail = email.trim().toLowerCase();
+        if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
         if (!password || password.length < 6) {
             setError('Password must be at least 6 characters long.');
             return;
@@ -60,10 +58,10 @@ function RegisterForm() {
         }
         setIsSubmitting(true);
         try {
-            const res = await signup({ name: name.trim(), phone: digits, password, playingPosition: position });
+            const res = await signup({ name: name.trim(), phone: digits, email: cleanEmail || undefined, password });
             if (res.success) {
-                setSuccess(res.message || 'Player profile created. Welcome to Crossbar Metro Arena!');
-                const dest = callbackUrl || '/player';
+                setSuccess(res.message || 'Customer account created. Welcome to Crossbar Metro Arena!');
+                const dest = callbackUrl || '/customer';
                 startTransition(() => {
                     router.push(dest);
                     router.refresh();
@@ -91,10 +89,10 @@ function RegisterForm() {
             <span>JOIN CROSSBAR METRO ARENA</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display">
-            Create Player Profile
+            Create Customer Profile
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
-            Book 90-minute floodlit slots, enter tournaments, and track your match stats in Dhaka.
+            Book 90-minute floodlit turf slots, manage your bookings &amp; passes, and join tournaments in Dhaka.
           </p>
         </div>
 
@@ -134,20 +132,15 @@ function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-              <span>Playing Position</span>
-              <span className="text-[11px] text-slate-400">Shown on squad cards</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Playing position">
-              {POSITIONS.map(pos => {
-                const isSelected = position === pos.id;
-                return (<button key={pos.id} type="button" role="radio" aria-checked={isSelected} onClick={() => setPosition(pos.id)} className={`py-2 px-1 rounded-xl text-xs font-bold font-mono transition-all text-center cursor-pointer border ${isSelected
-                        ? 'bg-emerald-400 text-slate-950 border-emerald-400 shadow-md shadow-emerald-400/20'
-                        : 'bg-[#080d12] text-slate-400 border-white/10 hover:text-white hover:border-white/20'}`}>
-                    <div>{pos.label}</div>
-                    <div className={`text-[10px] font-sans font-normal ${isSelected ? 'text-slate-900' : 'text-slate-400'}`}>{pos.desc}</div>
-                  </button>);
-              })}
+            <label htmlFor="reg-email" className="text-xs font-bold text-slate-300 flex items-center justify-between">
+              <span>Email Address</span>
+              <span className="text-[11px] text-slate-400 font-normal">For welcome email &amp; password reset</span>
+            </label>
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 pointer-events-none text-slate-400">
+                <Mail className="w-4 h-4 text-emerald-400"/>
+              </div>
+              <input id="reg-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com (optional)" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
             </div>
           </div>
 
@@ -187,9 +180,9 @@ function RegisterForm() {
           <button type="submit" disabled={isSubmitting} className="w-full mt-2 py-3.5 px-6 rounded-xl font-black text-sm tracking-wide text-slate-950 bg-gradient-to-r from-emerald-500 via-emerald-400 to-lime-400 hover:brightness-110 active:scale-[0.99] shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
             {isSubmitting ? (<>
                 <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"/>
-                <span>Creating your profile...</span>
+                <span>Creating your account...</span>
               </>) : (<>
-                <span>Create Player Account</span>
+                <span>Create Customer Account</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]"/>
               </>)}
           </button>

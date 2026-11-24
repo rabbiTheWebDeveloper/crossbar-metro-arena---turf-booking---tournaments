@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { readJson, errorResponse } from '@/lib/validate';
-import { User } from '@/models/User';
-import { Investor } from '@/models/Investor';
+import { User } from '@/models/user-model';
+import { Investor } from '@/models/investor-model';
+import { Customer } from '@/models/customer-model';
 import { requireAuth, requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { syncCustomerFromUser } from '@/lib/customers';
 import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, sameUser, canEditAccount, isLastActiveAdmin, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
 
 const notFound = () => NextResponse.json({ error: 'Account not found' }, { status: 404 });
@@ -50,6 +52,7 @@ export async function PATCH(request, { params }) {
         const isAdmin = actor.role === 'admin';
         const isSelf = sameUser(actor, user);
         const wasLastAdmin = await isLastActiveAdmin(user);
+        const previousPhone = user.phone;
 
         if (body.name !== undefined) {
             const name = String(body.name).trim();
@@ -67,7 +70,11 @@ export async function PATCH(request, { params }) {
         if (body.email !== undefined) {
             const email = String(body.email || '').trim().toLowerCase();
             if (email && !EMAIL_RE.test(email)) return invalid('Enter a valid email address.');
-            user.email = email;
+            if (email !== (user.email || '').trim().toLowerCase()) {
+                user.email = email;
+                user.emailVerified = false;
+                user.emailVerifiedAt = null;
+            }
         }
         if (body.playingPosition !== undefined) {
             if (!VALID_POSITIONS.includes(body.playingPosition)) return invalid('Invalid playing position.');
@@ -107,6 +114,7 @@ export async function PATCH(request, { params }) {
         }
 
         await user.save();
+        await syncCustomerFromUser(user, { previousPhone }); // no-op unless this is a player account
         return NextResponse.json({ success: true, message: 'Account updated', user: await present(user) });
     } catch (err) {
         return errorResponse(err, 'PATCH /api/users/[id]');
@@ -135,6 +143,7 @@ export async function DELETE(request, { params }) {
 
         if (permanent) {
             await Investor.updateMany({ userId: String(user._id) }, { $set: { userId: '' } });
+            await Customer.updateMany({ userId: String(user._id) }, { $set: { userId: '' } }); // the person stays in the customer list
             await User.deleteOne({ _id: user._id });
             return NextResponse.json({ success: true, deleted: true, message: `${user.name}'s account was deleted.` });
         }

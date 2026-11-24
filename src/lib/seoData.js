@@ -4,10 +4,10 @@
  * when MongoDB is unreachable or MONGODB_CONNECTION_STRING is not set.
  */
 import { connectToDatabase } from './mongodb';
-import { Tournament } from '../models/Tournament';
-import { Product } from '../models/Product';
-import { GalleryPhoto } from '../models/GalleryPhoto';
-import { Setting } from '../models/Setting';
+import { Tournament } from '../models/tournament-model';
+import { Product } from '../models/product-model';
+import { GalleryPhoto } from '../models/gallery-photo-model';
+import { Setting } from '../models/setting-model';
 
 const plain = (doc) => {
     if (!doc) return null;

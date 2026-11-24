@@ -11,7 +11,7 @@ export const MobileBottomNav = () => {
     if (pathname.startsWith('/investor') || pathname.startsWith('/admin')) {
         return null;
     }
-    const meHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/player';
+    const meHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/customer';
     const navItems = [
         { label: 'Home', href: '/', icon: Home, isActive: pathname === '/' },
         { label: 'Match Day', href: '/results', icon: Trophy, isActive: pathname === '/results' || pathname === '/matches' },
@@ -21,7 +21,7 @@ export const MobileBottomNav = () => {
             label: isVisitor ? 'Login' : 'Me',
             href: meHref,
             icon: User,
-            isActive: pathname.startsWith('/player') || pathname.startsWith('/admin') || pathname.startsWith('/investor'),
+            isActive: pathname.startsWith('/customer') || pathname.startsWith('/admin') || pathname.startsWith('/investor'),
             action: isVisitor ? () => { setAuthModalInitialTab('login'); setShowAuthModal(true); } : undefined
         }
     ];

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { TournamentRegistration } from '@/models/TournamentRegistration';
-import { Tournament } from '@/models/Tournament';
+import { TournamentRegistration } from '@/models/tournament-registration-model';
+import { Tournament } from '@/models/tournament-model';
 import { normalizeStatus, toStringList, parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 import { badRequest, readJson } from '@/lib/validate';
 import { can, requirePermission, optionalAuth, cleanPhone, isObjectId, escapeRegex, rateLimit } from '@/lib/apiAuth';
 import { todayDhaka } from '@/lib/booking';
+import { trackCustomer } from '@/lib/customers';
 
 const PAYMENT_MAP = { arena_counter: 'pay_at_turf', counter: 'pay_at_turf', bank_transfer: 'bank', bkash: 'bkash', nagad: 'nagad', rocket: 'rocket', bank: 'bank', card: 'card', cash: 'cash', pay_at_turf: 'pay_at_turf' };
 
@@ -110,6 +111,8 @@ export async function POST(request) {
             notes: ''
         });
         await newRegistration.save();
+
+        await trackCustomer({ name: captainName, phone: captainPhone, email: newRegistration.captainEmail, source: 'tournament' });
 
         return NextResponse.json({
             success: true,
