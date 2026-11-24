@@ -44,7 +44,7 @@ async function verifyToken(token) {
     }
 }
 
-export async function middleware(request) {
+export async function proxy(request) {
     const { pathname, search } = request.nextUrl;
     const token = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
     const user = await verifyToken(token);

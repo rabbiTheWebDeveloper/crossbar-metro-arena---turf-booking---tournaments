@@ -95,7 +95,7 @@ export const viewport = {
 const GA_ID = siteConfig.gaMeasurementId;
 
 export default function RootLayout({ children }) {
-    return (<html lang="en" className={`dark scroll-smooth ${fontSans.variable} ${fontDisplay.variable} ${fontSport.variable}`}>
+    return (<html lang="en" data-scroll-behavior="smooth" className={`dark scroll-smooth ${fontSans.variable} ${fontDisplay.variable} ${fontSport.variable}`}>
       <body className="bg-[#070b0e] text-slate-100 antialiased selection:bg-emerald-500 selection:text-black min-h-screen flex flex-col font-sans">
         {/* Organization + WebSite + Venue (LocalBusiness) graph shared by every page */}
         <JsonLd id="site-graph" data={siteGraphSchema()}/>
