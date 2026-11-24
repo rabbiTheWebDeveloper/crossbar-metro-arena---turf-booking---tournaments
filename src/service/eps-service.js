@@ -10,7 +10,9 @@ import {
 } from '@/queries/payment-queries';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
-import { publicBaseUrl } from '@/lib/baseUrl';
+
+/** Domain registered with the EPS merchant account (EPS rejects callbacks on any other domain). */
+const EPS_CALLBACK_BASE_URL = 'https://importbay.com.bd';
 
 const EPS_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EPS_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -110,7 +112,9 @@ export async function initiateEpsBookingPayment({
     ipAddress = '127.0.0.1'
 }) {
     const { client, config } = await createEpsClient();
-    const host = (baseUrl || publicBaseUrl()).replace(/\/+$/, '');
+    // EPS only accepts success/fail/cancel URLs on the domain registered with the EPS merchant
+    // account, so the callback host is fixed to that domain instead of the request's host.
+    const host = EPS_CALLBACK_BASE_URL;
     const merchantTransactionId = generateTransactionId(); // 17-digit timestamp-based ID (EPS requires >= 10 digits)
     const email = (customerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
         ? customerEmail
@@ -149,9 +153,11 @@ export async function initiateEpsBookingPayment({
         // reduces to "Request failed with status code 400" - log and surface the real reason.
         const body = err?.response;
         if (body) console.error('EPS initialize response body:', JSON.stringify(body, null, 2));
-        const detail = body?.errors
-            ? Object.entries(body.errors).map(([k, v]) => `${k}: ${[].concat(v).join(', ')}`).join('; ')
-            : (body?.title || body?.ErrorMessage || body?.errorMessage || '');
+        const detail = typeof body === 'string'
+            ? body
+            : body?.errors
+                ? Object.entries(body.errors).map(([k, v]) => `${k}: ${[].concat(v).join(', ')}`).join('; ')
+                : (body?.title || body?.ErrorMessage || body?.errorMessage || '');
         if (detail) throw new Error(`EPS rejected the payment request: ${detail}`);
         throw err;
     });
