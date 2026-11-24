@@ -10,7 +10,7 @@ import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
     Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
-    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard
+    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -149,6 +149,7 @@ export default function AdminLayout({ children }) {
                     { label: 'Fixed Slots', href: '/admin/recurring', icon: Repeat },
                     { label: 'Refunds', href: '/admin/refunds', icon: AlertCircle, badge: pendingRefundsCount, badgeTone: 'rose' },
                     { label: 'Customers', href: '/admin/customers', icon: Contact },
+                    { label: 'Customer List', href: '/admin/customer-list', icon: ClipboardList },
                     { label: 'Players', href: '/admin/players', icon: UsersRound },
                 ]
             },
@@ -216,6 +217,7 @@ export default function AdminLayout({ children }) {
         if (pathname.includes('/all-bookings') || pathname.includes('/bookings')) return { section: 'Operations', title: 'All Bookings' };
         if (pathname.includes('/recurring')) return { section: 'Operations', title: 'Fixed Weekly Slots' };
         if (pathname.includes('/refunds')) return { section: 'Operations', title: 'Refunds Queue' };
+        if (pathname.includes('/customer-list')) return { section: 'Operations', title: 'Customer Booking List' };
         if (pathname.includes('/customers')) return { section: 'Operations', title: 'Customers' };
         if (pathname.includes('/players')) return { section: 'Operations', title: 'Registered Players' };
         if (pathname.includes('/financial-report')) {

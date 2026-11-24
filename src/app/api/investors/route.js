@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/investor-model';
+import { User } from '@/models/user-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { findInvestorForUser } from '@/lib/investorAccess';
-import { safeSendWelcomeEmail } from '@/utils/mail';
+import { withStaffRoleNames } from '@/lib/userAdmin';
+import { isDeliverableEmail, safeSendInvestorWelcomeEmail } from '@/utils/mail';
 
 /** Fields an investor may see about other partners (no contact details). */
 const publicView = (i) => ({
@@ -36,11 +38,13 @@ export async function GET(request) {
     }
 }
 
-async function assertShareTotal(candidates) {
+function assertShareTotal(candidates) {
     // candidates: [{ id?, sharePercentage, status }] - the full intended list
-    const total = candidates.filter(c => (c.status || 'active') === 'active').reduce((s, c) => s + Number(c.sharePercentage || 0), 0);
+    const total = candidates
+        .filter(c => (c.status || 'active') === 'active')
+        .reduce((s, c) => s + Number(c.sharePercentage || 0), 0);
     if (total > 100.0001) {
-        return `Active partner shares add up to ${total}%. The total cannot exceed 100%.`;
+        return `Active partner shares add up to ${Math.round(total * 100) / 100}%. The total cannot exceed 100%.`;
     }
     return null;
 }
@@ -60,68 +64,186 @@ const pickFields = (item) => {
 
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'investors');
+        const { user: actor, denied } = await requirePermission(request, 'investors');
         if (denied) return denied;
-        // The admin UI posts the whole partner list (existing + new) as an array
+        // Supports single-object creation as well as legacy array batch saves
         const { body, error: jsonError } = await readJson(request, { allowArray: true });
         if (jsonError) return jsonError;
-        const rawItems = Array.isArray(body) ? body : [body];
-        if (rawItems.length === 0 || rawItems.length > 50) return badRequest('Send between 1 and 50 investors at a time.');
+        const isArrayPayload = Array.isArray(body);
+        const rawItems = isArrayPayload ? body : [body];
+        if (rawItems.length === 0 || rawItems.length > 50) {
+            return badRequest('Send between 1 and 50 investors at a time.');
+        }
 
         const items = [];
         for (const raw of rawItems) {
             if (!raw || typeof raw !== 'object') return badRequest('Each investor must be an object.');
             const id = raw.id || raw._id;
-            const { data, error } = validate(raw, INVESTOR_SCHEMA, { partial: isObjectId(id) });
+            const isExisting = isObjectId(id);
+            const { data, error } = validate(raw, INVESTOR_SCHEMA, { partial: isExisting });
             if (error) return badRequest(error);
-            items.push({ ...data, id, userId: raw.userId, payoutsPaid: raw.payoutsPaid === undefined ? undefined : Math.max(0, Number(raw.payoutsPaid) || 0) });
+
+            const createLogin = raw.createLogin === true;
+            const rawPassword = typeof raw.password === 'string' ? raw.password.trim() : '';
+            if (!isExisting && createLogin && rawPassword) {
+                if (rawPassword.length < 6) return badRequest('Login password must be at least 6 characters.');
+                if (rawPassword.length > 100) return badRequest('Login password is too long.');
+            }
+
+            items.push({
+                ...data,
+                id,
+                userId: raw.userId,
+                payoutsPaid: raw.payoutsPaid === undefined ? undefined : Math.max(0, Number(raw.payoutsPaid) || 0),
+                createLogin,
+                password: rawPassword,
+                sendEmail: raw.sendEmail !== false
+            });
         }
 
         await connectToDatabase();
 
-        // Validate the resulting share total before writing anything
+        // Validate resulting share total and duplicate phones before writing
         const existing = await Investor.find();
+        const existingPhones = new Set(existing.map(e => cleanPhone(e.phone)).filter(Boolean));
         const merged = existing.map(e => ({ id: String(e._id), sharePercentage: e.sharePercentage, status: e.status }));
+
         for (const item of items) {
             const id = item.id || item._id;
             const idx = isObjectId(id) ? merged.findIndex(m => m.id === String(id)) : -1;
-            const next = { id: idx >= 0 ? merged[idx].id : undefined, sharePercentage: item.sharePercentage ?? (idx >= 0 ? merged[idx].sharePercentage : 0), status: item.status || (idx >= 0 ? merged[idx].status : 'active') };
-            if (idx >= 0) merged[idx] = next; else merged.push(next);
+            if (idx < 0 && item.phone) {
+                const phone = cleanPhone(item.phone);
+                if (existingPhones.has(phone)) {
+                    return NextResponse.json(
+                        { error: `An investor partner with mobile number ${phone} already exists.` },
+                        { status: 409 }
+                    );
+                }
+                existingPhones.add(phone);
+            }
+            const next = {
+                id: idx >= 0 ? merged[idx].id : undefined,
+                sharePercentage: item.sharePercentage ?? (idx >= 0 ? merged[idx].sharePercentage : 0),
+                status: item.status || (idx >= 0 ? merged[idx].status : 'active')
+            };
+            if (idx >= 0) merged[idx] = next;
+            else merged.push(next);
         }
-        const shareError = await assertShareTotal(merged);
+
+        const shareError = assertShareTotal(merged);
         if (shareError) return NextResponse.json({ error: shareError }, { status: 400 });
 
         const results = [];
+        let lastUserJson = null;
+        let accountCreated = false;
+        let accountLinked = false;
+        let accountNote = '';
+        let lastEmailStatus = null;
+
         for (const item of items) {
             const id = item.id || item._id;
             if (isObjectId(id)) {
-                const updated = await Investor.findByIdAndUpdate(id, { $set: pickFields(item) }, { new: true, runValidators: true });
-                if (updated) { results.push(updated.toJSON()); continue; }
+                const updated = await Investor.findByIdAndUpdate(
+                    id,
+                    { $set: pickFields(item) },
+                    { new: true, runValidators: true }
+                );
+                if (updated) {
+                    results.push(updated.toJSON());
+                    continue;
+                }
             }
             if (!item.name || !item.phone) continue;
+
+            const fields = pickFields(item);
+            let linkedUserId = fields.userId || '';
+            let createdPassword = '';
+
+            // Auto-create or link an investor portal login account when requested (or match an existing investor login)
+            const existingUser = await User.findOne({ phone: fields.phone });
+            if (existingUser) {
+                if (existingUser.role === 'investor') {
+                    linkedUserId = String(existingUser._id);
+                    accountLinked = true;
+                    if (isDeliverableEmail(fields.email) && !isDeliverableEmail(existingUser.email)) {
+                        existingUser.email = fields.email;
+                        await existingUser.save();
+                    }
+                    const [uJson] = await withStaffRoleNames([existingUser.toJSON()]);
+                    lastUserJson = uJson;
+                } else if ((existingUser.role === 'player' || existingUser.role === 'visitor') && item.createLogin && actor.role === 'admin') {
+                    existingUser.role = 'investor';
+                    if (isDeliverableEmail(fields.email) && !isDeliverableEmail(existingUser.email)) {
+                        existingUser.email = fields.email;
+                    }
+                    await existingUser.save();
+                    linkedUserId = String(existingUser._id);
+                    accountLinked = true;
+                    accountNote = 'Existing user account with this mobile was upgraded to the investor role and linked.';
+                    const [uJson] = await withStaffRoleNames([existingUser.toJSON()]);
+                    lastUserJson = uJson;
+                } else if (item.createLogin) {
+                    accountNote = `A ${existingUser.role} account already uses ${fields.phone}, so a separate login was not created.`;
+                }
+            } else if (item.createLogin && item.password) {
+                const newUser = new User({
+                    name: fields.name,
+                    phone: fields.phone,
+                    email: fields.email || '',
+                    password: item.password,
+                    role: 'investor',
+                    disabled: false
+                });
+                await newUser.save();
+                linkedUserId = String(newUser._id);
+                createdPassword = item.password;
+                accountCreated = true;
+                const [uJson] = await withStaffRoleNames([newUser.toJSON()]);
+                lastUserJson = uJson;
+            }
+
             const created = new Investor({
-                ...pickFields(item),
-                joinedDate: item.joinedDate || new Date().toISOString().split('T')[0],
+                ...fields,
+                userId: linkedUserId,
+                capitalInvested: Number(fields.capitalInvested || 0),
+                joinedDate: fields.joinedDate || new Date().toISOString().split('T')[0],
                 payoutsPaid: Number(item.payoutsPaid || 0),
-                status: item.status || 'active'
+                status: fields.status || 'active'
             });
             await created.save();
-            await safeSendWelcomeEmail({
-                toEmail: created.email,
-                fullName: created.name,
-                role: 'investor',
-                phone: created.phone
-            });
+
+            const recipientEmail = isDeliverableEmail(created.email)
+                ? created.email
+                : (lastUserJson && isDeliverableEmail(lastUserJson.email) ? lastUserJson.email : '');
+
+            if (item.sendEmail) {
+                lastEmailStatus = await safeSendInvestorWelcomeEmail({
+                    toEmail: recipientEmail,
+                    fullName: created.name,
+                    phone: created.phone,
+                    sharePercentage: created.sharePercentage,
+                    capitalInvested: created.capitalInvested,
+                    password: createdPassword
+                });
+            } else {
+                lastEmailStatus = { sent: false, reason: 'skipped_by_admin' };
+            }
+
             results.push(created.toJSON());
         }
 
         const all = await Investor.find().sort({ sharePercentage: -1 });
         return NextResponse.json({
             success: true,
-            message: Array.isArray(body) ? 'Investors updated successfully' : 'Investor partner added successfully',
+            message: isArrayPayload ? 'Investors updated successfully' : 'Investor partner added successfully',
             investor: results[0] || null,
-            investors: all.map(i => i.toJSON())
-        }, { status: Array.isArray(body) ? 200 : 201 });
+            investors: all.map(i => i.toJSON()),
+            user: lastUserJson,
+            accountCreated,
+            accountLinked,
+            accountNote,
+            emailStatus: lastEmailStatus
+        }, { status: isArrayPayload ? 200 : 201 });
     } catch (err) {
         return errorResponse(err, 'POST /api/investors');
     }

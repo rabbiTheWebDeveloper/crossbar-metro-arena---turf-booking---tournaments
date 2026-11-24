@@ -127,8 +127,8 @@ export function validate(body, schema, { partial = false } = {}) {
             if (rule.required && !partial) return { error: `${label} is required.` };
             if (rule.required && partial && raw !== undefined) return { error: `${label} cannot be empty.` };
             if (!partial && rule.default !== undefined) data[key] = typeof rule.default === 'function' ? rule.default() : rule.default;
-            // an explicitly blank optional text field clears the value on PATCH
-            else if (partial && raw !== undefined && ['string', 'text', 'url'].includes(rule.type || 'string')) data[key] = '';
+            // an explicitly blank optional text/email/url field clears the value on PATCH/PUT
+            else if (partial && raw !== undefined && ['string', 'text', 'url', 'email'].includes(rule.type || 'string')) data[key] = '';
             continue;
         }
         const res = check(raw, rule, label);

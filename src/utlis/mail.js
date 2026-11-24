@@ -4,6 +4,10 @@ export {
     isDeliverableEmail,
     sendWelcomeEmail,
     safeSendWelcomeEmail,
+    sendInvestorWelcomeEmail,
+    safeSendInvestorWelcomeEmail,
+    sendAdminPasswordResetEmail,
+    safeSendAdminPasswordResetEmail,
     sendEmailOtp,
     sendPasswordChangedEmail,
     sendCustomEmail

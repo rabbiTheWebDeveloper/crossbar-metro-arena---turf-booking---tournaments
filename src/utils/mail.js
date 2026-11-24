@@ -265,6 +265,170 @@ export async function sendPasswordChangedEmail({ toEmail, fullName }) {
     });
 }
 
+export async function sendInvestorWelcomeEmail({
+    toEmail,
+    fullName,
+    phone = '',
+    sharePercentage = 0,
+    capitalInvested = 0,
+    password = ''
+}) {
+    const transporter = getTransporter();
+    const { user: fromEmail } = getMailCredentials();
+    const baseUrl = getBaseUrl();
+    const formattedCapital = `৳${Math.round(Number(capitalInvested) || 0).toLocaleString('en-IN')}`;
+    const shareText = `${Number(sharePercentage) || 0}%`;
+
+    const textLines = [
+        `Welcome to Crossbar Metro Arena, ${fullName}!`,
+        '',
+        'Your Investor Partner account at Crossbar Metro Arena is ready.',
+        `Equity Share: ${shareText}`,
+        `Invested Amount: ${formattedCapital}`,
+        phone ? `Login Mobile: ${phone}` : '',
+        `Login Email: ${toEmail}`,
+        password ? `Temporary Password: ${password}` : '',
+        '',
+        `Sign in to your Investor Portal at: ${baseUrl}/login`,
+        password ? 'For your security, please change your password under Settings once you sign in.' : ''
+    ].filter(Boolean);
+
+    await transporter.sendMail({
+        from: `"Crossbar Metro Arena" <${fromEmail}>`,
+        to: toEmail,
+        subject: 'Welcome to Crossbar Metro Arena — Investor Partner Account Created',
+        text: textLines.join('\n'),
+        html: getEmailWrapper(`
+          <h2 style="color:#064e3b;font-size:21px;margin:0 0 14px;">Welcome, ${escapeHtml(fullName)}!</h2>
+          <p style="margin:0 0 14px;color:#334155;">
+            Your <strong>Investor Partner</strong> account at <strong>Crossbar Metro Arena</strong> has been created.
+            You can track live arena revenue, monthly profit share, and payout history from your investor portal.
+          </p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 18px;margin:18px 0;">
+            <p style="margin:0 0 6px;font-size:13px;color:#166534;"><strong>Account Type:</strong> Investor Partner</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#166534;"><strong>Equity Share:</strong> ${escapeHtml(shareText)}</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#166534;"><strong>Invested Amount:</strong> ${escapeHtml(formattedCapital)}</p>
+            ${phone ? `<p style="margin:0 0 6px;font-size:13px;color:#166534;"><strong>Login Mobile:</strong> ${escapeHtml(phone)}</p>` : ''}
+            <p style="margin:0;font-size:13px;color:#166534;"><strong>Login Email:</strong> ${escapeHtml(toEmail)}</p>
+          </div>
+          ${password ? `
+          <div style="background:#ecfdf5;border:2px solid #6ee7b7;border-radius:10px;padding:16px 18px;margin:18px 0;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:#065f46;font-weight:700;">
+              Temporary Login Password
+            </p>
+            <p style="margin:0;font-size:24px;font-weight:800;color:#064e3b;font-family:monospace;letter-spacing:2px;">
+              ${escapeHtml(password)}
+            </p>
+            <p style="margin:8px 0 0;font-size:12px;color:#047857;">
+              Please change this password in <strong>Investor Portal &rarr; Settings</strong> after signing in.
+            </p>
+          </div>` : ''}
+          <div style="text-align:center;margin:26px 0;">
+            <a href="${baseUrl}/login"
+               style="background:#059669;color:#ffffff;padding:13px 32px;text-decoration:none;
+                      border-radius:10px;font-weight:700;font-size:14px;display:inline-block;">
+              Sign In to Investor Portal
+            </a>
+          </div>
+          <p style="margin:0;font-size:13px;color:#64748b;">
+            Sign in with either your mobile number or email address. Need help? Contact the arena desk anytime.
+          </p>
+        `, 'Welcome to Crossbar Metro Arena — Investor Account')
+    });
+}
+
+/** Safe wrapper for investor creation routes: never throws or blocks saving. */
+export async function safeSendInvestorWelcomeEmail(params) {
+    if (!isDeliverableEmail(params?.toEmail)) {
+        return { sent: false, reason: 'no_deliverable_email' };
+    }
+    if (!isMailConfigured()) {
+        console.warn('[MAIL] Skipping investor welcome email: GMAIL_USER / GMAIL_APP_PASSWORD not configured.');
+        return { sent: false, reason: 'mail_not_configured' };
+    }
+    try {
+        await sendInvestorWelcomeEmail(params);
+        return { sent: true, toEmail: String(params.toEmail).trim().toLowerCase() };
+    } catch (err) {
+        console.error('[MAIL] Investor welcome email failed:', err.message);
+        return { sent: false, reason: err.message };
+    }
+}
+
+export async function sendAdminPasswordResetEmail({ toEmail, fullName, phone = '', newPassword, role = 'investor' }) {
+    const transporter = getTransporter();
+    const { user: fromEmail } = getMailCredentials();
+    const baseUrl = getBaseUrl();
+    const roleLabel = ROLE_LABELS[role] || 'Member';
+
+    const textLines = [
+        `Hello ${fullName},`,
+        '',
+        `An administrator at Crossbar Metro Arena has reset the password for your ${roleLabel} account.`,
+        phone ? `Login Mobile: ${phone}` : '',
+        `Login Email: ${toEmail}`,
+        `New Password: ${newPassword}`,
+        '',
+        `Sign in at: ${baseUrl}/login`,
+        'For your security, please update your password from Account Settings after signing in.',
+        'If you did not expect this change, contact the arena desk right away on +880 1796-337133.'
+    ].filter(Boolean);
+
+    await transporter.sendMail({
+        from: `"Crossbar Metro Arena" <${fromEmail}>`,
+        to: toEmail,
+        subject: 'Crossbar Metro Arena — Your Account Password Has Been Reset',
+        text: textLines.join('\n'),
+        html: getEmailWrapper(`
+          <h2 style="color:#064e3b;font-size:20px;margin:0 0 14px;">Your Password Has Been Reset</h2>
+          <p style="margin:0 0 12px;color:#334155;">Hello <strong>${escapeHtml(fullName)}</strong>,</p>
+          <p style="margin:0 0 16px;color:#334155;">
+            Crossbar Metro Arena management has set a new password for your <strong>${escapeHtml(roleLabel)}</strong> login account.
+          </p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 18px;margin:18px 0;">
+            ${phone ? `<p style="margin:0 0 6px;font-size:13px;color:#166534;"><strong>Login Mobile:</strong> ${escapeHtml(phone)}</p>` : ''}
+            <p style="margin:0 0 10px;font-size:13px;color:#166534;"><strong>Login Email:</strong> ${escapeHtml(toEmail)}</p>
+            <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#065f46;font-weight:700;">New Password</p>
+            <div style="font-size:24px;font-weight:800;color:#064e3b;background:#ecfdf5;padding:12px 18px;
+                        border-radius:10px;border:2px solid #a7f3d0;font-family:monospace;letter-spacing:2px;text-align:center;">
+              ${escapeHtml(newPassword)}
+            </div>
+          </div>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${baseUrl}/login"
+               style="background:#059669;color:#ffffff;padding:12px 30px;text-decoration:none;
+                      border-radius:10px;font-weight:700;font-size:14px;display:inline-block;">
+              Sign In Now
+            </a>
+          </div>
+          <p style="margin:0 0 8px;font-size:13px;color:#475569;">
+            We recommend changing this password under <strong>Settings</strong> after signing in.
+          </p>
+          <p style="margin:0;color:#b91c1c;font-size:12px;">
+            If you did not expect this password reset, please contact Crossbar Metro Arena immediately at
+            <a href="tel:+8801796337133" style="color:#b91c1c;font-weight:700;">+880 1796-337133</a>.
+          </p>
+        `, 'Password Reset — Crossbar Metro Arena')
+    });
+}
+
+export async function safeSendAdminPasswordResetEmail(params) {
+    if (!isDeliverableEmail(params?.toEmail)) {
+        return { sent: false, reason: 'no_deliverable_email' };
+    }
+    if (!isMailConfigured()) {
+        console.warn('[MAIL] Skipping admin password reset email: GMAIL_USER / GMAIL_APP_PASSWORD not configured.');
+        return { sent: false, reason: 'mail_not_configured' };
+    }
+    try {
+        await sendAdminPasswordResetEmail(params);
+        return { sent: true, toEmail: String(params.toEmail).trim().toLowerCase() };
+    } catch (err) {
+        console.error('[MAIL] Admin password reset email failed:', err.message);
+        return { sent: false, reason: err.message };
+    }
+}
+
 export async function sendCustomEmail({ toEmail, subject, htmlBody }) {
     const transporter = getTransporter();
     const { user: fromEmail } = getMailCredentials();

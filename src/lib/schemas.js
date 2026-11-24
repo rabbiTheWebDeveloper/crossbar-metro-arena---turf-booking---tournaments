@@ -199,7 +199,7 @@ export const INVESTOR_SCHEMA = {
     email: { type: 'email', label: 'Email' },
     phone: { type: 'phone', required: true, label: 'Phone' },
     sharePercentage: { type: 'number', required: true, min: 0, max: 100, label: 'Share percentage' },
-    capitalInvested: { type: 'money', label: 'Capital invested' },
+    capitalInvested: { type: 'money', min: 0, max: 1000000000, default: 0, label: 'Invested amount' },
     status: { type: 'enum', values: ['active', 'inactive'] },
     joinedDate: { type: 'date', label: 'Joined date' }
 };

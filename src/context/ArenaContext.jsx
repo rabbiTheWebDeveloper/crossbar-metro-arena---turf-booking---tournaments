@@ -646,21 +646,67 @@ export const ArenaProvider = ({ children }) => {
     const handleSaveInvestors = useCallback(async (invs) => {
         const payload = (Array.isArray(invs) ? invs : [invs]).map(i => (isObjectId(i.id) ? i : { ...i, id: undefined, _id: undefined }));
         const r = await api('/api/investors', { method: 'POST', body: payload });
-        if (r.ok && Array.isArray(r.data.investors)) { setInvestors(r.data.investors); showNotice('success', r.data.message || 'Investors saved'); return { ok: true, investors: r.data.investors }; }
+        if (r.ok && Array.isArray(r.data.investors)) {
+            setInvestors(r.data.investors);
+            if (r.data.user) setUsers(prev => upsert(prev, r.data.user));
+            showNotice('success', r.data.message || 'Investors saved');
+            return { ok: true, ...r.data };
+        }
         showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleCreateInvestor = useCallback(async (data) => {
+        const r = await api('/api/investors', { method: 'POST', body: data });
+        if (r.ok) {
+            if (Array.isArray(r.data.investors)) setInvestors(r.data.investors);
+            else if (r.data.investor) setInvestors(prev => upsert(prev, r.data.investor));
+            if (r.data.user) setUsers(prev => upsert(prev, r.data.user));
+            const emailMsg = r.data.emailStatus?.sent ? ` Welcome email sent to ${r.data.emailStatus.toEmail}.` : '';
+            showNotice('success', `${r.data.message || 'Investor partner added'}.${emailMsg}`);
+            return { ok: true, ...r.data };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
     }, [showNotice]);
 
     const handleUpdateInvestor = useCallback(async (id, patch) => {
         const r = await api(`/api/investors/${id}`, { method: 'PUT', body: patch });
-        if (r.ok && r.data.investor) { setInvestors(prev => upsert(prev, r.data.investor)); showNotice('success', 'Investor updated'); return { ok: true, investor: r.data.investor }; }
+        if (r.ok && r.data.investor) {
+            setInvestors(prev => upsert(prev, r.data.investor));
+            if (r.data.user) setUsers(prev => upsert(prev, r.data.user));
+            showNotice('success', r.data.message || 'Investor updated');
+            return { ok: true, investor: r.data.investor, user: r.data.user || null };
+        }
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [showNotice]);
 
     /** With { permanent: true } the partner is removed even when payouts exist (the payout history is kept). */
-    const handleDeleteInvestor = useCallback(async (id, { permanent = false } = {}) => {
-        const r = await api(`/api/investors/${id}${permanent ? '?permanent=1' : ''}`, { method: 'DELETE' });
-        if (r.ok) { setInvestors(prev => (r.data.investor ? upsert(prev, r.data.investor) : prev.filter(i => i.id !== id))); showNotice('success', r.data.message); return { ok: true }; }
+    const handleDeleteInvestor = useCallback(async (id, { permanent = false, deleteAccount = false } = {}) => {
+        const qs = new URLSearchParams();
+        if (permanent) qs.set('permanent', '1');
+        if (deleteAccount) qs.set('deleteAccount', '1');
+        const suffix = qs.toString() ? `?${qs.toString()}` : '';
+        const r = await api(`/api/investors/${id}${suffix}`, { method: 'DELETE' });
+        if (r.ok) {
+            setInvestors(prev => (r.data.investor ? upsert(prev, r.data.investor) : prev.filter(i => i.id !== id)));
+            if (r.data.deletedUserId) setUsers(prev => prev.filter(u => u.id !== r.data.deletedUserId));
+            showNotice('success', r.data.message);
+            return { ok: true, deletedUserId: r.data.deletedUserId || null };
+        }
         showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    /** Investor email / password / login actions: resend_welcome | send_reset_code | reset_password | create_login */
+    const handleInvestorMailAction = useCallback(async (id, payload) => {
+        const r = await api(`/api/investors/${id}/mail`, { method: 'POST', body: payload });
+        if (r.ok) {
+            if (r.data.investor) setInvestors(prev => upsert(prev, r.data.investor));
+            if (r.data.user) setUsers(prev => upsert(prev, r.data.user));
+            showNotice('success', r.data.message || 'Done');
+            return { ok: true, ...r.data };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
     }, [showNotice]);
 
     /** Partner's own payout preference. Admins pass `investorId` to save it on a partner's behalf. */
@@ -869,7 +915,7 @@ export const ArenaProvider = ({ children }) => {
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
-        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor, handleSaveInvestorSettings,
+        handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,
         handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
@@ -892,7 +938,7 @@ export const ArenaProvider = ({ children }) => {
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
-        handleSaveInvestors, handleUpdateInvestor, handleDeleteInvestor, handleSaveInvestorSettings,
+        handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,
         handleSaveShopProduct, handleDeleteShopProduct, handleSaveShopReservation, handleUpdateShopReservationStatus,
