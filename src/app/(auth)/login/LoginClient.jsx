@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useTransition, Suspense, useMemo } from 'react';
+import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena, cleanPhone } from '@/context/ArenaContext';
@@ -15,37 +15,6 @@ const PHONE_RE = /^01[3-9]\d{8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const safeCallback = (raw) => (raw && SAFE_PATH.test(raw) ? raw : null);
 
-const PORTAL_HINTS = [
-    {
-        id: 'customer',
-        label: 'Customer',
-        icon: UserCheck,
-        badge: 'PLAYER & CAPTAIN PORTAL',
-        subtitle: 'Sign in to view your turf passes, manage bookings, build your squad, and post match scores.'
-    },
-    {
-        id: 'investor',
-        label: 'Investor',
-        icon: TrendingUp,
-        badge: 'EQUITY PARTNER PORTAL',
-        subtitle: 'Sign in with your partner mobile or email to inspect live dividends, monthly expenses, and payouts.'
-    },
-    {
-        id: 'admin',
-        label: 'Admin / Staff',
-        icon: ShieldCheck,
-        badge: 'ARENA DESK CONSOLE',
-        subtitle: 'Sign in with your Super Admin or assigned Staff Role account to open your permitted Arena Desk dashboard.'
-    }
-];
-
-function initialPortalTab(callbackUrl) {
-    if (!callbackUrl) return 'customer';
-    if (callbackUrl.startsWith('/admin')) return 'admin';
-    if (callbackUrl.startsWith('/investor')) return 'investor';
-    return 'customer';
-}
-
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -55,7 +24,6 @@ function LoginForm() {
 
     const { login, logout, currentUser, isVisitor, authChecked, demoMode, siteSettings } = useArena();
 
-    const [portalTab, setPortalTab] = useState(() => initialPortalTab(callbackUrl));
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -65,11 +33,6 @@ function LoginForm() {
     const [switchingOut, setSwitchingOut] = useState(false);
     const [, startTransition] = useTransition();
     const [showForgotHelp, setShowForgotHelp] = useState(false);
-
-    const activePortalMeta = useMemo(
-        () => PORTAL_HINTS.find(p => p.id === portalTab) || PORTAL_HINTS[0],
-        [portalTab]
-    );
 
     const isEmailInput = identifier.includes('@') || /[a-zA-Z]/.test(identifier);
 
@@ -136,10 +99,9 @@ function LoginForm() {
         }
     };
 
-    const fillDemoCredentials = (demoId, demoPass, roleKey) => {
+    const fillDemoCredentials = (demoId, demoPass) => {
         setIdentifier(demoId);
         setPassword(demoPass);
-        if (roleKey) setPortalTab(roleKey);
         setError('');
         setSuccess('');
     };
@@ -200,41 +162,16 @@ function LoginForm() {
       <div className="bg-[#0c131a]/95 border border-emerald-500/25 rounded-3xl p-5 sm:p-8 shadow-2xl backdrop-blur-md relative overflow-hidden">
         <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"/>
 
-        {/* Role Portal Selector Strip */}
-        <div className="relative grid grid-cols-3 gap-1 p-1 rounded-2xl bg-[#080d12] border border-white/10 mb-6" role="tablist" aria-label="Account portal">
-          {PORTAL_HINTS.map(p => {
-            const Icon = p.icon;
-            const active = portalTab === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setPortalTab(p.id)}
-                className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  active
-                    ? 'bg-gradient-to-r from-emerald-500 to-lime-400 text-slate-950 shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{p.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="text-center space-y-2 mb-6">
+        <div className="relative text-center space-y-2 mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30">
             <Sparkles className="w-3 h-3 text-emerald-400"/>
-            <span>{activePortalMeta.badge}</span>
+            <span>ONE SIGN-IN FOR EVERY ACCOUNT</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display">
             Welcome to the Pitch
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-            {activePortalMeta.subtitle}
+            Sign in with your mobile number or email. We recognise your account and open your Customer, Investor or Admin dashboard automatically.
           </p>
         </div>
 
@@ -300,19 +237,19 @@ function LoginForm() {
               <span className="text-[11px] text-slate-400">Click to autofill</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <button type="button" onClick={() => fillDemoCredentials('01844332211', 'password123', 'customer')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
+              <button type="button" onClick={() => fillDemoCredentials('01844332211', 'password123')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
                 <div className="flex items-center gap-1 text-[12px] font-bold text-white group-hover:text-emerald-400 truncate">
                   <UserCheck className="w-3 h-3 text-emerald-400 shrink-0"/>
                   <span>Customer</span>
                 </div>
               </button>
-              <button type="button" onClick={() => fillDemoCredentials('01711223344', 'password123', 'admin')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
+              <button type="button" onClick={() => fillDemoCredentials('01711223344', 'password123')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
                 <div className="flex items-center gap-1 text-[12px] font-bold text-white group-hover:text-emerald-400 truncate">
                   <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0"/>
                   <span>Admin</span>
                 </div>
               </button>
-              <button type="button" onClick={() => fillDemoCredentials('01819556677', 'password123', 'investor')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
+              <button type="button" onClick={() => fillDemoCredentials('01819556677', 'password123')} className="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 text-left transition-all cursor-pointer group">
                 <div className="flex items-center gap-1 text-[12px] font-bold text-white group-hover:text-emerald-400 truncate">
                   <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0"/>
                   <span>Investor</span>
@@ -322,23 +259,15 @@ function LoginForm() {
           </div>)}
 
         <div className="mt-6 pt-5 border-t border-emerald-500/15 text-center space-y-1.5">
-          {portalTab === 'customer' ? (
-            <p className="text-xs text-slate-400">
-              New to Crossbar Metro Arena?{' '}
-              <Link href={callbackUrl ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/register'} className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline transition-colors ml-1">
-                Create Customer Account →
-              </Link>
-            </p>
-          ) : (
-            <p className="text-[11.5px] text-slate-400">
-              {portalTab === 'investor'
-                ? 'Investor Partner accounts are provisioned by Arena Administration.'
-                : 'Staff & Admin accounts are managed by Super Admin under Users & Roles.'}{' '}
-              <button type="button" onClick={() => setPortalTab('customer')} className="text-emerald-400 hover:underline font-semibold cursor-pointer">
-                Customer sign-up →
-              </button>
-            </p>
-          )}
+          <p className="text-xs text-slate-400">
+            New to Crossbar Metro Arena?{' '}
+            <Link href={callbackUrl ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/register'} className="text-emerald-400 hover:text-emerald-300 font-bold hover:underline transition-colors ml-1">
+              Create Customer Account →
+            </Link>
+          </p>
+          <p className="text-[11.5px] text-slate-500">
+            Investor, staff and admin accounts are created by the arena admin.
+          </p>
         </div>
       </div>
 
