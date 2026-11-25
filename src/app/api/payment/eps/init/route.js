@@ -44,6 +44,12 @@ export async function POST(request) {
         await connectToDatabase();
         const epsCfg = await getEpsConfig();
         if (!epsCfg.configured) {
+            console.error('[EPS init] Not configured:', {
+                source: epsCfg.source,
+                missingFields: epsCfg.missingFields,
+                configError: epsCfg.configError || '',
+                vercelEnv: process.env.VERCEL_ENV || process.env.NODE_ENV || ''
+            });
             return NextResponse.json(
                 {
                     error: epsCfg.configError

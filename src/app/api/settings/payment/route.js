@@ -29,6 +29,7 @@ export async function GET(request) {
                 epsStoreId: cfg.storeId,
                 epsSandbox: cfg.sandbox,
                 configured: cfg.configured,
+                missingFields: cfg.missingFields || [],
                 configError: cfg.configError || '',
                 source: cfg.source
             }

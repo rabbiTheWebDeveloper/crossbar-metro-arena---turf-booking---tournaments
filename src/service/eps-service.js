@@ -55,13 +55,21 @@ export async function getEpsConfig() {
         : process.env.EPS_SANDBOX !== 'false';
 
     const base = { username, password, hashKey, merchantId, storeId, sandbox };
-    const hasAll = Boolean(username && password && hashKey && merchantId && storeId);
+    const missingFields = [
+        !username && 'EPS_USERNAME',
+        !password && 'EPS_PASSWORD',
+        !hashKey && 'EPS_HASH_KEY',
+        !merchantId && 'EPS_MERCHANT_ID',
+        !storeId && 'EPS_STORE_ID'
+    ].filter(Boolean);
+    const hasAll = missingFields.length === 0;
     const configError = hasAll ? validateEpsConfigValues(base) : '';
 
     return {
         ...base,
         configured: hasAll && !configError,
         hasAnyValues: Boolean(username || password || hashKey || merchantId || storeId),
+        missingFields,
         configError,
         source: dbHasAny ? 'db' : 'env'
     };
