@@ -7,6 +7,7 @@ import { loadPricing, kickoffDate, statusFromPayment, publicBookingView } from '
 import { readJson, validate, badRequest } from '@/lib/validate';
 import { BOOKING_UPDATE_SCHEMA } from '@/lib/schemas';
 import { createPaymentRecord } from '@/queries/payment-queries';
+import { notifyPaymentSuccess } from '@/service/sms-service';
 
 async function findBooking(id) {
     return Booking.findOne(isObjectId(id) ? { _id: id } : { bookingCode: String(id).toUpperCase() });
@@ -120,6 +121,11 @@ export async function PATCH(request, { params }) {
                 verifiedAt: new Date(),
                 notes: requested === 'paid_full' ? 'Settled remaining balance at desk' : 'Balance collected at desk'
             }).catch((err) => console.error('Collect payment log failed:', err));
+
+            await notifyPaymentSuccess(booking, {
+                paidAmount: newlyCollected,
+                gateway: body.paymentMethod || booking.paymentMethod || 'cash'
+            }).catch(() => {});
         }
 
         return NextResponse.json({ success: true, message: 'Booking updated successfully', booking: booking.toJSON() });

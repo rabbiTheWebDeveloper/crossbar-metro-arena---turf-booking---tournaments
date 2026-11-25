@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { EpsSettingsCard } from '@/components/admin/EpsSettingsCard';
+import { SmsSettingsCard } from '@/components/admin/SmsSettingsCard';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { Building2, Phone, MapPin, Share2, Save, RotateCcw, Download, Lock, User, ExternalLink, Tag, CheckCircle2, AlertCircle, Database } from 'lucide-react';
 
@@ -278,6 +279,7 @@ export default function AdminSettingsPage() {
           </div>) : (
         <div className="xl:col-span-2 space-y-6">
         <EpsSettingsCard />
+        <SmsSettingsCard />
         <form onSubmit={saveVenue} noValidate className="space-y-6">
           {SECTIONS.map(section => (
             <section key={section.id} className={CARD}>

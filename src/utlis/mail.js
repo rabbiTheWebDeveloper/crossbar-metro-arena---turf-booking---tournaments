@@ -8,6 +8,8 @@ export {
     safeSendInvestorWelcomeEmail,
     sendAdminPasswordResetEmail,
     safeSendAdminPasswordResetEmail,
+    sendBookingConfirmationEmail,
+    safeSendBookingConfirmationEmail,
     sendEmailOtp,
     sendPasswordChangedEmail,
     sendCustomEmail

@@ -80,7 +80,13 @@ const BookingSchema = new Schema({
     seriesLabel: { type: String, trim: true },
     cancelledAt: { type: Date },
     cancelledBy: { type: String, trim: true },
-    notes: { type: String, trim: true }
+    notes: { type: String, trim: true },
+    // SMS notification tracking (sms.net.bd)
+    confirmSmsRequestId: { type: String, trim: true, default: '' },
+    paymentSmsRequestId: { type: String, trim: true, default: '' },
+    reminderSmsRequestId: { type: String, trim: true, default: '' },
+    reminderSmsScheduledAt: { type: Date, default: null },
+    reminderSmsSentAt: { type: Date, default: null }
 }, {
     timestamps: true,
     toJSON: {

@@ -5,6 +5,7 @@ import { Booking } from '@/models/booking-model';
 import { can, requirePermission, optionalAuth, escapeRegex, cleanPhone } from '@/lib/apiAuth';
 import { trackCustomer } from '@/lib/customers';
 import { createPaymentRecord } from '@/queries/payment-queries';
+import { notifyBookingConfirmed, notifyPaymentSuccess } from '@/service/sms-service';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate, generateBookingCode,
     expireStaleHolds, findActiveBooking, statusFromPayment, publicBookingView, todayDhaka, addDays, isIsoDate
@@ -192,6 +193,10 @@ export async function POST(request) {
                 verifiedAt: new Date(),
                 notes: 'Counter / desk booking payment'
             }).catch((err) => console.error('Counter payment log failed:', err));
+
+            await notifyPaymentSuccess(booking, { paidAmount: advance, gateway: method }).catch(() => {});
+        } else {
+            await notifyBookingConfirmed(booking).catch(() => {});
         }
 
         return NextResponse.json({ success: true, message: 'Booking created successfully!', booking: booking.toJSON() }, { status: 201 });

@@ -429,6 +429,101 @@ export async function safeSendAdminPasswordResetEmail(params) {
     }
 }
 
+export async function sendBookingConfirmationEmail({
+    toEmail,
+    booking,
+    paidAmount = 0,
+    gateway = ''
+}) {
+    const transporter = getTransporter();
+    const { user: fromEmail } = getMailCredentials();
+    const baseUrl = getBaseUrl();
+    const total = Number(booking?.totalPrice || 0);
+    const paid = Number(paidAmount || booking?.advanceAmount || 0);
+    const due = Number(booking?.dueAmount ?? Math.max(0, total - paid));
+    const fmt = (n) => `৳${Math.round(Number(n) || 0).toLocaleString('en-IN')}`;
+    const code = booking?.bookingCode || '';
+    const teamName = booking?.teamName || 'Squad';
+    const captainName = booking?.captainName || 'Player';
+    const slotText = booking?.displayTime || (booking?.slotNumber ? `Slot #${booking.slotNumber}` : '');
+    const payLabel = gateway || booking?.paymentMethod || 'Online';
+
+    const textLines = [
+        `Thank you for booking at Crossbar Metro Arena, ${captainName}!`,
+        '',
+        'Your turf slot booking & payment have been confirmed.',
+        `Booking Code: ${code}`,
+        `Team / Squad: ${teamName}`,
+        `Match Date: ${booking?.date || ''}`,
+        `Kickoff Slot: ${slotText}`,
+        `Total Price: ${fmt(total)}`,
+        `Paid (${payLabel}): ${fmt(paid)}`,
+        `Due at Arena: ${fmt(due)}`,
+        booking?.transactionId ? `Transaction ID: ${booking.transactionId}` : '',
+        '',
+        'Please arrive 15 minutes before kickoff. Turf shoes (TF) or rubber molded studs (AG) only.',
+        `View your booking: ${baseUrl}/booking`
+    ].filter(Boolean);
+
+    await transporter.sendMail({
+        from: `"Crossbar Metro Arena" <${fromEmail}>`,
+        to: toEmail,
+        subject: `Crossbar Metro Arena — Booking Confirmed (${code})`,
+        text: textLines.join('\n'),
+        html: getEmailWrapper(`
+          <h2 style="color:#064e3b;font-size:21px;margin:0 0 12px;">Booking &amp; Payment Confirmed!</h2>
+          <p style="margin:0 0 16px;color:#334155;">
+            Hello <strong>${escapeHtml(captainName)}</strong>, thank you for booking with <strong>Crossbar Metro Arena</strong>.
+            Your slot is locked and ready for match day.
+          </p>
+          <div style="background:#ecfdf5;border:2px solid #6ee7b7;border-radius:12px;padding:16px 20px;margin:18px 0;text-align:center;">
+            <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:#065f46;font-weight:700;">
+              Booking Reference Code
+            </p>
+            <p style="margin:0;font-size:26px;font-weight:800;color:#064e3b;font-family:monospace;letter-spacing:2px;">
+              ${escapeHtml(code)}
+            </p>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;margin:18px 0;">
+            <p style="margin:0 0 6px;font-size:13px;color:#0f172a;"><strong>Squad / Team:</strong> ${escapeHtml(teamName)}</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#0f172a;"><strong>Match Date:</strong> ${escapeHtml(booking?.date || '')}</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#0f172a;"><strong>Kickoff Time:</strong> ${escapeHtml(slotText)}</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#0f172a;"><strong>Total Price:</strong> ${escapeHtml(fmt(total))}</p>
+            <p style="margin:0 0 6px;font-size:13px;color:#047857;"><strong>Paid (${escapeHtml(payLabel)}):</strong> ${escapeHtml(fmt(paid))}</p>
+            <p style="margin:0${booking?.transactionId ? ' 0 6px' : ''};font-size:13px;color:${due > 0 ? '#b45309' : '#047857'};"><strong>Due at Arena:</strong> ${escapeHtml(due > 0 ? fmt(due) : '৳0 (Paid in full)')}</p>
+            ${booking?.transactionId ? `<p style="margin:0;font-size:12px;color:#64748b;"><strong>Transaction ID:</strong> ${escapeHtml(booking.transactionId)}</p>` : ''}
+          </div>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${baseUrl}/booking"
+               style="background:#059669;color:#ffffff;padding:12px 30px;text-decoration:none;
+                      border-radius:10px;font-weight:700;font-size:14px;display:inline-block;">
+              View Booking &amp; Match Pass
+            </a>
+          </div>
+          <p style="margin:0;font-size:12px;color:#64748b;">
+            Please arrive 15 minutes before kickoff at Uttara Metro Center, Sector 17, Dhaka. Turf shoes (TF) or rubber molded studs (AG) only.
+          </p>
+        `, `Booking Confirmed — ${code}`)
+    });
+}
+
+export async function safeSendBookingConfirmationEmail(params) {
+    if (!isDeliverableEmail(params?.toEmail)) {
+        return { sent: false, reason: 'no_deliverable_email' };
+    }
+    if (!isMailConfigured()) {
+        console.warn('[MAIL] Skipping booking confirmation email: GMAIL_USER / GMAIL_APP_PASSWORD not configured.');
+        return { sent: false, reason: 'mail_not_configured' };
+    }
+    try {
+        await sendBookingConfirmationEmail(params);
+        return { sent: true, toEmail: String(params.toEmail).trim().toLowerCase() };
+    } catch (err) {
+        console.error('[MAIL] Booking confirmation email failed:', err.message);
+        return { sent: false, reason: err.message };
+    }
+}
+
 export async function sendCustomEmail({ toEmail, subject, htmlBody }) {
     const transporter = getTransporter();
     const { user: fromEmail } = getMailCredentials();

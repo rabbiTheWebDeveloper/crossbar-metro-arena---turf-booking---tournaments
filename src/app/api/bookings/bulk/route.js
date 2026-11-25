@@ -9,7 +9,8 @@ import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
 import { requirePermission } from '@/lib/apiAuth';
 import { trackCustomer } from '@/lib/customers';
-import { expireStaleHolds, generateBookingCode, statusFromPayment, todayDhaka } from '@/lib/booking';
+import { expireStaleHolds, generateBookingCode, statusFromPayment, todayDhaka, addDays } from '@/lib/booking';
+import { safeSendSms, scheduleBookingReminderSms } from '@/service/sms-service';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -281,6 +282,16 @@ export async function POST(request) {
         const createdValue = created.reduce((s, b) => s + (Number(b.totalPrice) || 0), 0);
         const createdCollected = created.reduce((s, b) => s + (Number(b.advanceAmount) || 0), 0);
         const createdDue = created.reduce((s, b) => s + (Number(b.dueAmount) || 0), 0);
+
+        // Send series confirmation SMS + schedule 15-min reminders for upcoming matches in the next 7 days
+        const firstBooking = created[0];
+        const weekAhead = addDays(todayDhaka(), 7);
+        await safeSendSms({
+            to: captainPhone,
+            msg: `Crossbar Metro Arena: ${created.length} fixed slots CONFIRMED for ${teamName.trim()} (${firstBooking.displayTime}) from ${summary.firstDate} to ${summary.lastDate}. Paid: Tk ${Math.round(createdCollected).toLocaleString('en-IN')}, Due: Tk ${Math.round(createdDue).toLocaleString('en-IN')}.`
+        }).catch(() => {});
+        const upcomingThisWeek = created.filter(b => b.date <= weekAhead).slice(0, 14);
+        await Promise.all(upcomingThisWeek.map(b => scheduleBookingReminderSms(b).catch(() => {})));
 
         return NextResponse.json({
             success: true,

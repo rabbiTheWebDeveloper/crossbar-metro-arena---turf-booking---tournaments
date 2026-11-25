@@ -11,6 +11,7 @@ import {
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
 import { publicBaseUrl } from '@/lib/baseUrl';
+import { notifyPaymentSuccess } from '@/service/sms-service';
 
 const EPS_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EPS_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -401,6 +402,13 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
             message: 'The slot was taken while the payment hold had expired. The amount has been queued for refund.'
         };
     }
+
+    // Send payment success SMS, booking confirmation email, and schedule 15-min pre-match reminder SMS
+    await notifyPaymentSuccess(updated, {
+        paidAmount: paid,
+        customerEmail: verification.CustomerEmail || '',
+        gateway: financialEntity ? `EPS (${financialEntity})` : 'EPS'
+    }).catch((err) => console.error('EPS post-payment notify failed:', err?.message || err));
 
     return { ok: true, code: 'confirmed', booking: updated, verification };
 }

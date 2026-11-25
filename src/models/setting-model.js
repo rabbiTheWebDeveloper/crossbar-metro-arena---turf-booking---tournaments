@@ -52,7 +52,10 @@ const SettingSchema = new Schema({
     epsHashKey: { type: String, trim: true, default: '' },
     epsMerchantId: { type: String, trim: true, default: '' },
     epsStoreId: { type: String, trim: true, default: '' },
-    epsSandbox: { type: Boolean, default: true }
+    epsSandbox: { type: Boolean, default: true },
+    // SMS Gateway (sms.net.bd) configuration (never exposed in public toJSON; managed via /api/sms)
+    smsApiKey: { type: String, trim: true, default: '' },
+    smsSenderId: { type: String, trim: true, default: '' }
 }, {
     timestamps: true,
     toJSON: {
@@ -64,6 +67,8 @@ const SettingSchema = new Schema({
             delete ret.epsMerchantId;
             delete ret.epsStoreId;
             delete ret.epsSandbox;
+            delete ret.smsApiKey;
+            delete ret.smsSenderId;
             return ret;
         }
     }
