@@ -3,9 +3,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { formatMoney, formatDate, formatMonth, shiftMonth, PAYOUT_METHODS, paymentMethodLabel, payoutDetailsSummary } from '@/data/finance';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
+import { estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
+import { INVESTOR_SMS_TEMPLATES, renderInvestorSms, tk } from '@/lib/investorSms';
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Mail, Send, Link2, UserMinus, UserCheck,
-    Trash2, KeyRound, AlertTriangle, Copy, Check, CheckCircle2, Info, UserPlus
+    Trash2, KeyRound, AlertTriangle, Copy, Check, CheckCircle2, Info, UserPlus,
+    MessageSquare, CheckSquare, Square, Loader2, X
 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +149,18 @@ export default function AdminInvestorsPage() {
     const [isSendingOtp, setIsSendingOtp] = useState(false);
 
     const [busyId, setBusyId] = useState(null);
+
+    // ---- SMS (single / selected / all active) ----
+    const [selectedIds, setSelectedIds] = useState(() => new Set());
+    const [smsTargets, setSmsTargets] = useState(null);
+    const [smsTemplateId, setSmsTemplateId] = useState('dividend');
+    const [smsText, setSmsText] = useState('');
+    const [smsScheduleOn, setSmsScheduleOn] = useState(false);
+    const [smsSchedule, setSmsSchedule] = useState('');
+    const [smsSending, setSmsSending] = useState(false);
+    const [smsFeedback, setSmsFeedback] = useState(null); // { type, text, results? }
+    const [smsStatus, setSmsStatus] = useState(null); // { configured, balance, error }
+    const [payoutSendSms, setPayoutSendSms] = useState(true);
 
     const handlePrevMonth = () => setSelectedMonth(m => shiftMonth(m, -1));
     const handleNextMonth = () => setSelectedMonth(m => shiftMonth(m, 1));
@@ -429,6 +444,7 @@ export default function AdminInvestorsPage() {
         const share = shareById[inv.id];
         setPayoutError('');
         setPayoutForm({ amount: share ? share.balance : 0, datePaid: todayDhaka(), paymentMethod: inv.payoutDetails?.method || 'bank_transfer', transactionNote: '' });
+        setPayoutSendSms(isValidBdPhone(inv.phone));
         setPayoutInvestor(inv);
     };
 
@@ -448,7 +464,112 @@ export default function AdminInvestorsPage() {
         }
         setIsPayingOut(false);
         if (!result.ok) { setPayoutError(result.error || 'Could not record the payout.'); return; }
+        const paidInv = payoutInvestor;
         setPayoutInvestor(null);
+        if (payoutSendSms && isValidBdPhone(paidInv.phone)) {
+            const ref = payload.transactionNote ? `, Ref: ${payload.transactionNote}` : '';
+            const msg = `Dear ${paidInv.name}, your Crossbar Metro Arena dividend payout of ${tk(amount)} for ${formatMonth(selectedMonth)} has been recorded via ${paymentMethodLabel(payload.paymentMethod)}${ref}. Thank you for partnering with us.`;
+            const smsRes = await postInvestorSms([{ investorId: paidInv.id, msg }], '');
+            showNotice(
+                smsRes.ok ? 'success' : 'error',
+                smsRes.ok ? `Payout SMS sent to ${paidInv.phone}.` : `Payout saved, but SMS failed: ${smsRes.error}`
+            );
+        }
+    };
+
+    // ---- SMS ----
+    const postInvestorSms = async (messages, schedule) => {
+        try {
+            const res = await fetch('/api/investors/sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ messages, schedule })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) return { ...data, ok: false, error: data.error || `SMS failed (${res.status})` };
+            return { ...data, ok: true };
+        } catch {
+            return { ok: false, error: 'Network error while sending SMS.' };
+        }
+    };
+
+    const loadSmsStatus = async () => {
+        try {
+            const res = await fetch('/api/investors/sms', { credentials: 'include' });
+            const data = await res.json().catch(() => ({}));
+            setSmsStatus(res.ok && data.sms ? data.sms : { configured: false, balance: null, error: data.error || 'Could not check SMS gateway.' });
+        } catch {
+            setSmsStatus({ configured: false, balance: null, error: 'Could not check SMS gateway.' });
+        }
+    };
+
+    const openSms = (targets) => {
+        if (!targets || targets.length === 0) return;
+        const first = INVESTOR_SMS_TEMPLATES[0];
+        setSmsTargets(targets);
+        setSmsTemplateId(first.id);
+        setSmsText(first.text);
+        setSmsScheduleOn(false);
+        setSmsSchedule('');
+        setSmsFeedback(null);
+        loadSmsStatus();
+    };
+    const closeSms = () => { if (!smsSending) setSmsTargets(null); };
+
+    const toggleSelected = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+    const selectedInvestors = investors.filter(i => selectedIds.has(i.id));
+    const allSelected = investors.length > 0 && selectedInvestors.length === investors.length;
+    const toggleSelectAll = () => {
+        setSelectedIds(allSelected ? new Set() : new Set(investors.map(i => i.id)));
+    };
+
+    const renderSmsFor = (inv) => renderInvestorSms(smsText, inv, {
+        monthLabel: formatMonth(selectedMonth),
+        share: shareById[inv.id],
+        portalUrl: typeof window !== 'undefined' ? window.location.origin : 'https://bookcrossbar.com'
+    });
+
+    const smsValidTargets = (smsTargets || []).filter(i => isValidBdPhone(i.phone));
+    const smsInvalidCount = (smsTargets || []).length - smsValidTargets.length;
+    const smsPreviewTarget = smsValidTargets[0] || (smsTargets || [])[0] || null;
+    const smsPreviewText = smsPreviewTarget ? renderSmsFor(smsPreviewTarget) : '';
+    const smsPreviewParts = estimateSmsParts(smsPreviewText);
+
+    const handleSendSms = async () => {
+        if (smsSending || !smsTargets) return;
+        setSmsFeedback(null);
+        if (!smsText.trim()) { setSmsFeedback({ type: 'error', text: 'Write a message or pick a template first.' }); return; }
+        if (smsValidTargets.length === 0) { setSmsFeedback({ type: 'error', text: 'None of the selected partners has a valid mobile number.' }); return; }
+        let schedule = '';
+        if (smsScheduleOn) {
+            schedule = normalizeScheduleInput(smsSchedule);
+            if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(schedule) || new Date(smsSchedule).getTime() <= Date.now()) {
+                setSmsFeedback({ type: 'error', text: 'Pick a future date and time for the scheduled SMS.' });
+                return;
+            }
+        }
+        if (smsValidTargets.length > 1 && !confirm(`Send this SMS to ${smsValidTargets.length} investors?`)) return;
+
+        setSmsSending(true);
+        const res = await postInvestorSms(
+            smsValidTargets.map(inv => ({ investorId: inv.id, msg: renderSmsFor(inv) })),
+            schedule
+        );
+        setSmsSending(false);
+        if (!res.ok) {
+            setSmsFeedback({ type: 'error', text: res.error, results: res.results || [] });
+            return;
+        }
+        setSmsFeedback({ type: res.failed ? 'warning' : 'success', text: res.message, results: res.results || [] });
+        showNotice('success', res.message);
+        setSelectedIds(new Set());
     };
 
     // ---- Link login modal ----
@@ -515,6 +636,36 @@ export default function AdminInvestorsPage() {
         </div>
       </div>
 
+      {/* SMS TOOLBAR */}
+      {investors.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-[#0c131a] border border-white/5 text-xs">
+          <button type="button" onClick={toggleSelectAll} className="inline-flex items-center gap-2 text-slate-300 hover:text-white font-semibold cursor-pointer">
+            {allSelected ? <CheckSquare className="w-4 h-4 text-lime-400"/> : <Square className="w-4 h-4 text-slate-500"/>}
+            <span>{selectedInvestors.length > 0 ? `${selectedInvestors.length} of ${investors.length} selected` : 'Select all partners'}</span>
+          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={selectedInvestors.length === 0}
+              onClick={() => openSms(selectedInvestors)}
+              className="px-3 py-1.5 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-black cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            >
+              <MessageSquare className="w-3.5 h-3.5"/>
+              <span>SMS selected{selectedInvestors.length ? ` (${selectedInvestors.length})` : ''}</span>
+            </button>
+            <button
+              type="button"
+              disabled={activeInvestors.length === 0}
+              onClick={() => openSms(activeInvestors)}
+              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold cursor-pointer disabled:opacity-40 inline-flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5 text-lime-400"/>
+              <span>SMS all active ({activeInvestors.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* INVESTOR LIST */}
       <div className="space-y-3">
         {isLoadingData && investors.length === 0 ? (
@@ -529,6 +680,15 @@ export default function AdminInvestorsPage() {
             const emailText = bestEmailFor(inv);
             return (<div key={inv.id} className={`p-4 rounded-2xl bg-[#0c131a] border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs ${isActive ? 'border-white/5 hover:border-lime-400/20' : 'border-white/5 opacity-70'}`}>
               <div className="flex items-center gap-3.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => toggleSelected(inv.id)}
+                  className="shrink-0 cursor-pointer"
+                  aria-label={selectedIds.has(inv.id) ? `Deselect ${inv.name}` : `Select ${inv.name}`}
+                  aria-pressed={selectedIds.has(inv.id)}
+                >
+                  {selectedIds.has(inv.id) ? <CheckSquare className="w-4 h-4 text-lime-400"/> : <Square className="w-4 h-4 text-slate-600 hover:text-slate-400"/>}
+                </button>
                 <div className={`w-10 h-10 rounded-full font-black flex items-center justify-center text-sm font-mono shrink-0 ${isActive ? 'bg-lime-400 text-slate-950' : 'bg-slate-700 text-slate-300'}`}>
                   {(inv.name || 'P').charAt(0).toUpperCase()}
                 </div>
@@ -572,6 +732,9 @@ export default function AdminInvestorsPage() {
                   </button>
                   <button type="button" disabled={busy} onClick={() => openMailModal(inv)} title="Send / resend email" className="p-1.5 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 cursor-pointer disabled:opacity-50" aria-label="Send or resend email">
                     <Mail className="w-3.5 h-3.5"/>
+                  </button>
+                  <button type="button" disabled={busy || !isValidBdPhone(inv.phone)} onClick={() => openSms([inv])} title={isValidBdPhone(inv.phone) ? 'Send SMS' : 'No valid mobile number'} className="p-1.5 rounded-lg bg-white/5 hover:bg-lime-400/20 text-slate-300 hover:text-lime-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Send SMS">
+                    <MessageSquare className="w-3.5 h-3.5"/>
                   </button>
                   <button type="button" disabled={busy} onClick={() => openReset(inv)} title={acct ? 'Reset password & send mail' : 'Create login & send mail'} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer disabled:opacity-50" aria-label={acct ? 'Reset password' : 'Create login account'}>
                     <KeyRound className="w-3.5 h-3.5"/>
@@ -884,6 +1047,143 @@ export default function AdminInvestorsPage() {
           </div>
         </div>)}
 
+      {/* SEND SMS MODAL */}
+      {smsTargets && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="sms-investor-title">
+          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-lime-400/10 border border-lime-400/30 text-lime-400"><MessageSquare className="w-4 h-4"/></div>
+                <div>
+                  <h3 id="sms-investor-title" className="text-base font-bold text-white">
+                    {smsTargets.length === 1 ? `SMS ${smsTargets[0].name}` : `SMS ${smsTargets.length} Investors`}
+                  </h3>
+                  <p className={`text-[11px] ${smsStatus && !smsStatus.configured ? 'text-amber-300' : 'text-slate-400'}`}>
+                    {!smsStatus
+                      ? 'Checking SMS gateway…'
+                      : smsStatus.configured
+                        ? (smsStatus.balance !== null ? `SMS balance: Tk ${Number(smsStatus.balance).toFixed(2)}` : 'SMS gateway connected')
+                        : (smsStatus.error || 'SMS gateway is not configured (Settings → SMS Gateway).')}
+                  </p>
+                </div>
+              </div>
+              <button type="button" disabled={smsSending} onClick={closeSms} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer disabled:opacity-50" aria-label="Close">
+                <X className="w-4 h-4"/>
+              </button>
+            </div>
+
+            <div>
+              <div className="text-slate-300 font-semibold mb-1.5">Recipients</div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {smsTargets.map(inv => {
+                  const ok = isValidBdPhone(inv.phone);
+                  return (
+                    <span key={inv.id} className={`px-2 py-1 rounded-lg border font-mono text-[11px] ${ok ? 'bg-lime-400/10 border-lime-400/25 text-lime-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-300 line-through'}`}>
+                      {inv.name} · {inv.phone || 'no mobile'}
+                    </span>
+                  );
+                })}
+              </div>
+              {smsInvalidCount > 0 && (
+                <p className="text-[11px] text-amber-300 mt-1.5">{smsInvalidCount} partner{smsInvalidCount === 1 ? '' : 's'} without a valid mobile number will be skipped.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="text-slate-300 font-semibold mb-1.5">Template</div>
+              <div className="flex flex-wrap gap-1.5">
+                {INVESTOR_SMS_TEMPLATES.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { setSmsTemplateId(t.id); setSmsText(t.text); setSmsFeedback(null); }}
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer ${smsTemplateId === t.id ? 'bg-lime-400 text-slate-950 border-lime-400' : 'bg-[#080d12] text-slate-300 border-white/10 hover:text-white'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="sms-investor-text" className="block text-slate-300 font-semibold mb-1">Message</label>
+              <textarea
+                id="sms-investor-text"
+                rows={5}
+                maxLength={1000}
+                value={smsText}
+                onChange={e => { setSmsText(e.target.value); setSmsFeedback(null); }}
+                placeholder="Write your message to the partner(s)…"
+                className={`${inputCls} leading-relaxed resize-y`}
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Placeholders filled per partner: <span className="font-mono text-slate-400">{'{name} {firstName} {sharePct} {capital} {month} {shareAmount} {paidAmount} {owedAmount} {portalUrl}'}</span> · amounts use {formatMonth(selectedMonth)}.
+              </p>
+            </div>
+
+            {smsPreviewTarget && (
+              <div className="p-3 rounded-xl bg-[#080d12] border border-white/10 space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                  <span>Preview · {smsPreviewTarget.name}</span>
+                  <span className={`font-mono ${smsPreviewParts.encoding === 'Unicode' ? 'text-amber-300' : ''}`}>
+                    {smsPreviewParts.encoding} · {smsPreviewParts.length} chars · {smsPreviewParts.parts} SMS
+                  </span>
+                </div>
+                <p className="text-slate-200 whitespace-pre-wrap break-words">{smsPreviewText || '—'}</p>
+                {smsValidTargets.length > 1 && (
+                  <p className="text-[11px] text-slate-500">≈ {smsPreviewParts.parts * smsValidTargets.length} SMS total for {smsValidTargets.length} partners.</p>
+                )}
+              </div>
+            )}
+
+            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" checked={smsScheduleOn} onChange={e => setSmsScheduleOn(e.target.checked)} className="accent-lime-400 w-3.5 h-3.5 rounded"/>
+                <span className="text-slate-300">Schedule for later (Bangladesh time)</span>
+              </label>
+              {smsScheduleOn && (
+                <input type="datetime-local" value={smsSchedule} onChange={e => setSmsSchedule(e.target.value)} className={`${inputCls} font-mono`}/>
+              )}
+            </div>
+
+            {smsFeedback && (
+              <div role={smsFeedback.type === 'error' ? 'alert' : 'status'} className={`p-3 rounded-xl border space-y-1.5 ${
+                smsFeedback.type === 'error'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : smsFeedback.type === 'warning'
+                    ? 'bg-amber-400/10 border-amber-400/25 text-amber-200'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              }`}>
+                <div className="flex items-start gap-2">
+                  {smsFeedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-px"/> : <AlertTriangle className="w-4 h-4 shrink-0 mt-px"/>}
+                  <span>{smsFeedback.text}</span>
+                </div>
+                {(smsFeedback.results || []).some(r => !r.ok) && (
+                  <ul className="pl-6 list-disc text-[11px] space-y-0.5">
+                    {smsFeedback.results.filter(r => !r.ok).map(r => (
+                      <li key={r.investorId}>{r.name || r.investorId}: {r.error}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button type="button" disabled={smsSending} onClick={closeSms} className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-300 font-bold cursor-pointer disabled:opacity-50">
+                {smsFeedback && smsFeedback.type !== 'error' ? 'Done' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={smsSending || smsValidTargets.length === 0 || (smsStatus && !smsStatus.configured)}
+                onClick={handleSendSms}
+                className="flex-1 py-2.5 bg-lime-400 hover:bg-lime-300 text-slate-950 font-black rounded-xl cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              >
+                {smsSending ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Send className="w-3.5 h-3.5"/>}
+                <span>{smsSending ? 'Sending…' : `${smsScheduleOn ? 'Schedule' : 'Send'} SMS${smsValidTargets.length > 1 ? ` (${smsValidTargets.length})` : ''}`}</span>
+              </button>
+            </div>
+          </div>
+        </div>)}
+
       {/* RECORD PAYOUT MODAL */}
       {payoutInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
@@ -919,6 +1219,19 @@ export default function AdminInvestorsPage() {
                 <label className="block text-slate-300 mb-1">Transaction note</label>
                 <input type="text" placeholder="e.g. bKash TrxID 8H3K…" value={payoutForm.transactionNote} onChange={e => setPayoutForm(f => ({ ...f, transactionNote: e.target.value }))} className={inputCls}/>
               </div>
+
+              <label className={`flex items-center gap-2 select-none ${isValidBdPhone(payoutInvestor.phone) ? 'cursor-pointer' : 'opacity-50'}`}>
+                <input
+                  type="checkbox"
+                  checked={payoutSendSms}
+                  disabled={!isValidBdPhone(payoutInvestor.phone)}
+                  onChange={e => setPayoutSendSms(e.target.checked)}
+                  className="accent-lime-400 w-3.5 h-3.5 rounded"
+                />
+                <span className="text-slate-300">
+                  Send SMS confirmation to <span className="font-mono text-white">{isValidBdPhone(payoutInvestor.phone) ? payoutInvestor.phone : 'no valid mobile'}</span>
+                </span>
+              </label>
 
               {payoutError && <p className="text-rose-400 text-[12px]">{payoutError}</p>}
 
