@@ -21,7 +21,7 @@ import {
 export async function GET(request) {
     try {
         await connectToDatabase();
-        await expireStaleHolds();
+        await expireStaleHolds({ throttled: true });
         const user = await optionalAuth(request);
         // The full list (names, phones, payments) is for the bookings desk and for the financial report
         const isAdmin = can(user, ['bookings', 'finance']);

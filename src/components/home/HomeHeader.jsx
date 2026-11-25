@@ -58,11 +58,13 @@ export function HomeHeader() {
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
     const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
     const accountHref = canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/customer';
-    const dashboards = [
-        ...(!isVisitor && !isInvestor ? [{ href: '/customer', label: 'Customer panel' }] : []),
-        ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin panel' }] : []),
-        ...(isAdmin || isInvestor ? [{ href: '/investor', label: 'Investor dashboard' }] : [])
-    ];
+    const dashboards = isVisitor
+        ? []
+        : canAccessAdmin
+            ? [{ href: '/admin', label: isAdmin ? 'Admin Desk' : `${currentUser.staffRoleName || 'Staff'} Dashboard` }]
+            : isInvestor
+                ? [{ href: '/investor', label: 'Investor Portal' }]
+                : [{ href: '/customer', label: 'Customer Panel' }];
 
     const goSection = (id) => {
         setMenuOpen(false);
@@ -96,15 +98,26 @@ export function HomeHeader() {
                     </button>
 
                     {isVisitor ? (
-                        <Link href="/login" className="hidden md:inline-flex h-11 items-center gap-2 px-4 whitespace-nowrap rounded-xl border border-hairline text-[14px] font-medium text-paper/90 hover:text-neon hover:border-neon/50 transition-colors">
+                        <Link href="/login" className="inline-flex h-10 sm:h-11 items-center gap-1.5 sm:gap-2 px-3 sm:px-4 whitespace-nowrap rounded-xl border border-hairline text-[13px] sm:text-[14px] font-medium text-paper/90 hover:text-neon hover:border-neon/50 transition-colors">
                             <User className="w-4 h-4" />
                             <span>Log in</span>
                         </Link>
                     ) : (
-                        <Link href={accountHref} className="hidden md:inline-flex h-11 max-w-[170px] items-center gap-2 px-4 rounded-xl border border-hairline text-[14px] font-medium text-paper/90 hover:text-neon hover:border-neon/50 transition-colors" title="Open your dashboard">
-                            <span className="w-2 h-2 rounded-full bg-neon shrink-0" />
-                            <span className="truncate">{currentUser.name}</span>
-                        </Link>
+                        <div className="inline-flex h-10 sm:h-11 items-center gap-1.5 pl-3 pr-2 rounded-xl border border-hairline text-[13px] sm:text-[14px] font-medium text-paper/90">
+                            <Link href={accountHref} className="inline-flex items-center gap-2 max-w-[105px] sm:max-w-[155px] hover:text-neon transition-colors" title="Open your dashboard">
+                                <span className="w-2 h-2 rounded-full bg-neon shrink-0" />
+                                <span className="truncate">{currentUser.name}</span>
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={() => logout()}
+                                className="p-1.5 rounded-lg text-paper/60 hover:text-rose-400 transition-colors cursor-pointer"
+                                title="Log out"
+                                aria-label="Log out"
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     )}
 
                     <span className="hidden sm:block"><Button onClick={() => goSection('book')} className="whitespace-nowrap">Book a slot</Button></span>

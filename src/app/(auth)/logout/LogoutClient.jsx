@@ -8,7 +8,7 @@ import { LogOut, Home, RotateCcw, ShieldCheck } from 'lucide-react';
 export default function LogoutPage() {
     const router = useRouter();
     const { logout } = useArena();
-    const [countdown, setCountdown] = useState(3);
+    const [countdown, setCountdown] = useState(2);
     const [isDone, setIsDone] = useState(false);
     const started = useRef(false);
 
@@ -18,12 +18,13 @@ export default function LogoutPage() {
         (async () => {
             try {
                 await logout();
+                router.refresh();
             }
             finally {
                 setIsDone(true);
             }
         })();
-    }, [logout]);
+    }, [logout, router]);
 
     useEffect(() => {
         if (!isDone) return undefined;

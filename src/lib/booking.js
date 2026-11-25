@@ -91,10 +91,15 @@ export function generateTranId() {
     return `CMA-SSL-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
+let lastHoldSweepAt = 0;
+
 /** Release payment holds whose timer ran out so the slot becomes bookable again. */
-export async function expireStaleHolds() {
+export async function expireStaleHolds({ throttled = false } = {}) {
+    const now = Date.now();
+    if (throttled && now - lastHoldSweepAt < 20000) return;
+    lastHoldSweepAt = now;
     await Booking.updateMany(
-        { paymentStatus: 'pending_payment', holdExpiresAt: { $lt: Date.now() } },
+        { paymentStatus: 'pending_payment', holdExpiresAt: { $lt: now } },
         { $set: { paymentStatus: 'cancelled', notes: 'Payment hold expired' } }
     );
 }

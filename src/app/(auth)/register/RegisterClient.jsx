@@ -3,6 +3,7 @@ import React, { useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useArena, cleanPhone } from '@/context/ArenaContext';
+import { resolvePostLoginPath } from '@/lib/permissions';
 import { User, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle, Trophy } from 'lucide-react';
 
 // Only same-origin relative paths are accepted as a post-signup destination.
@@ -61,9 +62,9 @@ function RegisterForm() {
             const res = await signup({ name: name.trim(), phone: digits, email: cleanEmail || undefined, password });
             if (res.success) {
                 setSuccess(res.message || 'Customer account created. Welcome to Crossbar Metro Arena!');
-                const dest = callbackUrl || '/customer';
+                const dest = resolvePostLoginPath(res.user, callbackUrl);
                 startTransition(() => {
-                    router.push(dest);
+                    router.replace(dest);
                     router.refresh();
                 });
             }
@@ -113,7 +114,7 @@ function RegisterForm() {
               <div className="absolute left-3.5 pointer-events-none text-slate-400">
                 <User className="w-4 h-4 text-emerald-400"/>
               </div>
-              <input id="reg-name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
+              <input id="reg-name" type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-base sm:text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
             </div>
           </div>
 
@@ -127,7 +128,7 @@ function RegisterForm() {
                 <Phone className="w-4 h-4 text-emerald-400"/>
                 <span className="text-xs font-mono font-bold text-slate-400 border-r border-white/10 pr-2">+88</span>
               </div>
-              <input id="reg-phone" type="tel" inputMode="numeric" autoComplete="tel-national" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01XXXXXXXXX" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-20 pr-4 text-sm text-white placeholder:text-slate-500 font-mono transition-colors outline-none"/>
+              <input id="reg-phone" type="tel" inputMode="numeric" autoComplete="tel-national" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01XXXXXXXXX" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-20 pr-4 text-base sm:text-sm text-white placeholder:text-slate-500 font-mono transition-colors outline-none"/>
             </div>
           </div>
 
@@ -140,7 +141,7 @@ function RegisterForm() {
               <div className="absolute left-3.5 pointer-events-none text-slate-400">
                 <Mail className="w-4 h-4 text-emerald-400"/>
               </div>
-              <input id="reg-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com (optional)" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
+              <input id="reg-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com (optional)" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl py-3 pl-11 pr-4 text-base sm:text-sm text-white placeholder:text-slate-500 transition-colors outline-none"/>
             </div>
           </div>
 
@@ -151,8 +152,8 @@ function RegisterForm() {
                 <div className="absolute left-3.5 pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4 text-emerald-400"/>
                 </div>
-                <input id="reg-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 rounded-xl py-3 pl-10 pr-9 text-sm text-white placeholder:text-slate-500 outline-none"/>
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 text-slate-400 hover:text-white" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                <input id="reg-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 rounded-xl py-3 pl-10 pr-9 text-base sm:text-sm text-white placeholder:text-slate-500 outline-none"/>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 text-slate-400 hover:text-white cursor-pointer" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                   {showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
                 </button>
               </div>
@@ -163,7 +164,7 @@ function RegisterForm() {
                 <div className="absolute left-3.5 pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4 text-emerald-400"/>
                 </div>
-                <input id="reg-confirm" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 rounded-xl py-3 pl-10 pr-3 text-sm text-white placeholder:text-slate-500 outline-none"/>
+                <input id="reg-confirm" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter" className="w-full bg-[#080d12] border border-white/10 focus:border-emerald-500 rounded-xl py-3 pl-10 pr-3 text-base sm:text-sm text-white placeholder:text-slate-500 outline-none"/>
               </div>
             </div>
           </div>

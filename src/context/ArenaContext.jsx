@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, getStoredSMSLogs, logSMSNotification } from '../utils/storage';
 import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
 import { cleanPhone } from '../lib/phone';
@@ -9,8 +10,40 @@ const ArenaContext = createContext(undefined);
 
 const VISITOR = { id: 'usr-visitor', name: 'Visitor', phone: '', role: 'visitor' };
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+const AUTH_SYNC_KEY = 'cma_auth_sync';
+const AUTH_ONLY_PATHS = new Set(['/login', '/register', '/signup', '/forgot-password', '/logout']);
 const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(String(id || ''));
 export { cleanPhone };
+
+function readHydratedUserCookie() {
+    if (typeof document === 'undefined') return null;
+    try {
+        const match = document.cookie.split('; ').find(row => row.startsWith('cma_user='));
+        if (!match) return null;
+        const raw = decodeURIComponent(match.slice('cma_user='.length));
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id && parsed.role && parsed.role !== 'visitor') {
+            return parsed;
+        }
+    } catch {
+        // ignore malformed cookie
+    }
+    return null;
+}
+
+function clearClientUserCookie() {
+    if (typeof document === 'undefined') return;
+    document.cookie = 'cma_user=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+}
+
+function broadcastAuthSync(role, id = '') {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(AUTH_SYNC_KEY, JSON.stringify({ role, id, ts: Date.now() }));
+    } catch {
+        // ignore storage quota errors
+    }
+}
 
 /** Dhaka calendar date (YYYY-MM-DD) for an ISO timestamp. */
 const dhakaDate = (iso) => {
@@ -55,6 +88,12 @@ const upsert = (list, item, key = 'id') => {
 };
 
 export const ArenaProvider = ({ children }) => {
+    const pathname = usePathname() || '/';
+    const isAuthOnlyPage = AUTH_ONLY_PATHS.has(pathname.replace(/\/+$/, '') || '/');
+    const fullDataLoadedKeyRef = useRef('');
+    // Each data load gets a number; only the newest one may write state (stops a slow, older load
+    // - e.g. the previous user's data after logout - from overwriting newer data).
+    const loadSeqRef = useRef(0);
     // ---- Data (MongoDB is the single source of truth) ----
     const [bookings, setBookings] = useState([]);
     const [slotHolds, setSlotHolds] = useState([]);
@@ -136,12 +175,27 @@ export const ArenaProvider = ({ children }) => {
         }
     }, []);
 
-    // ---- Load data for the current role ----
-    const loadRealBackendData = useCallback(async (userRole = role) => {
+    // ---- Load data for the current role (permission-filtered & route-aware) ----
+    const loadRealBackendData = useCallback(async (userOrRole = currentUser, { settingsOnly = false } = {}) => {
+        const targetUser = typeof userOrRole === 'object' && userOrRole
+            ? userOrRole
+            : { ...(currentUser || VISITOR), role: String(userOrRole || role) };
+        const userRole = targetUser.role || 'visitor';
+        const seq = ++loadSeqRef.current;
+        const isStale = () => seq !== loadSeqRef.current;
+
         setIsLoadingData(true);
         setLoadError('');
         const get = (url) => api(url);
         try {
+            if (settingsOnly) {
+                const sRes = await get('/api/settings');
+                if (!isStale() && sRes.ok) applySettings(sRes.data);
+                return;
+            }
+
+            fullDataLoadedKeyRef.current = `${userRole}:${targetUser.id || 'anon'}:${(targetUser.permissions || []).join(',')}`;
+
             const publicCalls = {
                 settings: get('/api/settings'),
                 bookings: get('/api/bookings'),
@@ -153,15 +207,44 @@ export const ArenaProvider = ({ children }) => {
                 challenges: get('/api/challenges')
             };
             const roleCalls = {};
-            // Staff ask for the same desk data; the server answers 403 for sections their role does not cover
-            if (userRole === 'admin' || userRole === 'staff') {
+            if (userRole === 'admin') {
                 Object.assign(roleCalls, {
-                    expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
-                    refunds: get('/api/refunds'), otherIncome: get('/api/other-income'), shopOrders: get('/api/shop-orders'),
-                    registrations: get('/api/registrations'), users: get('/api/users?includeDisabled=1'),
-                    allResults: get('/api/match-results?status=all'), allChallenges: get('/api/challenges?status=all')
+                    expenses: get('/api/expenses'),
+                    investors: get('/api/investors'),
+                    payouts: get('/api/payouts'),
+                    refunds: get('/api/refunds'),
+                    otherIncome: get('/api/other-income'),
+                    shopOrders: get('/api/shop-orders'),
+                    registrations: get('/api/registrations'),
+                    users: get('/api/users?includeDisabled=1'),
+                    roles: get('/api/roles'),
+                    allResults: get('/api/match-results?status=all'),
+                    allChallenges: get('/api/challenges?status=all')
                 });
-                if (userRole === 'admin') roleCalls.roles = get('/api/roles');
+            } else if (userRole === 'staff') {
+                // Only request admin endpoints granted to this staff member's role (zero 403 console noise)
+                if (hasPermission(targetUser, ['finance', 'investors'])) {
+                    roleCalls.expenses = get('/api/expenses');
+                    roleCalls.investors = get('/api/investors');
+                    roleCalls.payouts = get('/api/payouts');
+                    roleCalls.otherIncome = get('/api/other-income');
+                }
+                if (hasPermission(targetUser, ['refunds', 'finance'])) {
+                    roleCalls.refunds = get('/api/refunds');
+                }
+                if (hasPermission(targetUser, 'shop_orders')) {
+                    roleCalls.shopOrders = get('/api/shop-orders');
+                }
+                if (hasPermission(targetUser, ['registrations', 'events'])) {
+                    roleCalls.registrations = get('/api/registrations');
+                }
+                if (hasPermission(targetUser, ['players', 'investors'])) {
+                    roleCalls.users = get('/api/users?includeDisabled=1');
+                }
+                if (hasPermission(targetUser, 'matches')) {
+                    roleCalls.allResults = get('/api/match-results?status=all');
+                    roleCalls.allChallenges = get('/api/challenges?status=all');
+                }
             } else if (userRole === 'investor') {
                 Object.assign(roleCalls, {
                     expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
@@ -176,6 +259,7 @@ export const ArenaProvider = ({ children }) => {
             }
             const keys = [...Object.keys(publicCalls), ...Object.keys(roleCalls)];
             const results = await Promise.all([...Object.values(publicCalls), ...Object.values(roleCalls)]);
+            if (isStale()) return;
             const r = Object.fromEntries(keys.map((k, i) => [k, results[i]]));
             const failed = keys.filter(k => !r[k].ok && r[k].status !== 401 && r[k].status !== 403);
             if (failed.length === keys.length) setLoadError('Could not reach the arena server. Showing limited data.');
@@ -214,32 +298,110 @@ export const ArenaProvider = ({ children }) => {
                 setCustomerSettings(r.customerSettings.data.settings || null);
             }
         } catch (err) {
+            if (isStale()) return;
             console.warn('loadRealBackendData caught error:', err);
             setLoadError('Could not load arena data.');
         } finally {
-            setIsLoadingData(false);
-            setIsInitialized(true);
+            if (!isStale()) {
+                setIsLoadingData(false);
+                setIsInitialized(true);
+            }
         }
-    }, [role, applySettings]);
+    }, [currentUser, role, applySettings]);
 
-    // ---- Boot: who am I, then load for that role ----
+    // ---- Boot: fast-hydrate cookie immediately, then verify /api/auth/me in parallel with data ----
     useEffect(() => {
         let cancelled = false;
         (async () => {
             setSlotHolds(getActiveSlotHolds());
             setSmsLogs(getStoredSMSLogs());
             try { const c = JSON.parse(localStorage.getItem('cma_cart_v1') || '[]'); if (Array.isArray(c)) setCartItems(c); } catch { /* ignore */ }
-            let user = VISITOR;
+
+            const hydrated = readHydratedUserCookie();
+            if (hydrated) {
+                setCurrentUser(hydrated);
+            }
+
+            // Start the data load and the session check together, but release the auth gate as soon as
+            // /api/auth/me answers so the panels render without waiting for every data endpoint.
+            const initialTarget = hydrated || VISITOR;
+            const dataPromise = loadRealBackendData(initialTarget, { settingsOnly: isAuthOnlyPage });
             const me = await api('/api/auth/me');
-            if (me.ok && me.data.authenticated && me.data.user) user = me.data.user;
             if (cancelled) return;
-            setCurrentUser(user);
-            saveCurrentUser(user);
+
+            const verifiedUser = me.ok && me.data.authenticated && me.data.user ? me.data.user : VISITOR;
+            if (verifiedUser.role === 'visitor') {
+                clearClientUserCookie();
+            }
+            setCurrentUser(verifiedUser);
+            saveCurrentUser(verifiedUser);
             setAuthChecked(true);
-            await loadRealBackendData(user.role);
+
+            await dataPromise;
+            if (cancelled) return;
+            const expectedKey = `${verifiedUser.role}:${verifiedUser.id || 'anon'}:${(verifiedUser.permissions || []).join(',')}`;
+            if (!isAuthOnlyPage && fullDataLoadedKeyRef.current !== expectedKey) {
+                await loadRealBackendData(verifiedUser);
+            }
         })();
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Load full data automatically when navigating away from lightweight auth pages (/login -> dashboard or /)
+    useEffect(() => {
+        if (!authChecked || isAuthOnlyPage) return;
+        const expectedKey = `${currentUser?.role || 'visitor'}:${currentUser?.id || 'anon'}:${(currentUser?.permissions || []).join(',')}`;
+        if (fullDataLoadedKeyRef.current !== expectedKey) {
+            loadRealBackendData(currentUser);
+        }
+    }, [pathname, isAuthOnlyPage, authChecked, currentUser, loadRealBackendData]);
+
+    // Multi-tab auth sync & browser back-forward cache (bfcache) session verification
+    useEffect(() => {
+        const resetPrivateState = () => {
+            setCurrentUser(VISITOR);
+            saveCurrentUser(VISITOR);
+            clearClientUserCookie();
+            fullDataLoadedKeyRef.current = '';
+            loadSeqRef.current += 1;
+            setIsLoadingData(false);
+            setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]);
+            setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+            setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null);
+        };
+
+        const recheckSession = async () => {
+            const me = await api('/api/auth/me');
+            if (me.ok && me.data.authenticated && me.data.user) {
+                setCurrentUser(me.data.user);
+                saveCurrentUser(me.data.user);
+            } else {
+                resetPrivateState();
+            }
+        };
+
+        const onStorage = (e) => {
+            if (e.key !== AUTH_SYNC_KEY || !e.newValue) return;
+            try {
+                const payload = JSON.parse(e.newValue);
+                if (payload.role === 'visitor') resetPrivateState();
+                else recheckSession();
+            } catch {
+                // ignore
+            }
+        };
+
+        const onPageShow = (e) => {
+            if (e.persisted) recheckSession();
+        };
+
+        window.addEventListener('storage', onStorage);
+        window.addEventListener('pageshow', onPageShow);
+        return () => {
+            window.removeEventListener('storage', onStorage);
+            window.removeEventListener('pageshow', onPageShow);
+        };
     }, []);
 
     // Persist the cart only (per-device convenience)
@@ -308,13 +470,22 @@ export const ArenaProvider = ({ children }) => {
         });
         const totalInvestorShare = investorShares.reduce((s, i) => s + i.shareAmount, 0);
         const ownersShare = monthNetProfit - totalInvestorShare;
+        const slotsByDay = {};
+        for (const b of playedMonthBookings) slotsByDay[b.date] = (slotsByDay[b.date] || 0) + 1;
+        const incomeByDay = {};
+        for (const b of paidMonthBookings) {
+            const dKey = dhakaDate(b.paidAt || b.createdAt);
+            incomeByDay[dKey] = (incomeByDay[dKey] || 0) + collectedAmount(b);
+        }
+        const expByDay = {};
+        for (const e of monthExpenses) expByDay[e.date] = (expByDay[e.date] || 0) + (Number(e.amount) || 0);
+
         const dailyBreakdown = [];
         for (let d = 1; d <= daysInMonth; d++) {
             const dayStr = `${monthStr}-${String(d).padStart(2, '0')}`;
-            const dayBookings = playedMonthBookings.filter(b => b.date === dayStr);
-            const dayIncome = paidMonthBookings.filter(b => dhakaDate(b.paidAt || b.createdAt) === dayStr).reduce((s, b) => s + collectedAmount(b), 0);
-            const dayExp = monthExpenses.filter(e => e.date === dayStr).reduce((s, e) => s + (Number(e.amount) || 0), 0);
-            dailyBreakdown.push({ date: dayStr, slotsBooked: dayBookings.length, moneyCollected: dayIncome, expenses: dayExp, net: dayIncome - dayExp });
+            const dayIncome = incomeByDay[dayStr] || 0;
+            const dayExp = expByDay[dayStr] || 0;
+            dailyBreakdown.push({ date: dayStr, slotsBooked: slotsByDay[dayStr] || 0, moneyCollected: dayIncome, expenses: dayExp, net: dayIncome - dayExp });
         }
         const categoryTotals = {};
         monthExpenses.forEach(e => { categoryTotals[e.category || 'other'] = (categoryTotals[e.category || 'other'] || 0) + (Number(e.amount) || 0); });
@@ -345,7 +516,9 @@ export const ArenaProvider = ({ children }) => {
         if (r.ok && r.data.user) {
             setCurrentUser(r.data.user);
             saveCurrentUser(r.data.user);
-            loadRealBackendData(r.data.user.role);
+            setAuthChecked(true);
+            broadcastAuthSync(r.data.user.role, r.data.user.id);
+            loadRealBackendData(r.data.user);
             return { success: true, message: r.data.message, user: r.data.user };
         }
         return { success: false, message: r.error || 'Login failed' };
@@ -356,20 +529,26 @@ export const ArenaProvider = ({ children }) => {
         if (r.ok && r.data.user) {
             setCurrentUser(r.data.user);
             saveCurrentUser(r.data.user);
-            loadRealBackendData(r.data.user.role);
+            setAuthChecked(true);
+            broadcastAuthSync(r.data.user.role, r.data.user.id);
+            loadRealBackendData(r.data.user);
             return { success: true, message: r.data.message, user: r.data.user };
         }
         return { success: false, message: r.error || 'Registration failed' };
     }, [loadRealBackendData]);
 
     const logout = useCallback(async () => {
-        await api('/api/auth/logout', { method: 'POST' });
+        clearClientUserCookie();
         setCurrentUser(VISITOR);
         saveCurrentUser(VISITOR);
+        fullDataLoadedKeyRef.current = '';
+        loadSeqRef.current += 1;
+        setIsLoadingData(false);
         setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
-        setMyCustomer(null); setCustomerSettings(null);
-        loadRealBackendData('visitor');
-    }, [loadRealBackendData]);
+        setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null);
+        broadcastAuthSync('visitor', '');
+        await api('/api/auth/logout', { method: 'POST' });
+    }, []);
 
     /** Demo role switching only works when NEXT_PUBLIC_DEMO_MODE=true (never in production). */
     const switchDemoUser = useCallback(async (targetRole) => {

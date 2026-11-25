@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useArena, cleanPhone } from '../context/ArenaContext';
+import { getDefaultPortalForRole } from '../lib/permissions';
 import { CrossbarLogo } from './CrossbarLogo';
 import { ForgotPasswordFlow } from './ForgotPasswordFlow';
 import { X, ShieldCheck, CheckCircle2, AlertCircle, TrendingUp, ArrowRight, UserCheck } from 'lucide-react';
@@ -13,6 +15,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * so the initial tab is taken from `authModalInitialTab` on mount.
  */
 export const AuthModal = () => {
+    const router = useRouter();
     const { setShowAuthModal, authModalInitialTab, currentUser, login, signup, switchDemoUser, demoMode, siteSettings } = useArena();
     const [activeTab, setActiveTab] = useState(authModalInitialTab === 'signup' ? 'signup' : 'login');
     const [identifier, setIdentifier] = useState('');
@@ -62,8 +65,15 @@ export const AuthModal = () => {
         const res = await login(normalized, password);
         setIsSubmitting(false);
         if (res.success) {
+            const role = res.user?.role;
             setSuccessMsg(res.message || 'Signed in successfully.');
-            setTimeout(() => handleClose(), 600);
+            setTimeout(() => {
+                handleClose();
+                if (role === 'admin' || role === 'staff' || role === 'investor') {
+                    router.push(getDefaultPortalForRole(role));
+                }
+                router.refresh();
+            }, 400);
         }
         else {
             setError(res.message || 'Sign in failed. Please check your credentials and try again.');
@@ -105,8 +115,8 @@ export const AuthModal = () => {
         ...(demoMode ? [{ id: 'demo', label: 'Demo Roles' }] : [])
     ];
 
-    return (<div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-      <div className="relative bg-[#0b1016] border border-emerald-500/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+    return (<div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
+      <div className="relative bg-[#0b1016] border-t sm:border border-emerald-500/40 rounded-t-3xl sm:rounded-3xl pb-safe w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/20 blur-3xl pointer-events-none"></div>
 
         <button type="button" onClick={handleClose} className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 text-slate-400 hover:text-white transition-colors cursor-pointer" aria-label="Close">

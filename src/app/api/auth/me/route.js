@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUserFromRequest, setAuthCookies, clearAuthCookies, signJwtToken } from '@/lib/serverAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/user-model';
-import { isObjectId, loadAccess } from '@/lib/apiAuth';
+import { isObjectId, loadAccess, invalidateLiveUserCache } from '@/lib/apiAuth';
 import { syncCustomerFromUser } from '@/lib/customers';
 
 const tokenPayload = (user) => ({
@@ -107,6 +107,7 @@ export async function PUT(request) {
         }
 
         await user.save();
+        invalidateLiveUserCache(String(user._id));
         await syncCustomerFromUser(user); // keep the customer list entry in step with the profile
         const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
         const response = NextResponse.json({ success: true, message: 'Profile updated successfully.', user: userJson });

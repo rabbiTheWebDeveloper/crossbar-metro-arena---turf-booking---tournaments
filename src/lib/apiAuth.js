@@ -13,18 +13,51 @@ import { hasPermission, cleanPermissions } from './permissions';
  * The JWT is verified first; then the account is re-checked in the database so that a
  * disabled account or a changed role takes effect immediately instead of after 30 days.
  */
+const LIVE_USER_TTL_MS = 3000;
+const liveUserCache = global.__cmaLiveUserCache || (global.__cmaLiveUserCache = new Map());
+
+/** Invalidate cached live-user lookups (call whenever a user or staff role is modified/deleted). */
+export function invalidateLiveUserCache(userId = '') {
+    if (userId) liveUserCache.delete(String(userId));
+    else liveUserCache.clear();
+}
+
 async function liveUser(tokenUser) {
     if (!tokenUser) return null;
-    const id = tokenUser.userId || tokenUser.id;
+    const id = String(tokenUser.userId || tokenUser.id || '');
     if (!isObjectId(id)) return tokenUser;
+
+    const now = Date.now();
+    const cached = liveUserCache.get(id);
+    if (cached && now - cached.ts < LIVE_USER_TTL_MS) {
+        if (!cached.user) return null;
+        return { ...tokenUser, ...cached.user };
+    }
+
     try {
         const { connectToDatabase } = await import('./mongodb');
         const { User } = await import('@/models/user-model');
         await connectToDatabase();
         const doc = await User.findById(id).select('name phone role disabled email playingPosition teamId staffRoleId').lean();
-        if (!doc || doc.disabled) return null;
+        if (!doc || doc.disabled) {
+            liveUserCache.set(id, { ts: now, user: null });
+            return null;
+        }
         const access = await loadAccess(doc);
-        return { ...tokenUser, userId: String(doc._id), id: String(doc._id), name: doc.name, phone: doc.phone, role: doc.role, email: doc.email, playingPosition: doc.playingPosition, teamId: doc.teamId, ...access };
+        const resolved = {
+            userId: String(doc._id),
+            id: String(doc._id),
+            name: doc.name,
+            phone: doc.phone,
+            role: doc.role,
+            email: doc.email,
+            playingPosition: doc.playingPosition,
+            teamId: doc.teamId,
+            ...access
+        };
+        if (liveUserCache.size > 1000) liveUserCache.clear();
+        liveUserCache.set(id, { ts: now, user: resolved });
+        return { ...tokenUser, ...resolved };
     } catch (e) {
         // Database unreachable: fall back to the signed token so the app keeps working.
         // Staff permissions are never taken from the token, so staff get no admin access while the database is down.

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Role } from '@/models/role-model';
 import { User } from '@/models/user-model';
-import { requireAdmin, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { requireAdmin, requireSuperAdminDelete, isObjectId, invalidateLiveUserCache } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parseRoleInput, rolesWithCounts } from '@/lib/roleAdmin';
 
@@ -28,6 +28,7 @@ export async function PUT(request, { params }) {
 
         role.set(data);
         await role.save();
+        invalidateLiveUserCache();
         const [json] = await rolesWithCounts([role]);
         return NextResponse.json({ success: true, message: `Role "${role.name}" updated.`, role: json });
     } catch (err) {

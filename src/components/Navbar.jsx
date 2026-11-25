@@ -65,13 +65,14 @@ export const Navbar = () => {
         { id: 'about', href: '/about', label: 'About', icon: Info }
     ];
     const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const showPlayerLink = !isVisitor && !isInvestor;
-    const showInvestorLink = isAdmin || isInvestor;
-    const dashboardLinks = [
-        ...(showPlayerLink ? [{ href: '/customer', label: 'My Panel', icon: User, emoji: '⚽' }] : []),
-        ...(canAccessAdmin ? [{ href: '/admin', label: 'Admin', icon: ShieldCheck, emoji: '🛡️' }] : []),
-        ...(showInvestorLink ? [{ href: '/investor', label: 'Investor', icon: TrendingUp, emoji: '💼' }] : [])
-    ];
+    const dashboardLinks = isVisitor
+        ? []
+        : canAccessAdmin
+            ? [{ href: '/admin', label: isAdmin ? 'Admin Desk' : (currentUser.staffRoleName || 'Staff Desk'), icon: ShieldCheck, emoji: '🛡️' }]
+            : isInvestor
+                ? [{ href: '/investor', label: 'Investor Portal', icon: TrendingUp, emoji: '💼' }]
+                : [{ href: '/customer', label: 'My Account', icon: User, emoji: '⚽' }];
+    const roleBadgeLabel = isAdmin ? 'ADMIN' : currentUser?.role === 'staff' ? (currentUser.staffRoleName || 'STAFF') : isInvestor ? 'INVESTOR' : 'CUSTOMER';
     const openLogin = () => { setAuthModalInitialTab('login'); setShowAuthModal(true); };
 
     // Pages in the main design render their own header (src/components/home/HomeHeader.jsx)
@@ -159,8 +160,8 @@ export const Navbar = () => {
                 <Link href={canAccessAdmin ? '/admin' : isInvestor ? '/investor' : '/customer'} className="font-bold text-white max-w-[90px] sm:max-w-[130px] truncate hover:text-emerald-300">
                   {currentUser.name}
                 </Link>
-                <span className="text-[11px] uppercase font-bold text-slate-400 px-1 rounded bg-black/40">
-                  {currentUser.role}
+                <span className="hidden sm:inline text-[10px] uppercase font-mono font-bold text-emerald-300 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 max-w-[90px] truncate">
+                  {roleBadgeLabel}
                 </span>
                 <button type="button" onClick={() => logout()} className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Log out" aria-label="Log out">
                   <LogOut className="w-3.5 h-3.5"/>

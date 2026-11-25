@@ -1,9 +1,13 @@
 'use client';
 import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import React, { useState, useMemo, useEffect } from 'react';
+
+const DEFAULT_WEEKEND_DAYS = ['Friday', 'Saturday'];
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { XCircle, CalendarDays } from 'lucide-react';
+
+const DEFAULT_WEEKEND_DAYS = ['Friday', 'Saturday'];
 export const dynamic = 'force-dynamic';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -45,7 +49,7 @@ export default function AdminSchedulePage() {
     const [busyId, setBusyId] = useState(null);
 
     const slotList = pricing?.slotPrices?.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION;
-    const weekendDays = pricing?.weekendDays?.length ? pricing.weekendDays : ['Friday', 'Saturday'];
+    const weekendDays = useMemo(() => (pricing?.weekendDays?.length ? pricing.weekendDays : DEFAULT_WEEKEND_DAYS), [pricing?.weekendDays]);
 
     // 14-day strip around today (6 before, 7 after)
     const dateStrip = useMemo(() => {

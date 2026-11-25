@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
-import { permissionLabel } from '@/lib/permissions';
-import { Search, Plus, Pencil, KeyRound, Ban, CheckCircle2, Trash2, AlertTriangle, Copy, Check, ShieldCheck } from 'lucide-react';
+import { permissionLabel, ROLE_TEMPLATES, getDefaultPortalForRole } from '@/lib/permissions';
+import { Search, Plus, Pencil, KeyRound, Ban, CheckCircle2, Trash2, AlertTriangle, Copy, Check, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-400/60 rounded-xl px-3 py-2 text-white text-xs placeholder:text-slate-600 outline-none';
@@ -43,7 +43,7 @@ const generatePassword = () => {
 const emptyForm = { id: '', name: '', phone: '', email: '', role: 'staff', staffRoleId: '', password: '' };
 
 export default function AdminUsersPage() {
-    const { users, roles, currentUser, isLoadingData, showNotice, refreshUsers, refreshRoles, handleCreateUser, handleAdminUpdateUser, handleDeleteUser, isAdmin } = useArena();
+    const { users, roles, currentUser, isLoadingData, showNotice, refreshUsers, refreshRoles, handleSaveRole, handleCreateUser, handleAdminUpdateUser, handleDeleteUser, isAdmin } = useArena();
 
     useEffect(() => { refreshUsers(); refreshRoles(); }, [refreshUsers, refreshRoles]);
 
@@ -71,11 +71,28 @@ export default function AdminUsersPage() {
     const [form, setForm] = useState(null); // null = closed
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
-    const [created, setCreated] = useState(null); // { name, phone, password } shown once after creating
+    const [seedingRoles, setSeedingRoles] = useState(false);
+    const [created, setCreated] = useState(null); // { name, phone, email, role, staffRoleName, password } shown once after creating
     const [copied, setCopied] = useState(false);
     const isEditing = Boolean(form?.id);
     const editingSelf = isEditing && form.id === myId;
     const selectedRole = form?.role === 'staff' ? roleById[form.staffRoleId] : null;
+
+    const handleSeedPresetRoles = async () => {
+        if (seedingRoles) return;
+        setSeedingRoles(true);
+        setFormError('');
+        try {
+            let firstId = '';
+            for (const tpl of ROLE_TEMPLATES) {
+                const res = await handleSaveRole({ name: tpl.name, description: tpl.description, permissions: tpl.permissions });
+                if (res?.ok && res.role?.id && !firstId) firstId = res.role.id;
+            }
+            if (firstId) setForm(f => (f ? { ...f, staffRoleId: firstId } : f));
+        } finally {
+            setSeedingRoles(false);
+        }
+    };
 
     const openCreate = () => { setFormError(''); setCreated(null); setCopied(false); setForm({ ...emptyForm, staffRoleId: roles[0]?.id || '', password: generatePassword() }); };
     const openEdit = (u) => { setFormError(''); setCreated(null); setForm({ id: u.id, name: u.name || '', phone: u.phone || '', email: u.email || '', role: u.role || 'player', staffRoleId: u.staffRoleId || roles[0]?.id || '', password: '' }); };
@@ -105,7 +122,17 @@ export default function AdminUsersPage() {
         } else {
             const password = form.password.trim();
             const r = await handleCreateUser({ ...payload, password });
-            if (r.ok) { setCreated({ name, phone: payload.phone, password }); setCopied(false); }
+            if (r.ok) {
+                setCreated({
+                    name,
+                    phone: payload.phone,
+                    email: payload.email,
+                    role: payload.role,
+                    staffRoleName: r.user?.staffRoleName || selectedRole?.name || '',
+                    password
+                });
+                setCopied(false);
+            }
             else setFormError(r.error || 'Could not create the account.');
         }
         setSaving(false);
@@ -323,21 +350,30 @@ export default function AdminUsersPage() {
       </div>
 
       {/* ADD / EDIT MODAL */}
-      {form && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-form-title">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+      {form && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-form-title">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 id="user-form-title" className="text-base font-bold text-white font-display">{created ? 'Account created' : isEditing ? 'Edit user' : 'Add user'}</h3>
 
             {created ? (<>
-              <p className="text-slate-300">Pass these sign-in details to <strong className="text-white">{created.name}</strong> now. The password is not shown again.</p>
-              <div className="p-3 rounded-xl bg-[#080d12] border border-lime-400/30 font-mono space-y-1">
+              <p className="text-slate-300">Pass these sign-in details to <strong className="text-white">{created.name}</strong> now. They will open <strong className="text-lime-300 font-mono">{getDefaultPortalForRole(created.role)}</strong> after logging in.</p>
+              <div className="p-3.5 rounded-xl bg-[#080d12] border border-lime-400/30 font-mono space-y-1.5">
+                <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-white/10">
+                  <span className="text-white font-sans font-bold">{created.name}</span>
+                  <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${typeStyle[created.role] || typeStyle.visitor}`}>
+                    {created.role === 'staff' && created.staffRoleName ? `Staff · ${created.staffRoleName}` : typeLabel(created.role)}
+                  </span>
+                </div>
                 <div><span className="text-slate-500">Mobile: </span><span className="text-white select-all">{created.phone}</span></div>
+                {created.email && <div><span className="text-slate-500">Email: </span><span className="text-white select-all">{created.email}</span></div>}
                 <div><span className="text-slate-500">Password: </span><span className="text-lime-300 select-all break-all">{created.password}</span></div>
+                <div><span className="text-slate-500">Dashboard: </span><span className="text-emerald-300">{getDefaultPortalForRole(created.role)}</span></div>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => copyText(`Mobile: ${created.phone}\nPassword: ${created.password}`)} className="flex-1 py-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-white font-bold cursor-pointer flex items-center justify-center gap-1.5">
+                <button type="button" onClick={() => copyText(`Crossbar Metro Arena Login\nRole: ${created.role === 'staff' && created.staffRoleName ? created.staffRoleName : typeLabel(created.role)}\nMobile: ${created.phone}${created.email ? `\nEmail: ${created.email}` : ''}\nPassword: ${created.password}\nSign in: ${typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}`)} className="flex-1 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-white font-bold cursor-pointer flex items-center justify-center gap-1.5">
                   {copied ? <Check className="w-3.5 h-3.5 text-lime-400"/> : <Copy className="w-3.5 h-3.5"/>}<span>{copied ? 'Copied' : 'Copy details'}</span>
                 </button>
-                <button type="button" onClick={closeForm} className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl cursor-pointer">Done</button>
+                <button type="button" onClick={closeForm} className="flex-1 py-2.5 bg-lime-400 text-slate-950 font-black rounded-xl cursor-pointer">Done</button>
               </div>
             </>) : (
             <form onSubmit={submitForm} className="space-y-3">
@@ -366,15 +402,40 @@ export default function AdminUsersPage() {
 
               {form.role === 'staff' && (
                 <div>
-                  <label htmlFor="user-staff-role" className="block text-slate-300 font-semibold mb-1">Staff role <span className="text-lime-400">*</span></label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="user-staff-role" className="block text-slate-300 font-semibold">Staff role <span className="text-lime-400">*</span></label>
+                    <Link href="/admin/roles" className="text-[11px] text-lime-400 hover:underline font-semibold">Manage roles</Link>
+                  </div>
                   {roles.length === 0 ? (
-                    <p className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/25 text-amber-200">No staff roles exist yet. <Link href="/admin/roles" className="underline font-semibold">Create a role</Link> first, then add the staff member.</p>
+                    <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/25 text-amber-200 space-y-2.5">
+                      <p>No staff roles exist yet. Seed standard preset roles right now or create a custom role under <Link href="/admin/roles" className="underline font-semibold">Roles &amp; permissions</Link>.</p>
+                      <button
+                        type="button"
+                        disabled={seedingRoles}
+                        onClick={handleSeedPresetRoles}
+                        className="w-full py-2 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {seedingRoles ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Sparkles className="w-3.5 h-3.5"/>}
+                        <span>{seedingRoles ? 'Creating preset roles…' : 'Create Preset Roles (Manager, Desk, Accountant)'}</span>
+                      </button>
+                    </div>
                   ) : (<>
                     <select id="user-staff-role" value={form.staffRoleId} onChange={setField('staffRoleId')} className={inputCls}>
                       {!roleById[form.staffRoleId] && <option value="">Choose a role…</option>}
-                      {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {roles.map(r => <option key={r.id} value={r.id}>{r.name} ({r.permissions.length} permissions)</option>)}
                     </select>
-                    {selectedRole && <p className="text-[11px] text-slate-500 mt-1">Can access: {selectedRole.permissions.map(permissionLabel).join(', ')}.</p>}
+                    {selectedRole && (
+                      <div className="mt-2 p-2.5 rounded-xl bg-[#080d12] border border-white/10 space-y-1.5">
+                        <div className="text-[10.5px] font-mono uppercase tracking-wider text-slate-400">Unlocked Dashboard Sections</div>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedRole.permissions.map(p => (
+                            <span key={p} className="px-2 py-0.5 rounded-md bg-lime-400/10 border border-lime-400/25 text-lime-300 text-[10.5px] font-semibold">
+                              {permissionLabel(p)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>)}
                 </div>
               )}
@@ -405,8 +466,9 @@ export default function AdminUsersPage() {
         </div>)}
 
       {/* RESET PASSWORD MODAL */}
-      {resetUser && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-reset-title">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
+      {resetUser && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-reset-title">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-lime-400/10 border border-lime-400/30 text-lime-400"><KeyRound className="w-4 h-4"/></div>
               <h3 id="user-reset-title" className="text-base font-bold text-white">Reset password</h3>
@@ -441,8 +503,9 @@ export default function AdminUsersPage() {
         </div>)}
 
       {/* DELETE MODAL */}
-      {deleteUser && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-delete-title">
-          <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
+      {deleteUser && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="user-delete-title">
+          <div className="bg-[#0c131a] border-t sm:border border-rose-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
               <div>

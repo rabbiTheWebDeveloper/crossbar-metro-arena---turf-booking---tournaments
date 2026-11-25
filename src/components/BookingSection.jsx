@@ -18,7 +18,7 @@ const ACTIVE_STATUSES = ['pending_payment', 'confirmed_unpaid', 'paid_advance', 
  */
 export const BookingSection = ({ hideHeading = false }) => {
     const { bookings: contextBookings, pricing, slotHolds, currentUser, refreshBookings, showNotice } = useArena();
-    const bookings = contextBookings || [];
+    const bookings = useMemo(() => contextBookings || [], [contextBookings]);
     const primaryCourt = COURTS[0];
 
     // Booking window (Dhaka calendar)

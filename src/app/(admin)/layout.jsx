@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useArena, todayDhaka } from '../../context/ArenaContext';
 import { CrossbarLogo } from '../../components/CrossbarLogo';
 import { SCHEDULE_SLOTS_DEFINITION } from '../../data/initialData';
-import { canOpenAdminPath } from '../../lib/permissions';
+import { canOpenAdminPath, canAccessPortal, getDefaultPortalForRole } from '../../lib/permissions';
 import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
@@ -227,13 +227,30 @@ export default function AdminLayout({ children }) {
     }, [navItems]);
 
     const pageAllowed = canOpenAdminPath(currentUser, pathname);
+    const portalAuthorized = canAccessPortal(currentUser, pathname || '/admin');
     const canTakeBookings = can('bookings');
     const roleBadge = isAdmin ? 'ADMIN' : (currentUser?.staffRoleName || 'STAFF');
     const isRootToday = !pathname || pathname === '/admin' || pathname === '/admin/';
 
+    // Client-side private route enforcement (defense-in-depth alongside src/proxy.js, handles logout / multi-tab / disabled accounts)
+    useEffect(() => {
+        if (!authChecked) return;
+        if (!portalAuthorized) {
+            if (!currentUser || currentUser.role === 'visitor') {
+                router.replace(`/login?callbackUrl=${encodeURIComponent(pathname || '/admin')}`);
+            } else {
+                router.replace(getDefaultPortalForRole(currentUser));
+            }
+        }
+    }, [authChecked, portalAuthorized, currentUser, pathname, router]);
+
     // Consistent Header Section + Title
     const headerMeta = useMemo(() => {
         if (!pathname || pathname === '/admin' || pathname === '/admin/') {
+            if (!canTakeBookings && currentUser?.role === 'staff') {
+                const label = currentUser?.staffRoleName || 'Staff';
+                return { section: 'Workspace', title: `${label} Dashboard` };
+            }
             const d = parseLocalDate(todayDateStr);
             const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
             const dayNum = d.getDate();
@@ -265,7 +282,7 @@ export default function AdminLayout({ children }) {
         if (pathname.includes('/roles')) return { section: 'System', title: 'Roles & Permissions' };
         if (pathname.includes('/settings')) return { section: 'System', title: 'Venue Settings' };
         return { section: 'Arena Desk', title: 'Admin Console' };
-    }, [pathname, todayDateStr]);
+    }, [pathname, todayDateStr, canTakeBookings, currentUser?.role, currentUser?.staffRoleName]);
 
     const resetWalkinForm = () => {
         setWalkinTeam('');
@@ -321,7 +338,8 @@ export default function AdminLayout({ children }) {
 
     const handleLogout = async () => {
         await logout();
-        router.push('/');
+        router.replace('/login');
+        router.refresh();
     };
 
     const displayName = (currentUser?.name || 'Admin').trim();
@@ -333,6 +351,19 @@ export default function AdminLayout({ children }) {
         if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
         return displayName.slice(0, 2).toUpperCase() || 'AD';
     }, [displayName]);
+
+    // Before the session check finishes, the user comes from the login cookie (the proxy already verified the token),
+    // so an allowed user sees the panel at once; anyone else sees the skeleton until the redirect above runs.
+    if (!portalAuthorized) {
+        return (
+            <div className="admin-app min-h-dvh bg-[#060a0d] text-slate-100 flex items-center justify-center p-6 font-sans">
+                <div className="w-full max-w-md space-y-4 animate-pulse" aria-busy="true">
+                    <div className="h-10 w-48 rounded-xl bg-[#0c131a] border border-white/5 mx-auto" />
+                    <div className="h-40 rounded-3xl bg-[#0c131a] border border-white/5" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="admin-app min-h-dvh bg-[#060a0d] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
