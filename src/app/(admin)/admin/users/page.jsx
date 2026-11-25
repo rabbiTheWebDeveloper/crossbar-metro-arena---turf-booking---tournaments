@@ -11,7 +11,7 @@ const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-4
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ACCOUNT_TYPES = [
-    { value: 'player', label: 'Player', hint: 'Books slots and joins tournaments on the website.' },
+    { value: 'player', label: 'Customer', hint: 'Books slots, joins tournaments and sees the customer panel.' },
     { value: 'investor', label: 'Investor', hint: 'Sees the investor portal for their partner record.' },
     { value: 'staff', label: 'Staff', hint: 'Opens the admin panel with the permissions of a staff role.' },
     { value: 'admin', label: 'Admin', hint: 'Full access to everything, including users and roles.' }

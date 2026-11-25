@@ -1,8 +1,6 @@
 'use client';
 import { toIsoLocal, parseLocalDate } from '@/lib/dateUtils';
 import React, { useState, useMemo, useEffect } from 'react';
-
-const DEFAULT_WEEKEND_DAYS = ['Friday', 'Saturday'];
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { XCircle, CalendarDays } from 'lucide-react';
