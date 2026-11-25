@@ -18,13 +18,13 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  experimental: { optimizePackageImports: ['lucide-react'] },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+    agentUpgrade: 'latest',
+  },
   outputFileTracingRoot: __dirname,
   images: {
     unoptimized: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   // The player portal became the customer panel: old links, bookmarks and QR codes keep working
   async redirects() {

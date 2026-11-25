@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 
 // Utility function to get pathname and check permissions
 export const checkPermissionAndRedirect = async(permissions) => {
-  const headersList = headers();
+  const headersList = await headers();
 
 
   const domain = headersList.get('host') || "";
