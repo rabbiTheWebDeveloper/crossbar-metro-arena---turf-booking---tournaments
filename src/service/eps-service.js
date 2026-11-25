@@ -10,9 +10,7 @@ import {
 } from '@/queries/payment-queries';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
-
-/** Domain registered with the EPS merchant account (EPS rejects callbacks on any other domain). */
-const EPS_CALLBACK_BASE_URL = 'https://importbay.com.bd';
+import { publicBaseUrl } from '@/lib/baseUrl';
 
 const EPS_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EPS_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -112,9 +110,7 @@ export async function initiateEpsBookingPayment({
     ipAddress = '127.0.0.1'
 }) {
     const { client, config } = await createEpsClient();
-    // EPS only accepts success/fail/cancel URLs on the domain registered with the EPS merchant
-    // account, so the callback host is fixed to that domain instead of the request's host.
-    const host = EPS_CALLBACK_BASE_URL;
+    const host = (baseUrl || publicBaseUrl()).replace(/\/+$/, '');
     const merchantTransactionId = generateTransactionId(); // 17-digit timestamp-based ID (EPS requires >= 10 digits)
     const email = (customerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
         ? customerEmail
@@ -407,20 +403,30 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
 export async function markEpsPaymentFailedOrCancelled({ merchantTransactionId, status = 'failed' }) {
     if (!merchantTransactionId) return;
     await connectToDatabase();
-    const isCancel = status === 'cancel' || status === 'cancelled';
+    const s = String(status || 'failed').toLowerCase();
+    const isCancel = s === 'cancel' || s === 'cancelled';
+    const isReject = s === 'reject' || s === 'rejected' || s === 'declined';
 
     await Booking.updateOne(
         { gatewayTranId: merchantTransactionId, paymentStatus: 'pending_payment' },
         {
             $set: {
                 paymentStatus: 'cancelled',
-                notes: isCancel ? 'EPS payment cancelled by customer' : 'EPS payment failed at gateway'
+                notes: isCancel
+                    ? 'EPS payment cancelled by customer'
+                    : isReject
+                        ? 'EPS payment rejected at gateway'
+                        : 'EPS payment failed at gateway'
             }
         }
     );
 
     await updatePaymentByMerchantTranId(merchantTransactionId, {
         status: isCancel ? 'cancelled' : 'failed',
-        errorMessage: isCancel ? 'Cancelled by customer' : 'Payment failed at EPS gateway'
+        errorMessage: isCancel
+            ? 'Cancelled by customer'
+            : isReject
+                ? 'Payment rejected at EPS gateway'
+                : 'Payment failed at EPS gateway'
     });
 }

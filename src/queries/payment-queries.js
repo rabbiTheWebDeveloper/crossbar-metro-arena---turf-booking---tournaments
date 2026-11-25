@@ -38,7 +38,9 @@ export async function listPayments({ q = '', status = '', gateway = '', from = '
     if (status && ['initiated', 'success', 'failed', 'cancelled', 'refunded'].includes(status)) {
         query.status = status;
     }
-    if (gateway && ['eps', 'sslcommerz', 'counter'].includes(gateway)) {
+    if (gateway === 'online') {
+        query.gateway = { $in: ['eps', 'sslcommerz'] };
+    } else if (gateway && ['eps', 'sslcommerz', 'counter'].includes(gateway)) {
         query.gateway = gateway;
     }
     if (from || to) {

@@ -39,23 +39,30 @@ async function extractCallbackParams(request) {
 
 async function handleEpsCallback(request) {
     const base = publicBaseUrl(request.url);
-    const redirect = (params) =>
-        NextResponse.redirect(`${base}/booking?${new URLSearchParams(params).toString()}`, 303);
+    const redirectTo = (path, params) => {
+        const qs = new URLSearchParams(
+            Object.entries(params).filter(([, v]) => v !== undefined && v !== null && String(v) !== '')
+        ).toString();
+        return NextResponse.redirect(`${base}${path}${qs ? `?${qs}` : ''}`, 303);
+    };
 
     try {
         const { status, merchantTransactionId, epsTransactionId } = await extractCallbackParams(request);
         const tranId = merchantTransactionId || epsTransactionId;
 
-        if (status === 'cancel' || status === 'cancelled' || status === 'fail' || status === 'failed') {
-            await markEpsPaymentFailedOrCancelled({
-                merchantTransactionId: tranId,
-                status
-            });
-            return redirect({
-                payment: status.startsWith('cancel') ? 'cancelled' : 'failed',
-                gateway: 'eps',
-                tranId
-            });
+        if (status === 'cancel' || status === 'cancelled') {
+            await markEpsPaymentFailedOrCancelled({ merchantTransactionId: tranId, status: 'cancelled' });
+            return redirectTo('/payment/cancelled', { gateway: 'eps', tranId });
+        }
+
+        if (status === 'reject' || status === 'rejected' || status === 'declined') {
+            await markEpsPaymentFailedOrCancelled({ merchantTransactionId: tranId, status: 'rejected' });
+            return redirectTo('/payment/rejected', { gateway: 'eps', tranId, reason: 'rejected' });
+        }
+
+        if (status === 'fail' || status === 'failed') {
+            await markEpsPaymentFailedOrCancelled({ merchantTransactionId: tranId, status: 'failed' });
+            return redirectTo('/payment/failed', { gateway: 'eps', tranId, reason: 'failed' });
         }
 
         if (status === 'success' || (!status && tranId)) {
@@ -67,26 +74,32 @@ async function handleEpsCallback(request) {
             });
 
             if (result.ok) {
-                return redirect({
-                    payment: 'success',
+                return redirectTo('/payment/success', {
                     gateway: 'eps',
                     bookingCode: result.booking.bookingCode,
                     tranId: result.booking.epsTransactionId || tranId
                 });
             }
             if (result.code === 'slot_lost') {
-                return redirect({ payment: 'slot_lost', gateway: 'eps', tranId });
+                return redirectTo('/payment/failed', { gateway: 'eps', tranId, reason: 'slot_lost' });
             }
             if (result.code === 'not_found') {
-                return redirect({ payment: 'error', gateway: 'eps', reason: 'unknown_transaction', tranId });
+                return redirectTo('/payment/failed', { gateway: 'eps', tranId, reason: 'unknown_transaction' });
             }
-            return redirect({ payment: 'failed', gateway: 'eps', reason: 'validation_failed', tranId });
+            const reported = String(result.verification?.Status || '').toLowerCase();
+            if (reported.includes('reject') || reported.includes('declin')) {
+                return redirectTo('/payment/rejected', { gateway: 'eps', tranId, reason: 'rejected' });
+            }
+            if (reported.includes('cancel')) {
+                return redirectTo('/payment/cancelled', { gateway: 'eps', tranId });
+            }
+            return redirectTo('/payment/failed', { gateway: 'eps', tranId, reason: 'validation_failed' });
         }
 
-        return redirect({ payment: 'unknown', gateway: 'eps', tranId });
+        return redirectTo('/payment/failed', { gateway: 'eps', tranId, reason: 'unknown_transaction' });
     } catch (err) {
         console.error('EPS Callback Handler Error:', err);
-        return redirect({ payment: 'error', gateway: 'eps', reason: 'server_error' });
+        return redirectTo('/payment/failed', { gateway: 'eps', reason: 'server_error' });
     }
 }
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
     Search, RefreshCw, CreditCard, CheckCircle2, AlertTriangle, Clock, XCircle,
-    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight
+    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +50,10 @@ export default function AdminPaymentsPage() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [gatewayFilter, setGatewayFilter] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
     const [page, setPage] = useState(1);
+    const [selected, setSelected] = useState(null);
     const [verifyingId, setVerifyingId] = useState('');
     const [syncing, setSyncing] = useState(false);
 
@@ -60,7 +63,7 @@ export default function AdminPaymentsPage() {
         const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
         return () => clearTimeout(t);
     }, [search]);
-    useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, gatewayFilter]);
+    useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, gatewayFilter, fromDate, toDate]);
 
     const load = useCallback(async ({ sync = false } = {}) => {
         const mine = ++reqCounter.current;
@@ -71,6 +74,8 @@ export default function AdminPaymentsPage() {
             if (debouncedSearch) params.set('q', debouncedSearch);
             if (statusFilter) params.set('status', statusFilter);
             if (gatewayFilter) params.set('gateway', gatewayFilter);
+            if (fromDate) params.set('from', fromDate);
+            if (toDate) params.set('to', toDate);
             if (sync) params.set('sync', '1');
             const res = await fetch(`/api/payments?${params.toString()}`, { credentials: 'include' });
             const data = await res.json().catch(() => ({}));
@@ -81,6 +86,8 @@ export default function AdminPaymentsPage() {
                 return;
             }
             setRows(data.payments || []);
+            // Keep an open detail panel in sync with the refreshed row
+            setSelected(cur => (cur ? (data.payments || []).find(r => r.id === cur.id) || cur : cur));
             setTotal(data.total || 0);
             setPages(data.pages || 1);
             if (data.overview) setOverview(data.overview);
@@ -89,7 +96,7 @@ export default function AdminPaymentsPage() {
             setLoading(false);
             setError('Could not reach the server to load payments.');
         }
-    }, [page, debouncedSearch, statusFilter, gatewayFilter]);
+    }, [page, debouncedSearch, statusFilter, gatewayFilter, fromDate, toDate]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -231,6 +238,7 @@ export default function AdminPaymentsPage() {
                     className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
                 >
                     <option value="">All Gateways</option>
+                    <option value="online">Online only (EPS + SSLCommerz)</option>
                     <option value="eps">EPS Gateway</option>
                     <option value="counter">Counter / Desk</option>
                     <option value="sslcommerz">SSLCommerz</option>
@@ -246,7 +254,40 @@ export default function AdminPaymentsPage() {
                     <option value="initiated">Pending / Initiated</option>
                     <option value="failed">Failed</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
                 </select>
+                <div className="flex items-center gap-1.5">
+                    <input
+                        type="date"
+                        value={fromDate}
+                        max={toDate || undefined}
+                        onChange={e => setFromDate(e.target.value)}
+                        aria-label="Slot date from"
+                        title="Slot date from"
+                        className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none [color-scheme:dark]"
+                    />
+                    <span className="text-slate-500 text-xs">to</span>
+                    <input
+                        type="date"
+                        value={toDate}
+                        min={fromDate || undefined}
+                        onChange={e => setToDate(e.target.value)}
+                        aria-label="Slot date to"
+                        title="Slot date to"
+                        className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none [color-scheme:dark]"
+                    />
+                    {(fromDate || toDate) && (
+                        <button
+                            type="button"
+                            onClick={() => { setFromDate(''); setToDate(''); }}
+                            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white cursor-pointer"
+                            aria-label="Clear date range"
+                            title="Clear date range"
+                        >
+                            <X className="w-3.5 h-3.5"/>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {error && (
@@ -286,7 +327,12 @@ export default function AdminPaymentsPage() {
                                     const StIcon = st.icon;
                                     const gwCls = GATEWAY_STYLE[p.gateway] || GATEWAY_STYLE.counter;
                                     return (
-                                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                                        <tr
+                                            key={p.id}
+                                            onClick={() => setSelected(p)}
+                                            className={`border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer ${selected?.id === p.id ? 'bg-white/[0.05]' : ''}`}
+                                            title="View payment details"
+                                        >
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="font-mono font-bold text-lime-400">{p.bookingCode || '—'}</div>
                                                 <div className="text-[11px] text-slate-400 mt-0.5">
@@ -330,11 +376,11 @@ export default function AdminPaymentsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-right whitespace-nowrap">
-                                                {p.gateway === 'eps' && p.status !== 'success' ? (
+                                                {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' ? (
                                                     <button
                                                         type="button"
                                                         disabled={verifyingId === p.id}
-                                                        onClick={() => handleVerifyEps(p)}
+                                                        onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
                                                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-bold text-[11px] transition-colors cursor-pointer disabled:opacity-50"
                                                     >
                                                         {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
@@ -376,6 +422,210 @@ export default function AdminPaymentsPage() {
                     </div>
                 </div>
             )}
+
+            {selected && (
+                <PaymentDetailDrawer
+                    payment={selected}
+                    onClose={() => setSelected(null)}
+                    onVerify={handleVerifyEps}
+                    verifying={verifyingId === selected.id}
+                />
+            )}
+        </div>
+    );
+}
+
+const BOOKING_PAYMENT_LABEL = {
+    pending_payment: 'Awaiting payment (slot held)',
+    confirmed_unpaid: 'Confirmed · unpaid',
+    paid_advance: 'Advance paid',
+    paid_full: 'Paid in full',
+    needs_refund: 'Needs refund',
+    cancelled: 'Cancelled'
+};
+
+function CopyValue({ value }) {
+    const [copied, setCopied] = useState(false);
+    if (!value) return <span className="text-slate-500">—</span>;
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(String(value));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+        } catch { /* clipboard unavailable (non-HTTPS) */ }
+    };
+    return (
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+            <span className="font-mono break-all">{value}</span>
+            <button
+                type="button"
+                onClick={copy}
+                className="shrink-0 p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/10 cursor-pointer"
+                aria-label="Copy"
+                title="Copy"
+            >
+                {copied ? <Check className="w-3 h-3 text-emerald-400"/> : <Copy className="w-3 h-3"/>}
+            </button>
+        </span>
+    );
+}
+
+function DetailRow({ label, children }) {
+    return (
+        <div className="grid grid-cols-[130px_1fr] gap-3 py-2 border-b border-white/5 text-xs">
+            <dt className="text-slate-500 font-mono uppercase text-[10px] tracking-wider pt-0.5">{label}</dt>
+            <dd className="text-slate-200 min-w-0">{children}</dd>
+        </div>
+    );
+}
+
+function PaymentDetailDrawer({ payment: p, onClose, onVerify, verifying }) {
+    const [booking, setBooking] = useState(null);
+    const [bookingState, setBookingState] = useState('idle'); // idle | loading | error | none
+
+    useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    const bookingRef = p.bookingId || p.bookingCode;
+    useEffect(() => {
+        if (!bookingRef) { setBooking(null); setBookingState('none'); return; }
+        let cancelled = false;
+        setBookingState('loading');
+        fetch(`/api/bookings/${encodeURIComponent(bookingRef)}`, { credentials: 'include' })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })).catch(() => ({ ok: false, data: {} })))
+            .then(({ ok, data }) => {
+                if (cancelled) return;
+                if (ok && data.booking) { setBooking(data.booking); setBookingState('idle'); }
+                else { setBooking(null); setBookingState('error'); }
+            })
+            .catch(() => { if (!cancelled) { setBooking(null); setBookingState('error'); } });
+        return () => { cancelled = true; };
+    }, [bookingRef, p.updatedAt]);
+
+    const st = STATUS_STYLE[p.status] || STATUS_STYLE.initiated;
+    const StIcon = st.icon;
+    const gwCls = GATEWAY_STYLE[p.gateway] || GATEWAY_STYLE.counter;
+    const canVerify = p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded';
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-labelledby="payment-detail-title">
+            <button type="button" className="absolute inset-0 bg-black/60 cursor-default" onClick={onClose} aria-label="Close details"/>
+            <aside className="relative w-full max-w-md h-full overflow-y-auto bg-[#0a1016] border-l border-white/10 shadow-2xl animate-fade-in">
+                <div className="sticky top-0 z-10 bg-[#0a1016]/95 backdrop-blur px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
+                    <div>
+                        <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500">Payment details</div>
+                        <h3 id="payment-detail-title" className="text-2xl font-black font-mono text-white mt-0.5">{money(p.amount)}</h3>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold uppercase ${st.cls}`}>
+                                <StIcon className="w-3 h-3"/> {st.label}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold uppercase ${gwCls}`}>
+                                {p.gateway === 'eps' ? (p.sandbox ? 'EPS · SANDBOX' : 'EPS') : p.gateway}
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white cursor-pointer"
+                        aria-label="Close"
+                    >
+                        <X className="w-4 h-4"/>
+                    </button>
+                </div>
+
+                <div className="px-5 py-4 space-y-6">
+                    {p.errorMessage && (
+                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                            <div className="font-bold">{p.errorCode ? `Error ${p.errorCode}` : 'Gateway message'}</div>
+                            <div className="mt-0.5 break-words">{p.errorMessage}</div>
+                        </div>
+                    )}
+
+                    {canVerify && (
+                        <button
+                            type="button"
+                            disabled={verifying}
+                            onClick={() => onVerify(p)}
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                            {verifying ? <Loader2 className="w-4 h-4 animate-spin"/> : <ShieldCheck className="w-4 h-4"/>}
+                            <span>Re-check this payment with EPS</span>
+                        </button>
+                    )}
+
+                    <section>
+                        <h4 className="text-[11px] font-black uppercase tracking-wider text-lime-400 mb-1">Transaction</h4>
+                        <dl>
+                            <DetailRow label="Merchant Txn"><CopyValue value={p.merchantTransactionId}/></DetailRow>
+                            <DetailRow label="Gateway Txn"><CopyValue value={p.gatewayTransactionId}/></DetailRow>
+                            <DetailRow label="Amount">{money(p.amount)} {p.currency && p.currency !== 'BDT' ? p.currency : ''}</DetailRow>
+                            <DetailRow label="Channel">{p.financialEntity || '—'}</DetailRow>
+                            <DetailRow label="Method">{p.paymentMethod || '—'}</DetailRow>
+                            <DetailRow label="Started">{fmtDateTime(p.createdAt)}</DetailRow>
+                            <DetailRow label="Verified">{fmtDateTime(p.verifiedAt)}</DetailRow>
+                            <DetailRow label="Last update">{fmtDateTime(p.updatedAt)}</DetailRow>
+                            <DetailRow label="Recorded by">{p.recordedBy || '—'}</DetailRow>
+                            {p.notes && <DetailRow label="Notes"><span className="break-words">{p.notes}</span></DetailRow>}
+                        </dl>
+                    </section>
+
+                    <section>
+                        <h4 className="text-[11px] font-black uppercase tracking-wider text-lime-400 mb-1">Customer</h4>
+                        <dl>
+                            <DetailRow label="Name">{p.customerName || '—'}</DetailRow>
+                            <DetailRow label="Phone">
+                                {p.customerPhone
+                                    ? <a href={`tel:${p.customerPhone}`} className="font-mono text-sky-300 hover:underline">{p.customerPhone}</a>
+                                    : '—'}
+                            </DetailRow>
+                            <DetailRow label="Email">{p.customerEmail || '—'}</DetailRow>
+                            <DetailRow label="Team">{p.teamName || '—'}</DetailRow>
+                        </dl>
+                    </section>
+
+                    <section>
+                        <h4 className="text-[11px] font-black uppercase tracking-wider text-lime-400 mb-1">Booking</h4>
+                        <dl>
+                            <DetailRow label="Booking code"><CopyValue value={p.bookingCode || booking?.bookingCode}/></DetailRow>
+                            <DetailRow label="Slot">
+                                {p.slotDate ? `${p.slotDate} · ${p.slotDisplay || `Slot #${p.slotNumber}`}` : '—'}
+                            </DetailRow>
+                        </dl>
+                        {bookingState === 'loading' && (
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-2">
+                                <Loader2 className="w-3 h-3 animate-spin"/> Loading booking…
+                            </div>
+                        )}
+                        {bookingState === 'error' && (
+                            <div className="text-[11px] text-slate-500 mt-2">Linked booking could not be loaded (it may have been deleted).</div>
+                        )}
+                        {booking && bookingState === 'idle' && (
+                            <dl>
+                                {booking.paymentStatus && (
+                                    <DetailRow label="Booking state">
+                                        {BOOKING_PAYMENT_LABEL[booking.paymentStatus] || booking.paymentStatus}
+                                    </DetailRow>
+                                )}
+                                {booking.totalPrice != null && <DetailRow label="Booking total">{money(booking.totalPrice)}</DetailRow>}
+                                {booking.advanceAmount != null && <DetailRow label="Paid so far">{money(booking.advanceAmount)}</DetailRow>}
+                                {booking.dueAmount != null && (
+                                    <DetailRow label="Due at venue">
+                                        <span className={Number(booking.dueAmount) > 0 ? 'text-amber-300 font-bold' : ''}>{money(booking.dueAmount)}</span>
+                                    </DetailRow>
+                                )}
+                                {booking.paymentType && (
+                                    <DetailRow label="Plan">{booking.paymentType === 'full_payment' ? 'Full payment' : 'Advance'}</DetailRow>
+                                )}
+                                {booking.matchType && <DetailRow label="Match type">{booking.matchType}</DetailRow>}
+                            </dl>
+                        )}
+                    </section>
+                </div>
+            </aside>
         </div>
     );
 }
