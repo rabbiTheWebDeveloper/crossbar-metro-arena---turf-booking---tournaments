@@ -5,7 +5,7 @@ import { User } from '@/models/user-model';
 import { Payout } from '@/models/payout-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
-import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { requirePermission, requireSuperAdminDelete, isObjectId, cleanPhone } from '@/lib/apiAuth';
 import { canEditAccount, withStaffRoleNames } from '@/lib/userAdmin';
 
 export async function PUT(request, { params }) {
@@ -115,7 +115,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
-        const { user: actor, denied } = await requirePermission(request, 'investors');
+        const { user: actor, denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

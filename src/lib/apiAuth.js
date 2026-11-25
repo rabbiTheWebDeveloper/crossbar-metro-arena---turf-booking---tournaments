@@ -86,6 +86,25 @@ export async function requireRole(request, roles = ['admin']) {
 
 export const requireAdmin = (request) => requireRole(request, ['admin']);
 
+/**
+ * Strict guard for all destructive DELETE endpoints in the admin portal:
+ * only Super Admin (`user.role === 'admin'`) may delete records.
+ */
+export async function requireSuperAdminDelete(request) {
+    const { user, denied } = await requireAuth(request);
+    if (denied) return { user: null, denied };
+    if (user.role !== 'admin') {
+        return {
+            user,
+            denied: NextResponse.json(
+                { error: 'Only Super Admin has permission to delete records.' },
+                { status: 403 }
+            )
+        };
+    }
+    return { user, denied: null };
+}
+
 /** Returns the current (live) user or null without producing a response (for "optional auth" routes). */
 export async function optionalAuth(request) {
     try {

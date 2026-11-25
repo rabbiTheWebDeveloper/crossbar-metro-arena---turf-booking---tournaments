@@ -43,7 +43,7 @@ const generatePassword = () => {
 const emptyForm = { id: '', name: '', phone: '', email: '', role: 'staff', staffRoleId: '', password: '' };
 
 export default function AdminUsersPage() {
-    const { users, roles, currentUser, isLoadingData, showNotice, refreshUsers, refreshRoles, handleCreateUser, handleAdminUpdateUser, handleDeleteUser } = useArena();
+    const { users, roles, currentUser, isLoadingData, showNotice, refreshUsers, refreshRoles, handleCreateUser, handleAdminUpdateUser, handleDeleteUser, isAdmin } = useArena();
 
     useEffect(() => { refreshUsers(); refreshRoles(); }, [refreshUsers, refreshRoles]);
 
@@ -246,7 +246,9 @@ export default function AdminUsersPage() {
                         <button type="button" disabled={busy || Boolean(locked)} onClick={() => toggleDisabled(u)} title={locked || (u.disabled ? 'Enable account' : 'Disable account')} aria-label={u.disabled ? `Enable ${u.name}` : `Disable ${u.name}`} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
                           {u.disabled ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400"/> : <Ban className="w-3.5 h-3.5"/>}
                         </button>
-                        <button type="button" disabled={busy || Boolean(locked)} onClick={() => { setDeleteText(''); setDeleteError(''); setDeleteUser(u); }} title={locked || 'Delete account'} aria-label={`Delete ${u.name}`} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"><Trash2 className="w-3.5 h-3.5"/></button>
+                        {isAdmin && (
+                          <button type="button" disabled={busy || Boolean(locked)} onClick={() => { setDeleteText(''); setDeleteError(''); setDeleteUser(u); }} title={locked || 'Delete account (Super Admin only)'} aria-label={`Delete ${u.name}`} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"><Trash2 className="w-3.5 h-3.5"/></button>
+                        )}
                       </div>
                     </td>
                   </tr>);
@@ -379,7 +381,10 @@ export default function AdminUsersPage() {
           <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
-              <h3 id="user-delete-title" className="text-base font-bold text-white">Delete account</h3>
+              <div>
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400">Delete Account · Super Admin</div>
+                <h3 id="user-delete-title" className="text-base font-bold text-white">Are you sure you want to delete this account?</h3>
+              </div>
             </div>
             <p className="text-slate-300"><strong className="text-white">{deleteUser.name}</strong> · <span className="font-mono">{deleteUser.phone}</span> · {typeLabel(deleteUser.role)}</p>
             <p className="text-slate-400">This removes the login for good and cannot be undone. Their past bookings, registrations and payouts are kept. If you only want to stop them signing in, disable the account instead.</p>

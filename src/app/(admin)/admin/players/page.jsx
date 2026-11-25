@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useArena } from '@/context/ArenaContext';
-import { Search, Pencil, Phone, Mail, Shield, Ban, CheckCircle2, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import { Search, Pencil, Phone, Mail, Shield, Ban, CheckCircle2, Loader2, AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const ROLES = ['player', 'admin', 'investor', 'visitor'];
@@ -16,7 +17,7 @@ const roleStyle = {
 };
 
 export default function AdminPlayersPage() {
-    const { users, refreshUsers, handleAdminUpdateUser, bookings, registrations } = useArena();
+    const { users, refreshUsers, handleAdminUpdateUser, handleDeleteUser, bookings, registrations, isAdmin, currentUser } = useArena();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [showDisabled, setShowDisabled] = useState(false);
@@ -25,6 +26,9 @@ export default function AdminPlayersPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deletingPlayer, setDeletingPlayer] = useState(false);
+    const [deleteErr, setDeleteErr] = useState('');
 
     useEffect(() => { refreshUsers(); }, [refreshUsers]);
 
@@ -87,6 +91,26 @@ export default function AdminPlayersPage() {
         } catch (err) {
             alert(err.message);
         }
+    };
+
+    const openDeletePlayer = (u) => {
+        if (!isAdmin || !u || u.id === currentUser?.id) return;
+        setDeleteErr('');
+        setDeleteTarget(u);
+    };
+
+    const confirmDeletePlayer = async () => {
+        if (!deleteTarget || deletingPlayer) return;
+        setDeletingPlayer(true);
+        setDeleteErr('');
+        const r = await handleDeleteUser(deleteTarget.id);
+        setDeletingPlayer(false);
+        if (!r?.ok) {
+            setDeleteErr(r?.error || 'Could not delete player account.');
+            return;
+        }
+        if (editing?.id === deleteTarget.id) setEditing(null);
+        setDeleteTarget(null);
     };
 
     const counts = useMemo(() => ({
@@ -174,6 +198,11 @@ export default function AdminPlayersPage() {
                       <button type="button" onClick={() => quickToggleDisabled(u)} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${u.disabled ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10'}`} title={u.disabled ? 'Re-enable account' : 'Disable account'}>
                         {u.disabled ? <CheckCircle2 className="w-4 h-4"/> : <Ban className="w-4 h-4"/>}
                       </button>
+                      {isAdmin && u.id !== currentUser?.id && u.role !== 'admin' && (
+                        <button type="button" onClick={() => openDeletePlayer(u)} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer" title="Delete account (Super Admin only)" aria-label={`Delete ${u.name}`}>
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>);
@@ -242,6 +271,11 @@ export default function AdminPlayersPage() {
             {success && (<div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-start gap-2"><CheckCircle2 className="w-4 h-4 shrink-0"/> {success}</div>)}
 
             <div className="flex gap-2 pt-2">
+              {isAdmin && editing.id !== currentUser?.id && editing.role !== 'admin' && (
+                <button type="button" onClick={() => openDeletePlayer(editing)} className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold cursor-pointer flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5"/> Delete
+                </button>
+              )}
               <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer">Cancel</button>
               <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin"/>} Save changes
@@ -250,5 +284,17 @@ export default function AdminPlayersPage() {
           </form>
         </div>
       </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Player Account · Super Admin"
+        title="Are you sure you want to delete this account?"
+        itemName={deleteTarget ? `${deleteTarget.name} · ${deleteTarget.phone}` : ''}
+        description="This login account will be permanently deleted. Past bookings and tournament entries are preserved."
+        loading={deletingPlayer}
+        error={deleteErr}
+        onCancel={() => { if (!deletingPlayer) setDeleteTarget(null); }}
+        onConfirm={confirmDeletePlayer}
+      />
     </div>);
 }

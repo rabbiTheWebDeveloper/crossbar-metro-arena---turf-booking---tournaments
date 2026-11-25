@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { SmsLog } from '@/models/sms-log-model';
-import { requirePermission } from '@/lib/apiAuth';
+import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { hasPermission } from '@/lib/permissions';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parsePhoneTokens } from '@/lib/smsUtils';
@@ -336,5 +336,31 @@ export async function POST(request) {
         });
     } catch (err) {
         return errorResponse(err, 'POST /api/sms');
+    }
+}
+
+/**
+ * DELETE /api/sms?id=...  (Super Admin only)
+ * Permanently deletes an SMS log entry from history.
+ */
+export async function DELETE(request) {
+    try {
+        const { denied } = await requireSuperAdminDelete(request);
+        if (denied) return denied;
+
+        const { searchParams } = new URL(request.url);
+        const id = (searchParams.get('id') || '').trim();
+        if (!isObjectId(id)) return badRequest('Valid SMS log ID is required.');
+
+        await connectToDatabase();
+        const deleted = await SmsLog.findByIdAndDelete(id);
+        if (!deleted) return NextResponse.json({ error: 'SMS log not found.' }, { status: 404 });
+
+        return NextResponse.json({
+            success: true,
+            message: 'SMS history record deleted.'
+        });
+    } catch (err) {
+        return errorResponse(err, 'DELETE /api/sms');
     }
 }

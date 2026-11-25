@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { GalleryPhoto } from '@/models/gallery-photo-model';
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'gallery');
+        const { denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

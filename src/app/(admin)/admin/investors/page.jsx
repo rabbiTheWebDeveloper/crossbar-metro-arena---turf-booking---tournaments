@@ -745,9 +745,11 @@ export default function AdminInvestorsPage() {
                   <button type="button" disabled={busy} onClick={() => handleToggleStatus(inv)} title={isActive ? 'Deactivate' : 'Reactivate'} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer disabled:opacity-50" aria-label={isActive ? 'Deactivate partner' : 'Reactivate partner'}>
                     {isActive ? <UserMinus className="w-3.5 h-3.5"/> : <UserCheck className="w-3.5 h-3.5 text-emerald-400"/>}
                   </button>
-                  <button type="button" disabled={busy} onClick={() => openDelete(inv)} title="Delete partner" className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-50" aria-label="Delete partner">
-                    <Trash2 className="w-3.5 h-3.5"/>
-                  </button>
+                  {isAdmin && (
+                    <button type="button" disabled={busy} onClick={() => openDelete(inv)} title="Delete partner (Super Admin only)" className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-50" aria-label="Delete partner">
+                      <Trash2 className="w-3.5 h-3.5"/>
+                    </button>
+                  )}
                   <button type="button" disabled={busy || !isActive} onClick={() => openPayout(inv)} className="px-3 py-1.5 rounded-lg bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 text-[12px] font-bold border border-lime-400/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Payout</button>
                 </div>
               </div>
@@ -1268,7 +1270,10 @@ export default function AdminInvestorsPage() {
           <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
-              <h3 id="delete-partner-title" className="text-base font-bold text-white">Delete partner</h3>
+              <div>
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400">Delete Partner · Super Admin</div>
+                <h3 id="delete-partner-title" className="text-base font-bold text-white">Are you sure you want to delete this investor?</h3>
+              </div>
             </div>
 
             <p className="text-slate-400">

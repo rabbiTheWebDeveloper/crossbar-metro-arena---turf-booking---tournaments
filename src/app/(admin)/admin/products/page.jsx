@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Plus, Eye, EyeOff, Trash2, Star } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -32,13 +33,14 @@ const formFromProduct = (p) => ({
 });
 
 export default function AdminProductsPage() {
-    const { shopProducts, handleSaveShopProduct, handleDeleteShopProduct, showNotice, isLoadingData } = useArena();
+    const { shopProducts, handleSaveShopProduct, handleDeleteShopProduct, showNotice, isLoadingData, isAdmin } = useArena();
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [form, setForm] = useState(emptyForm());
     const [formError, setFormError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [busyId, setBusyId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [filter, setFilter] = useState('all');
 
     const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -120,12 +122,17 @@ export default function AdminProductsPage() {
         await handleSaveShopProduct({ id: prod.id, featured: !prod.featured });
         setBusyId(null);
     };
-    const remove = async (prod) => {
-        if (busyId) return;
-        if (!confirm(`Delete "${prod.name}" permanently? Existing orders keep their line items.`)) return;
+    const remove = (prod) => {
+        if (busyId || !isAdmin) return;
+        setDeleteTarget(prod);
+    };
+    const confirmRemove = async () => {
+        if (!deleteTarget || busyId) return;
+        const prod = deleteTarget;
         setBusyId(prod.id);
         const res = await handleDeleteShopProduct(prod.id);
         setBusyId(null);
+        setDeleteTarget(null);
         if (res?.ok) showNotice('success', `${prod.name} deleted`);
     };
 
@@ -204,9 +211,11 @@ export default function AdminProductsPage() {
               <button type="button" disabled={isBusy} onClick={() => toggleVisible(prod)} title={hidden ? 'Show in shop' : 'Hide from shop'} className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white text-xs disabled:opacity-50">
                 {hidden ? <EyeOff className="w-3.5 h-3.5"/> : <Eye className="w-3.5 h-3.5"/>}
               </button>
-              <button type="button" disabled={isBusy} onClick={() => remove(prod)} title="Delete product" className="p-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 text-slate-400 hover:text-rose-300 text-xs disabled:opacity-50">
-                <Trash2 className="w-3.5 h-3.5"/>
-              </button>
+              {isAdmin && (
+                <button type="button" disabled={isBusy} onClick={() => remove(prod)} title="Delete product (Super Admin only)" className="p-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 text-slate-400 hover:text-rose-300 text-xs cursor-pointer disabled:opacity-50">
+                  <Trash2 className="w-3.5 h-3.5"/>
+                </button>
+              )}
             </div>
           </div>);
         })}
@@ -296,6 +305,17 @@ export default function AdminProductsPage() {
             </form>
           </div>
         </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Product · Super Admin"
+        title="Are you sure you want to delete this product?"
+        itemName={deleteTarget?.name || ''}
+        description="This product will be permanently removed from the shop catalog. Existing orders keep their line items."
+        loading={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onCancel={() => { if (!busyId) setDeleteTarget(null); }}
+        onConfirm={confirmRemove}
+      />
 
     </div>);
 }

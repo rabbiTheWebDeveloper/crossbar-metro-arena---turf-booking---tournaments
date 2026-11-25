@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/team-model';
-import { can, requireAuth, optionalAuth, isObjectId, escapeRegex } from '@/lib/apiAuth';
+import { can, requireAuth, optionalAuth, isObjectId, escapeRegex, cleanPhone } from '@/lib/apiAuth';
 import { sanitizePlayer, canManageTeam } from '@/lib/teams';
 
 export async function GET(request, { params }) {
@@ -98,9 +98,11 @@ export async function DELETE(request, { params }) {
         if (!isObjectId(id)) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
         const team = await Team.findById(id);
         if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
-        if (!canManageTeam(user, team)) return NextResponse.json({ error: 'Only the team captain can delete this team.' }, { status: 403 });
-        if ((team.stats?.played || 0) > 0 && !can(user, 'matches')) {
-            return NextResponse.json({ error: 'Teams with recorded matches cannot be deleted. Contact the arena desk.' }, { status: 400 });
+        const isSuperAdmin = user.role === 'admin';
+        const isCaptain = cleanPhone(user.phone) !== '' && cleanPhone(user.phone) === cleanPhone(team.captainPhone);
+        if (!isSuperAdmin && !isCaptain) return NextResponse.json({ error: 'Only Super Admin or the team captain can delete this team.' }, { status: 403 });
+        if ((team.stats?.played || 0) > 0 && !isSuperAdmin) {
+            return NextResponse.json({ error: 'Teams with recorded matches can only be deleted by Super Admin.' }, { status: 403 });
         }
         await team.deleteOne();
         return NextResponse.json({ success: true, message: 'Team deleted' });

@@ -4,7 +4,7 @@ import { readJson, errorResponse } from '@/lib/validate';
 import { User } from '@/models/user-model';
 import { Investor } from '@/models/investor-model';
 import { Customer } from '@/models/customer-model';
-import { requireAuth, requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requireAuth, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { syncCustomerFromUser } from '@/lib/customers';
 import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, sameUser, canEditAccount, isLastActiveAdmin, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
 
@@ -130,7 +130,7 @@ export async function DELETE(request, { params }) {
     try {
         const { id } = await params;
         const permanent = new URL(request.url).searchParams.get('permanent') === '1';
-        const { user: actor, denied } = permanent ? await requireAdmin(request) : await requireAuth(request);
+        const { user: actor, denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         if (!isObjectId(id)) return notFound();
 

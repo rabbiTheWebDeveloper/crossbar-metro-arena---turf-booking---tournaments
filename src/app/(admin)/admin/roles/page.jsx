@@ -10,7 +10,7 @@ const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-4
 const emptyForm = { id: '', name: '', description: '', permissions: [] };
 
 export default function AdminRolesPage() {
-    const { roles, users, isLoadingData, refreshRoles, handleSaveRole, handleDeleteRole } = useArena();
+    const { roles, users, isLoadingData, refreshRoles, handleSaveRole, handleDeleteRole, isAdmin } = useArena();
 
     useEffect(() => { refreshRoles(); }, [refreshRoles]);
 
@@ -113,7 +113,9 @@ export default function AdminRolesPage() {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button type="button" onClick={() => openEdit(role)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer" aria-label={`Edit ${role.name}`} title="Edit role"><Pencil className="w-3.5 h-3.5"/></button>
-                <button type="button" onClick={() => { setDeleteError(''); setDeleting(role); }} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer" aria-label={`Delete ${role.name}`} title="Delete role"><Trash2 className="w-3.5 h-3.5"/></button>
+                {isAdmin && (
+                  <button type="button" onClick={() => { setDeleteError(''); setDeleting(role); }} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer" aria-label={`Delete ${role.name}`} title="Delete role (Super Admin only)"><Trash2 className="w-3.5 h-3.5"/></button>
+                )}
               </div>
             </div>
             {role.description && <p className="text-xs text-slate-400">{role.description}</p>}
@@ -214,7 +216,10 @@ export default function AdminRolesPage() {
           <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
-              <h3 id="role-delete-title" className="text-base font-bold text-white">Delete role</h3>
+              <div>
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400">Delete Role · Super Admin</div>
+                <h3 id="role-delete-title" className="text-base font-bold text-white">Are you sure you want to delete this role?</h3>
+              </div>
             </div>
             {(deleting.userCount || 0) > 0 ? (<>
               <p className="text-slate-300"><strong className="text-white">{deleting.name}</strong> is used by {deleting.userCount} staff account{deleting.userCount === 1 ? '' : 's'}. Move them to another role under <Link href="/admin/users" className="text-lime-400 hover:underline">Users</Link> first, then delete it.</p>

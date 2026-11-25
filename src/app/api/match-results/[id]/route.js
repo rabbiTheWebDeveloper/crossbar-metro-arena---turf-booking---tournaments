@@ -2,7 +2,7 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/match-result-model';
-import { can, requirePermission, requireAuth, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, requireAuth, isObjectId } from '@/lib/apiAuth';
 import { syncStandings, applyResultToStandings } from '@/lib/standings';
 
 /** PATCH /api/match-results/:id  (admin: approve / reject / edit) */
@@ -55,8 +55,8 @@ export async function DELETE(request, { params }) {
         const result = await MatchResult.findById(id);
         if (!result) return NextResponse.json({ error: 'Match result not found' }, { status: 404 });
         const isOwner = result.userId && result.userId === String(user.userId || user.id);
-        if (!can(user, 'matches') && !(isOwner && result.status === 'pending_approval')) {
-            return NextResponse.json({ error: 'You can only withdraw your own result while it is pending.' }, { status: 403 });
+        if (user.role !== 'admin' && !(isOwner && result.status === 'pending_approval')) {
+            return NextResponse.json({ error: 'Only Super Admin can delete match results (players may only withdraw their own pending result).' }, { status: 403 });
         }
         if (result.standingsApplied) await applyResultToStandings(result, -1);
         await result.deleteOne();

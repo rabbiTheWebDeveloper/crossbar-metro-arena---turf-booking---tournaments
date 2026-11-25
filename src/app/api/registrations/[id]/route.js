@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/tournament-registration-model';
 import { readJson, badRequest } from '@/lib/validate';
@@ -58,7 +58,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'registrations');
+        const { denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;

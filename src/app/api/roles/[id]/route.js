@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Role } from '@/models/role-model';
 import { User } from '@/models/user-model';
-import { requireAdmin, isObjectId } from '@/lib/apiAuth';
+import { requireAdmin, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parseRoleInput, rolesWithCounts } from '@/lib/roleAdmin';
 
@@ -38,7 +38,7 @@ export async function PUT(request, { params }) {
 /** DELETE /api/roles/:id (admin) - refused while any account still uses the role. */
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return notFound();

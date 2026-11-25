@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Plus, Pencil, Trash2, Lock, Unlock } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -36,13 +37,14 @@ const STATUS_STYLE = {
 };
 
 export default function AdminEventsPage() {
-    const { tournaments, registrations, handleSaveTournament, handleDeleteTournament, showNotice, isLoadingData } = useArena();
+    const { tournaments, registrations, handleSaveTournament, handleDeleteTournament, showNotice, isLoadingData, isAdmin } = useArena();
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(emptyForm());
     const [formError, setFormError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [busyId, setBusyId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
     const sorted = useMemo(() => [...tournaments].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))), [tournaments]);
@@ -101,13 +103,17 @@ export default function AdminEventsPage() {
         setBusyId(null);
         if (!res?.ok) showNotice('error', res?.error || 'Could not update the tournament.');
     };
-    const remove = async (t) => {
-        if (busyId) return;
-        const regs = regCount(t);
-        if (!confirm(`Delete "${t.title}" permanently?${regs ? ` ${regs} registration(s) reference it.` : ''}`)) return;
+    const remove = (t) => {
+        if (busyId || !isAdmin) return;
+        setDeleteTarget(t);
+    };
+    const confirmRemove = async () => {
+        if (!deleteTarget || busyId) return;
+        const t = deleteTarget;
         setBusyId(t.id);
         const res = await handleDeleteTournament(t.id);
         setBusyId(null);
+        setDeleteTarget(null);
         if (res?.ok) showNotice('success', 'Tournament deleted');
     };
 
@@ -190,9 +196,11 @@ export default function AdminEventsPage() {
                 </button>) : (<button type="button" disabled={isBusy} onClick={() => setStatus(t, 'open')} className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs flex items-center justify-center gap-1 disabled:opacity-50">
                   <Unlock className="w-3.5 h-3.5"/><span>Reopen</span>
                 </button>)}
-              <button type="button" disabled={isBusy} onClick={() => remove(t)} className="p-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 text-slate-400 hover:text-rose-300 disabled:opacity-50" title="Delete tournament">
-                <Trash2 className="w-3.5 h-3.5"/>
-              </button>
+              {isAdmin && (
+                <button type="button" disabled={isBusy} onClick={() => remove(t)} className="p-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-50" title="Delete tournament (Super Admin only)">
+                  <Trash2 className="w-3.5 h-3.5"/>
+                </button>
+              )}
             </div>
           </div>);
         })}
@@ -298,6 +306,21 @@ export default function AdminEventsPage() {
             </form>
           </div>
         </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Tournament · Super Admin"
+        title="Are you sure you want to delete this tournament?"
+        itemName={deleteTarget?.title || ''}
+        description={
+          deleteTarget
+            ? `This tournament will be permanently deleted.${regCount(deleteTarget) ? ` ${regCount(deleteTarget)} team registration(s) reference it.` : ''}`
+            : ''
+        }
+        loading={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onCancel={() => { if (!busyId) setDeleteTarget(null); }}
+        onConfirm={confirmRemove}
+      />
 
     </div>);
 }

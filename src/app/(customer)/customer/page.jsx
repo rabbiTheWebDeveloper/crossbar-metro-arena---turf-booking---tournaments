@@ -4,6 +4,7 @@ import { useArena, cleanPhone, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { PageHero } from '@/components/PageHero';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal } from 'lucide-react';
 import { DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, CHANNEL_LABELS, REMINDER_HOURS } from '@/lib/customerMeta';
 import Link from 'next/link';
@@ -232,12 +233,34 @@ export default function CustomerDashboard() {
         setPlayerNumber(next);
     };
 
-    const onRemovePlayer = async (p) => {
+    const [confirmModal, setConfirmModal] = useState(null); // { badge, title, itemName, description, confirmLabel, run }
+    const [confirmBusy, setConfirmBusy] = useState(false);
+
+    const runConfirmedAction = async () => {
+        if (!confirmModal || confirmBusy) return;
+        setConfirmBusy(true);
+        try {
+            await confirmModal.run();
+            setConfirmModal(null);
+        } finally {
+            setConfirmBusy(false);
+        }
+    };
+
+    const onRemovePlayer = (p) => {
         if (!selectedTeam || !p?.id) return;
-        if (!confirm(`Remove ${p.name} from ${selectedTeam.name}?`)) return;
-        setRemovingPlayerId(p.id);
-        await handleRemovePlayerFromTeam(selectedTeam.id, p.id); // error (if any) is shown by the context
-        setRemovingPlayerId('');
+        setConfirmModal({
+            badge: 'Remove Squad Player',
+            title: 'Are you sure you want to delete this player from the squad?',
+            itemName: `${p.name} (#${p.number} · ${p.position})`,
+            description: `Removes ${p.name} from ${selectedTeam.name}'s roster.`,
+            confirmLabel: 'Yes, Remove',
+            run: async () => {
+                setRemovingPlayerId(p.id);
+                await handleRemovePlayerFromTeam(selectedTeam.id, p.id);
+                setRemovingPlayerId('');
+            }
+        });
     };
 
     // ---- Post match result ----
@@ -314,11 +337,19 @@ export default function CustomerDashboard() {
         if (published) { try { confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } }); } catch { /* ignore */ } }
     };
 
-    const onWithdrawResult = async (m) => {
-        if (!confirm(`Withdraw the submitted result ${m.homeTeam} ${m.homeScore}–${m.awayScore} ${m.awayTeam}?`)) return;
-        setWithdrawingId(m.id);
-        await handleDeleteMatchResult(m.id);
-        setWithdrawingId('');
+    const onWithdrawResult = (m) => {
+        setConfirmModal({
+            badge: 'Delete Submitted Result',
+            title: 'Are you sure you want to delete this submitted result?',
+            itemName: `${m.homeTeam} ${m.homeScore} – ${m.awayScore} ${m.awayTeam}`,
+            description: 'Your pending match scorecard will be withdrawn.',
+            confirmLabel: 'Yes, Delete',
+            run: async () => {
+                setWithdrawingId(m.id);
+                await handleDeleteMatchResult(m.id);
+                setWithdrawingId('');
+            }
+        });
     };
 
     // ---- Challenges ----
@@ -356,11 +387,19 @@ export default function CustomerDashboard() {
         await handleUpdateChallenge(c.id, { status: 'closed' });
         setChallengeBusyId('');
     };
-    const onDeleteChallenge = async (c) => {
-        if (!confirm(`Delete the challenge for ${c.teamName} on ${c.date}?`)) return;
-        setChallengeBusyId(c.id);
-        await handleDeleteChallenge(c.id);
-        setChallengeBusyId('');
+    const onDeleteChallenge = (c) => {
+        setConfirmModal({
+            badge: 'Delete Challenge',
+            title: 'Are you sure you want to delete this challenge?',
+            itemName: `${c.teamName} · ${c.date} (${c.timeSlot})`,
+            description: 'This challenge will be removed from the public Match Day board.',
+            confirmLabel: 'Yes, Delete',
+            run: async () => {
+                setChallengeBusyId(c.id);
+                await handleDeleteChallenge(c.id);
+                setChallengeBusyId('');
+            }
+        });
     };
 
     // ---- Profile ----
@@ -1128,5 +1167,17 @@ export default function CustomerDashboard() {
 
         </>)}
       </div>
+
+      <ConfirmDeleteModal
+        open={Boolean(confirmModal)}
+        badge={confirmModal?.badge || 'Delete Confirmation'}
+        title={confirmModal?.title || 'Are you sure you want to delete this?'}
+        itemName={confirmModal?.itemName || ''}
+        description={confirmModal?.description || 'This action cannot be undone.'}
+        confirmLabel={confirmModal?.confirmLabel || 'Yes, Delete'}
+        loading={confirmBusy}
+        onCancel={() => { if (!confirmBusy) setConfirmModal(null); }}
+        onConfirm={runConfirmedAction}
+      />
     </>);
 }

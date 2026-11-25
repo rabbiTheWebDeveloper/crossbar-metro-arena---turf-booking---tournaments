@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +22,10 @@ const parseLocalDate = (iso) => {
 };
 
 export default function AdminMatchResultsPage() {
-    const { matchResults, handleSaveMatchResult, handleDeleteMatchResult, showNotice, isLoadingData, pricing } = useArena();
+    const { matchResults, handleSaveMatchResult, handleDeleteMatchResult, showNotice, isLoadingData, pricing, isAdmin } = useArena();
     const [tab, setTab] = useState('pending_approval');
     const [busyId, setBusyId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
     const counts = useMemo(() => ({
         pending_approval: matchResults.filter(r => r.status === 'pending_approval').length,
@@ -43,12 +45,17 @@ export default function AdminMatchResultsPage() {
         setBusyId(null);
         if (!r?.ok) showNotice('error', r?.error || 'Could not update the result.');
     };
-    const remove = async (res) => {
-        if (busyId) return;
-        if (!confirm(`Delete the ${res.homeTeam} vs ${res.awayTeam} result permanently?${res.status === 'published' ? ' Team stats from this match will be reversed.' : ''}`)) return;
+    const remove = (res) => {
+        if (busyId || !isAdmin) return;
+        setDeleteTarget(res);
+    };
+    const confirmRemove = async () => {
+        if (!deleteTarget || busyId) return;
+        const res = deleteTarget;
         setBusyId(res.id);
         const r = await handleDeleteMatchResult(res.id);
         setBusyId(null);
+        setDeleteTarget(null);
         if (r?.ok) showNotice('success', 'Match result deleted');
     };
 
@@ -149,14 +156,31 @@ export default function AdminMatchResultsPage() {
                   {isRejected && (<button type="button" disabled={isBusy} onClick={() => setStatus(res, 'published')} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-lime-400/20 text-slate-300 hover:text-lime-300 font-bold text-xs cursor-pointer disabled:opacity-60">
                       Publish anyway
                     </button>)}
-                  <button type="button" disabled={isBusy} onClick={() => remove(res)} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 font-bold text-xs cursor-pointer flex items-center gap-1 disabled:opacity-60" title="Delete result">
-                    <Trash2 className="w-3.5 h-3.5"/>
-                    <span>Delete</span>
-                  </button>
+                  {isAdmin && (
+                    <button type="button" disabled={isBusy} onClick={() => remove(res)} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 font-bold text-xs cursor-pointer flex items-center gap-1 disabled:opacity-60" title="Delete result (Super Admin only)">
+                      <Trash2 className="w-3.5 h-3.5"/>
+                      <span>Delete</span>
+                    </button>
+                  )}
                 </div>
               </div>);
             })}
         </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Match Result · Super Admin"
+        title="Are you sure you want to delete this match result?"
+        itemName={deleteTarget ? `${deleteTarget.homeTeam} ${deleteTarget.homeScore} : ${deleteTarget.awayScore} ${deleteTarget.awayTeam}` : ''}
+        description={
+          deleteTarget?.status === 'published'
+            ? 'This match result will be permanently deleted and team leaderboard stats from this match will be reversed.'
+            : 'This match result will be permanently deleted and cannot be undone.'
+        }
+        loading={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onCancel={() => { if (!busyId) setDeleteTarget(null); }}
+        onConfirm={confirmRemove}
+      />
 
     </div>);
 }

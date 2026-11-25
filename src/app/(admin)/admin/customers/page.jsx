@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { listCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer, syncCustomers } from '@/lib/customerApi';
 import { CUSTOMER_SOURCES, CHANNEL_LABELS, sourceLabel } from '@/lib/customerMeta';
+import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 25;
@@ -39,6 +41,7 @@ const SourceChip = ({ source }) => (
 );
 
 export default function AdminCustomersPage() {
+    const { isAdmin } = useArena();
     const [rows, setRows] = useState([]);
     const [total, setTotal] = useState(0);
     const [pages, setPages] = useState(1);
@@ -59,6 +62,8 @@ export default function AdminCustomersPage() {
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState('');
     const [deletingId, setDeletingId] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteError, setDeleteError] = useState('');
     const [syncing, setSyncing] = useState(false);
     const [flash, setFlash] = useState(null); // { type, text }
 
@@ -137,13 +142,24 @@ export default function AdminCustomersPage() {
         if (adding && page !== 1) setPage(1); else load();
     };
 
-    const remove = async (c) => {
-        const extra = c.userId ? ' Their login account is not affected.' : '';
-        if (!confirm(`Remove ${c.name} (${c.phone}) from the customer list?${extra} Their bookings and orders are kept, and they reappear the next time they book or when you sync.`)) return;
+    const remove = (c) => {
+        if (!isAdmin || !c) return;
+        setDeleteError('');
+        setDeleteTarget(c);
+    };
+
+    const confirmRemove = async () => {
+        if (!deleteTarget || deletingId) return;
+        const c = deleteTarget;
         setDeletingId(c.id);
+        setDeleteError('');
         const r = await deleteCustomer(c.id);
         setDeletingId('');
-        if (!r.ok) { setFlash({ type: 'error', text: r.error }); return; }
+        if (!r.ok) {
+            setDeleteError(r.error || 'Could not delete customer.');
+            return;
+        }
+        setDeleteTarget(null);
         setFlash({ type: 'success', text: r.data.message });
         if (editor?.customer?.id === c.id) closeEditor();
         load();
@@ -287,9 +303,11 @@ export default function AdminCustomersPage() {
                       <button type="button" onClick={() => openEdit(c)} className="px-2.5 py-1.5 rounded-lg bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold border border-lime-400/20 transition-colors cursor-pointer flex items-center gap-1">
                         <Pencil className="w-3 h-3"/> View / Edit
                       </button>
-                      <button type="button" onClick={() => remove(c)} disabled={deletingId === c.id} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-40" title="Remove from the customer list" aria-label={`Remove ${c.name}`}>
-                        {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4"/>}
-                      </button>
+                      {isAdmin && (
+                        <button type="button" onClick={() => remove(c)} disabled={deletingId === c.id} className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-40" title="Delete customer (Super Admin only)" aria-label={`Delete ${c.name}`}>
+                          {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4"/>}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>);
@@ -356,8 +374,8 @@ export default function AdminCustomersPage() {
             {formError && (<div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-2"><AlertTriangle className="w-4 h-4 shrink-0"/> {formError}</div>)}
 
             <div className="flex gap-2 pt-1">
-              {editor.mode === 'edit' && (<button type="button" onClick={() => remove(editor.customer)} className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 cursor-pointer flex items-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5"/> Remove
+              {isAdmin && editor.mode === 'edit' && (<button type="button" onClick={() => remove(editor.customer)} className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 cursor-pointer flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5"/> Delete
               </button>)}
               <button type="button" onClick={closeEditor} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer">Cancel</button>
               <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
@@ -436,5 +454,21 @@ export default function AdminCustomersPage() {
           </div>)}
         </div>
       </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Customer · Super Admin"
+        title="Are you sure you want to delete this customer?"
+        itemName={deleteTarget ? `${deleteTarget.name} · ${deleteTarget.phone}` : ''}
+        description={
+          deleteTarget
+            ? `Removes this customer from the directory.${deleteTarget.userId ? ' Their login account is not affected.' : ''} Past bookings and orders are kept.`
+            : ''
+        }
+        loading={Boolean(deletingId)}
+        error={deleteError}
+        onCancel={() => { if (!deletingId) setDeleteTarget(null); }}
+        onConfirm={confirmRemove}
+      />
     </div>);
 }

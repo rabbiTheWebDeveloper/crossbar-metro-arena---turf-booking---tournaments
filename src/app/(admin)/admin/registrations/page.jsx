@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Search, Pencil, Users, Phone, Mail, Shirt, CreditCard, CheckCircle2, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ const playersOf = (r) => {
 };
 
 export default function AdminRegistrationsPage() {
-    const { registrations, handleUpdateRegistration, handleDeleteRegistration } = useArena();
+    const { registrations, handleUpdateRegistration, handleDeleteRegistration, isAdmin } = useArena();
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('all');
     const [editing, setEditing] = useState(null);
@@ -24,6 +25,8 @@ export default function AdminRegistrationsPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deletingReg, setDeletingReg] = useState(false);
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase();
@@ -106,13 +109,20 @@ export default function AdminRegistrationsPage() {
         }
     };
 
-    const handleDelete = async (r) => {
-        if (!confirm(`Delete registration of ${r.teamName} for ${r.tournamentTitle}? This cannot be undone.`)) return;
+    const handleDelete = (r) => {
+        if (!isAdmin || deletingReg) return;
+        setDeleteTarget(r);
+    };
+
+    const confirmDeleteRegistration = async () => {
+        if (!deleteTarget || deletingReg) return;
+        setDeletingReg(true);
         try {
-            await handleDeleteRegistration(r.id);
-            setEditing(null);
-        } catch (err) {
-            alert(err.message);
+            await handleDeleteRegistration(deleteTarget.id);
+            if (editing?.id === deleteTarget.id) setEditing(null);
+            setDeleteTarget(null);
+        } finally {
+            setDeletingReg(false);
         }
     };
 
@@ -192,6 +202,11 @@ export default function AdminRegistrationsPage() {
               {(confirmed || rejected) && (<button type="button" onClick={() => setStatus(reg, 'pending')} className="ml-auto px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold cursor-pointer">
                 Back to pending
               </button>)}
+              {isAdmin && (
+                <button type="button" onClick={() => handleDelete(reg)} title="Delete registration (Super Admin only)" aria-label={`Delete ${reg.teamName}`} className="p-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 cursor-pointer">
+                  <Trash2 className="w-3.5 h-3.5"/>
+                </button>
+              )}
             </div>
           </div>);
         })}
@@ -272,9 +287,11 @@ export default function AdminRegistrationsPage() {
             {success && (<div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-start gap-2"><CheckCircle2 className="w-4 h-4 shrink-0"/> {success}</div>)}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <button type="button" onClick={() => handleDelete(editing)} className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold cursor-pointer flex items-center justify-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5"/> Delete
-              </button>
+              {isAdmin && (
+                <button type="button" onClick={() => handleDelete(editing)} className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold cursor-pointer flex items-center justify-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5"/> Delete
+                </button>
+              )}
               <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer">Cancel</button>
               <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin"/>} Save changes
@@ -283,5 +300,16 @@ export default function AdminRegistrationsPage() {
           </form>
         </div>
       </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Registration · Super Admin"
+        title="Are you sure you want to delete this registration?"
+        itemName={deleteTarget ? `${deleteTarget.teamName} · ${deleteTarget.tournamentTitle}` : ''}
+        description="This tournament registration will be permanently removed and cannot be undone."
+        loading={deletingReg}
+        onCancel={() => { if (!deletingReg) setDeleteTarget(null); }}
+        onConfirm={confirmDeleteRegistration}
+      />
     </div>);
 }

@@ -397,6 +397,12 @@ export async function DELETE(request) {
         if (!seriesId) {
             return badRequest('seriesId is required');
         }
+        if (scope === 'all' && actor?.role !== 'admin') {
+            return NextResponse.json(
+                { error: 'Only Super Admin can cancel an entire series including past dates.' },
+                { status: 403 }
+            );
+        }
         const query = { seriesId, paymentStatus: { $ne: 'cancelled' } };
         if (scope !== 'all') query.date = { $gte: todayDhaka() };
         const result = await Booking.updateMany(query, {

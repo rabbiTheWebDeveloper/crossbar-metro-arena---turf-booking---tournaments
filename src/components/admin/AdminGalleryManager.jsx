@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Camera, Plus, Search, Eye, Star, Trash2, Edit3, Copy, Check, ExternalLink, Layers, Image as ImageIcon, X, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 
 const ALBUMS = ['Matches', 'Arena', 'Tournaments', 'Facilities', 'Night Floodlights', 'Community'];
@@ -19,7 +20,7 @@ const fmtDate = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(iso || '') ? parseLocalDate(
 const emptyForm = () => ({ title: '', album: 'Matches', caption: '', url: '', aspect: 'wide', featured: false, photographer: '', tags: '' });
 
 export default function AdminGalleryManager() {
-    const { galleryPhotos, handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto, showNotice, isLoadingData } = useArena();
+    const { galleryPhotos, handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto, showNotice, isLoadingData, isAdmin } = useArena();
     // Search, filter & view modes
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAlbum, setSelectedAlbum] = useState('All');
@@ -31,6 +32,7 @@ export default function AdminGalleryManager() {
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
     const [busyId, setBusyId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const [previewFailed, setPreviewFailed] = useState(false);
@@ -111,12 +113,17 @@ export default function AdminGalleryManager() {
         setBusyId(null);
         if (res?.ok) showNotice('success', photo.featured ? 'Removed from featured' : 'Pinned to featured highlights');
     };
-    const remove = async (photo) => {
-        if (busyId) return;
-        if (!confirm(`Delete "${photo.title}" from the gallery?`)) return;
+    const remove = (photo) => {
+        if (busyId || !isAdmin) return;
+        setDeleteTarget(photo);
+    };
+    const confirmRemovePhoto = async () => {
+        if (!deleteTarget || busyId) return;
+        const photo = deleteTarget;
         setBusyId(photo.id);
         const res = await handleDeletePhoto(photo.id);
         setBusyId(null);
+        setDeleteTarget(null);
         if (res?.ok) { showNotice('success', 'Photo deleted'); setLightboxIndex(null); }
     };
 
@@ -266,9 +273,11 @@ export default function AdminGalleryManager() {
                   <button type="button" onClick={() => handleCopyUrl(photo)} className="p-2.5 rounded-xl bg-white/10 hover:bg-emerald-500 text-white hover:text-slate-950 transition-colors shadow-lg cursor-pointer" title="Copy URL">
                     {copiedId === photo.id ? <Check className="w-4 h-4 text-emerald-300"/> : <Copy className="w-4 h-4"/>}
                   </button>
-                  <button type="button" disabled={isBusy} onClick={() => remove(photo)} className="p-2.5 rounded-xl bg-white/10 hover:bg-rose-500 text-white transition-colors shadow-lg cursor-pointer disabled:opacity-50" title="Delete">
-                    <Trash2 className="w-4 h-4"/>
-                  </button>
+                  {isAdmin && (
+                    <button type="button" disabled={isBusy} onClick={() => remove(photo)} className="p-2.5 rounded-xl bg-white/10 hover:bg-rose-500 text-white transition-colors shadow-lg cursor-pointer disabled:opacity-50" title="Delete (Super Admin only)">
+                      <Trash2 className="w-4 h-4"/>
+                    </button>
+                  )}
                 </div>
 
                 <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-slate-300 pointer-events-none">
@@ -332,7 +341,9 @@ export default function AdminGalleryManager() {
                       <button type="button" onClick={() => handleCopyUrl(photo)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white" title="Copy URL">
                         {copiedId === photo.id ? <Check className="w-3.5 h-3.5 text-emerald-400"/> : <Copy className="w-3.5 h-3.5"/>}
                       </button>
-                      <button type="button" disabled={isBusy} onClick={() => remove(photo)} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 disabled:opacity-50" title="Delete"><Trash2 className="w-3.5 h-3.5"/></button>
+                      {isAdmin && (
+                        <button type="button" disabled={isBusy} onClick={() => remove(photo)} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 cursor-pointer disabled:opacity-50" title="Delete (Super Admin only)"><Trash2 className="w-3.5 h-3.5"/></button>
+                      )}
                     </div>
                   </td>
                 </tr>);
@@ -450,6 +461,17 @@ export default function AdminGalleryManager() {
             </div>
           </div>
         </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Photo · Super Admin"
+        title="Are you sure you want to delete this photo?"
+        itemName={deleteTarget?.title || ''}
+        description="This photo will be permanently deleted from the gallery and cannot be undone."
+        loading={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onCancel={() => { if (!busyId) setDeleteTarget(null); }}
+        onConfirm={confirmRemovePhoto}
+      />
 
     </div>);
 }

@@ -33,7 +33,7 @@ const addMonths = (iso, months) => {
 const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition-colors';
 
 export default function AdminRecurringBookingsPage() {
-    const { pricing, showNotice, handleCreateRecurringBookings, handleCancelSeries, refreshBookings } = useArena();
+    const { pricing, showNotice, handleCreateRecurringBookings, handleCancelSeries, refreshBookings, isAdmin } = useArena();
 
     const todayStr = useMemo(() => todayDhaka(), []);
 
@@ -525,8 +525,8 @@ export default function AdminRecurringBookingsPage() {
                     {busyUpcoming ? 'Cancelling…' : 'Cancel upcoming'}
                   </button>
                 )}
-                {s.active > 0 && (
-                  <button type="button" disabled={busyUpcoming || busyAll} onClick={() => handleCancel(s, 'all')} className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer disabled:opacity-50" title="Cancel entire series" aria-label={`Cancel entire series ${s.seriesId}`}>
+                {isAdmin && s.active > 0 && (
+                  <button type="button" disabled={busyUpcoming || busyAll} onClick={() => handleCancel(s, 'all')} className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer disabled:opacity-50" title="Cancel entire series (Super Admin only)" aria-label={`Cancel entire series ${s.seriesId}`}>
                     {busyAll ? <Loader2 className="w-4 h-4 animate-spin"/> : <XCircle className="w-4 h-4"/>}
                   </button>
                 )}

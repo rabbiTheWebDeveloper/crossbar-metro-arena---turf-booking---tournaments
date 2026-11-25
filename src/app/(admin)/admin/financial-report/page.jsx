@@ -3,11 +3,12 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { formatMoney, formatDate, formatMonth, shiftMonth, EXPENSE_CATEGORIES, INCOME_SOURCES, expenseCategoryLabel, slotShortLabel } from '@/data/finance';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default function AdminFinancialReportPage() {
-    const { calculateMonthlyFinance, expenses, isLoadingData, handleAddExpense, handleDeleteExpense, handleAddOtherIncome } = useArena();
+    const { calculateMonthlyFinance, expenses, isLoadingData, handleAddExpense, handleDeleteExpense, handleAddOtherIncome, isAdmin } = useArena();
     const [selectedMonth, setSelectedMonth] = useState(() => todayDhaka().slice(0, 7));
     const financeReport = useMemo(() => calculateMonthlyFinance(selectedMonth), [calculateMonthlyFinance, selectedMonth]);
 
@@ -24,6 +25,7 @@ export default function AdminFinancialReportPage() {
     const [isSavingIncome, setIsSavingIncome] = useState(false);
 
     const [deletingId, setDeletingId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [showAllExpenses, setShowAllExpenses] = useState(false);
 
     const openExpenseModal = () => {
@@ -61,11 +63,18 @@ export default function AdminFinancialReportPage() {
         setShowIncomeModal(false);
     };
 
-    const handleDelete = async (expense) => {
-        if (!confirm(`Delete "${expense.title}" (${formatMoney(expense.amount)})?`)) return;
+    const handleDelete = (expense) => {
+        if (!isAdmin || deletingId) return;
+        setDeleteTarget(expense);
+    };
+
+    const confirmDeleteExpense = async () => {
+        if (!deleteTarget || deletingId) return;
+        const expense = deleteTarget;
         setDeletingId(expense.id);
         await handleDeleteExpense(expense.id);
         setDeletingId(null);
+        setDeleteTarget(null);
     };
 
     const monthExpenses = useMemo(() => {
@@ -335,9 +344,11 @@ export default function AdminFinancialReportPage() {
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-mono font-bold text-white">{formatMoney(e.amount)}</span>
-                  <button type="button" disabled={deletingId === e.id} onClick={() => handleDelete(e)} className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer disabled:opacity-40" aria-label={`Delete ${e.title}`}>
-                    ✕
-                  </button>
+                  {isAdmin && (
+                    <button type="button" disabled={deletingId === e.id} onClick={() => handleDelete(e)} className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 cursor-pointer disabled:opacity-40" title="Delete expense (Super Admin only)" aria-label={`Delete ${e.title}`}>
+                      <Trash2 className="w-3.5 h-3.5"/>
+                    </button>
+                  )}
                 </div>
               </div>))}
           </div>
@@ -468,6 +479,17 @@ export default function AdminFinancialReportPage() {
             </form>
           </div>
         </div>)}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteTarget)}
+        badge="Delete Expense · Super Admin"
+        title="Are you sure you want to delete this expense?"
+        itemName={deleteTarget ? `${deleteTarget.title} · ${formatMoney(deleteTarget.amount)}` : ''}
+        description="This expense entry will be permanently deleted from the financial ledger and cannot be undone."
+        loading={Boolean(deletingId)}
+        onCancel={() => { if (!deletingId) setDeleteTarget(null); }}
+        onConfirm={confirmDeleteExpense}
+      />
 
     </div>);
 }

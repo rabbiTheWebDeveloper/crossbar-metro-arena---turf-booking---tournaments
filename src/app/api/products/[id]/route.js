@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/product-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -40,7 +40,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'products');
+        const { denied } = await requireSuperAdminDelete(request);
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });

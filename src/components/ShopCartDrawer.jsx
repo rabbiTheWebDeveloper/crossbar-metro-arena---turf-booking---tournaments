@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
 import { BD_PHONE_REGEX } from '../lib/dateUtils';
 import { X, ShoppingBag, Trash2, CheckCircle2, Store, ArrowRight, AlertTriangle, Loader2 } from 'lucide-react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import confetti from 'canvas-confetti';
 
 export const ShopCartDrawer = () => {
@@ -12,6 +13,7 @@ export const ShopCartDrawer = () => {
     const [reservationConfirmed, setReservationConfirmed] = useState(null);
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [pendingRemoveItem, setPendingRemoveItem] = useState(null);
 
     // Live product data (stock/visibility may have changed since the item was bagged)
     const liveProduct = (id) => shopProducts.find(p => p.id === id);
@@ -127,7 +129,7 @@ export const ShopCartDrawer = () => {
                             <AlertTriangle className="w-3 h-3"/> {problem}
                           </div>)}
                       </div>
-                      <button type="button" onClick={() => removeFromCart(item.product.id, item.selectedSize)} aria-label="Remove" className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer">
+                      <button type="button" onClick={() => setPendingRemoveItem(item)} aria-label="Remove item" className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer">
                         <Trash2 className="w-4 h-4"/>
                       </button>
                     </div>);
@@ -171,5 +173,20 @@ export const ShopCartDrawer = () => {
         </div>
 
       </div>
+      <ConfirmDeleteModal
+        open={Boolean(pendingRemoveItem)}
+        badge="Remove Item"
+        title="Are you sure you want to delete this item?"
+        itemName={pendingRemoveItem ? `${pendingRemoveItem.product.name}${pendingRemoveItem.selectedSize ? ` (Size: ${pendingRemoveItem.selectedSize})` : ''}` : ''}
+        description="This item will be removed from your shop pickup bag."
+        confirmLabel="Yes, Remove"
+        onCancel={() => setPendingRemoveItem(null)}
+        onConfirm={() => {
+          if (pendingRemoveItem) {
+            removeFromCart(pendingRemoveItem.product.id, pendingRemoveItem.selectedSize);
+            setPendingRemoveItem(null);
+          }
+        }}
+      />
     </div>);
 };

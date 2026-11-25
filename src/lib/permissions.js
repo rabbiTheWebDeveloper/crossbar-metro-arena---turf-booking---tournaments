@@ -45,6 +45,9 @@ export function hasPermission(user, permission) {
 
 export const canAccessAdminPortal = (user) => user?.role === 'admin' || user?.role === 'staff';
 
+/** Only Super Admin (`role === 'admin'`) is permitted to delete records across the admin portal. */
+export const canDelete = (user) => user?.role === 'admin';
+
 /** Starting points offered when creating a staff role. */
 export const ROLE_TEMPLATES = [
     { name: 'Manager', description: 'Runs the arena day to day. Everything except users and roles.', permissions: PERMISSION_KEYS },

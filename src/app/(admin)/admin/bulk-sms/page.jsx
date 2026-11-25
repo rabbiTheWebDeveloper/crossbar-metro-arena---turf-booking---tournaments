@@ -5,8 +5,10 @@ import {
     MessageSquare, Send, Users, Phone, Wallet, Clock, AlertTriangle, CheckCircle2,
     RefreshCw, Search, Calendar, Sparkles, ChevronDown, ChevronUp, ChevronLeft,
     ChevronRight, FileText, Download, X, CheckSquare, Square, Settings, BellRing,
-    Copy, Check, Loader2, ShieldAlert, Layers
+    Copy, Check, Loader2, ShieldAlert, Layers, Trash2
 } from 'lucide-react';
+import { useArena } from '@/context/ArenaContext';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { parsePhoneTokens, estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
 
 export const dynamic = 'force-dynamic';
@@ -96,6 +98,7 @@ function csvCell(value) {
 }
 
 export default function AdminBulkSmsPage() {
+    const { isAdmin, showNotice } = useArena();
     // Gateway status & KPI stats
     const [smsInfo, setSmsInfo] = useState({
         configured: false,
@@ -156,6 +159,9 @@ export default function AdminBulkSmsPage() {
     const [checkingLogId, setCheckingLogId] = useState('');
     const [activeReportModal, setActiveReportModal] = useState(null);
     const [copiedId, setCopiedId] = useState('');
+    const [deleteLogTarget, setDeleteLogTarget] = useState(null);
+    const [deletingLog, setDeletingLog] = useState(false);
+    const [deleteLogError, setDeleteLogError] = useState('');
 
     const latestHistoryReq = useRef(0);
 
@@ -516,6 +522,30 @@ export default function AdminBulkSmsPage() {
             setRecipientTab('manual');
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleConfirmDeleteLog = async () => {
+        if (!deleteLogTarget || deletingLog) return;
+        setDeletingLog(true);
+        setDeleteLogError('');
+        try {
+            const res = await fetch(`/api/sms?id=${encodeURIComponent(deleteLogTarget.id)}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setDeleteLogError(data.error || 'Could not delete SMS log.');
+                return;
+            }
+            setDeleteLogTarget(null);
+            showNotice?.('success', 'SMS history record deleted.');
+            loadHistoryAndStatus();
+        } catch {
+            setDeleteLogError('Network error while deleting SMS log.');
+        } finally {
+            setDeletingLog(false);
+        }
     };
 
     const handleCopyText = async (key, value) => {
@@ -1453,6 +1483,17 @@ export default function AdminBulkSmsPage() {
                                                     >
                                                         Reuse in Composer
                                                     </button>
+                                                    {isAdmin && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setDeleteLogError(''); setDeleteLogTarget(log); }}
+                                                            className="px-2.5 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-[11px] font-semibold text-rose-300 inline-flex items-center gap-1 cursor-pointer"
+                                                            title="Delete SMS log (Super Admin only)"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1647,6 +1688,18 @@ export default function AdminBulkSmsPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmDeleteModal
+                open={Boolean(deleteLogTarget)}
+                badge="Delete SMS Log · Super Admin"
+                title="Are you sure you want to delete this SMS log?"
+                itemName={deleteLogTarget ? `${deleteLogTarget.recipientSummary || 'SMS Record'}${deleteLogTarget.requestId ? ` (#${deleteLogTarget.requestId})` : ''}` : ''}
+                description="This removes the log record from your local SMS history. Carrier delivery status on sms.net.bd is unaffected."
+                loading={deletingLog}
+                error={deleteLogError}
+                onCancel={() => { if (!deletingLog) setDeleteLogTarget(null); }}
+                onConfirm={handleConfirmDeleteLog}
+            />
         </div>
     );
 }

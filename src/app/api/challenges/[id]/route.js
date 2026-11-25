@@ -60,7 +60,7 @@ export async function DELETE(request, { params }) {
         if (!isObjectId(id)) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
         const c = await Challenge.findById(id);
         if (!c) return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
-        if (!isOwner(user, c) && !can(user, 'matches')) return NextResponse.json({ error: 'Only the poster can delete this challenge.' }, { status: 403 });
+        if (!isOwner(user, c) && user.role !== 'admin') return NextResponse.json({ error: 'Only Super Admin or the challenge poster can delete this challenge.' }, { status: 403 });
         await c.deleteOne();
         return NextResponse.json({ success: true, message: 'Challenge removed' });
     } catch (err) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { hasPermission, canOpenAdminPath, cleanPermissions } from '@/lib/permissions';
+import { hasPermission, canOpenAdminPath, cleanPermissions, canDelete } from '@/lib/permissions';
 import { publicBaseUrl } from '@/lib/baseUrl';
 
 describe('admin permissions & route guards', () => {
@@ -37,6 +37,17 @@ describe('admin permissions & route guards', () => {
         expect(hasPermission(financeStaff, ['players', 'investors'])).toBe(true);
         expect(hasPermission(financeStaff, ['players', 'bookings'])).toBe(false);
         expect(cleanPermissions(['bookings', 'bookings', 'made_up', 'investors'])).toEqual(['bookings', 'investors']);
+    });
+
+    it('restricts delete permission strictly to Super Admin (role === admin)', () => {
+        expect(canDelete(admin)).toBe(true);
+        expect(canDelete(bookingsStaff)).toBe(false);
+        expect(canDelete(playersStaff)).toBe(false);
+        expect(canDelete(financeStaff)).toBe(false);
+        expect(canDelete({ role: 'staff', permissions: ['bookings', 'players', 'finance', 'investors', 'settings'] })).toBe(false);
+        expect(canDelete({ role: 'investor' })).toBe(false);
+        expect(canDelete(player)).toBe(false);
+        expect(canDelete(null)).toBe(false);
     });
 });
 
