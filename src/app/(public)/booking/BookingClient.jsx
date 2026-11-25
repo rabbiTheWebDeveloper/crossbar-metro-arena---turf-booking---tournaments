@@ -22,6 +22,11 @@ const STATUS_COPY = {
     pending_verification: { title: 'Payment is being verified', text: 'The gateway reported success but verification is still pending. Use "Find my booking" below in a minute, or contact the arena desk with the transaction id.' }
 };
 
+function TranIdText({ tranId }) {
+    if (!tranId) return null;
+    return (<>Transaction id: <span className="font-mono text-white font-bold">{tranId}</span>.</>);
+}
+
 /**
  * Reads the gateway redirect params once, cleans the URL, then shows a verified result.
  * A "success" is only shown as confirmed after the server booking lookup says it is paid.
@@ -78,7 +83,6 @@ function PaymentNotificationBanner() {
 
     const dismiss = () => setDismissed(true);
     const whatsappUrl = siteSettings?.whatsappUrl || '';
-    const TranId = () => (result.tranId ? (<>Transaction id: <span className="font-mono text-white font-bold">{result.tranId}</span>.</>) : null);
 
     if (result.payment === 'success') {
         if (verifyState === 'verifying' || verifyState === 'idle') {
@@ -119,7 +123,7 @@ function PaymentNotificationBanner() {
                                     {' · '}Due at the arena: <span className="font-mono text-white font-bold">৳{due.toLocaleString()}</span>
                                 </p>
                                 <p className="text-[11px] text-slate-400 mt-1">
-                                    <TranId /> Confirmation recorded — save your booking code and show the ticket pass at the desk.
+                                    <TranIdText tranId={result.tranId} /> Confirmation recorded — save your booking code and show the ticket pass at the desk.
                                 </p>
                             </div>
                         </div>
@@ -174,7 +178,7 @@ function PaymentNotificationBanner() {
                         <p className={`text-xs mt-1 ${isSoft ? 'text-slate-300' : 'text-rose-200'}`}>{copy.text}</p>
                         {(result.tranId || result.reason) && (
                             <p className="text-[11px] text-slate-400 mt-1">
-                                <TranId /> {result.reason ? `Reason: ${result.reason.replace(/_/g, ' ')}.` : ''}
+                                <TranIdText tranId={result.tranId} /> {result.reason ? `Reason: ${result.reason.replace(/_/g, ' ')}.` : ''}
                             </p>
                         )}
                         {needsDesk && whatsappUrl && (

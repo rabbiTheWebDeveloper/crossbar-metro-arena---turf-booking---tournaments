@@ -2,10 +2,15 @@
   "name": "crossbar-metro-arena",
   "private": true,
   "version": "1.0.0",
+  "packageManager": "pnpm@12.14.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -21,7 +26,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.5",
+    "eslint": "^10.15.0",
+    "eslint-config-next": "^16.4.6",
     "postcss": "^8.5.33",
-    "tailwindcss": "^4.3.5"
+    "tailwindcss": "^4.3.5",
+    "vitest": "^5.1.1"
   }
 }
