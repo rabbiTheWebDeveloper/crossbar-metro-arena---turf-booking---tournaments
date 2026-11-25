@@ -87,7 +87,7 @@ export function SmsSettingsCard() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ to: testPhone.trim(), msg: testText.trim() })
+                body: JSON.stringify({ to: testPhone.trim(), msg: testText.trim(), category: 'test' })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {

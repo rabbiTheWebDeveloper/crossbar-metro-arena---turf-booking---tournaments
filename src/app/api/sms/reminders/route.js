@@ -63,7 +63,13 @@ async function runReminders(request) {
                 // Inside the 15-minute window: send right away
                 const res = await safeSendSms({
                     to: booking.captainPhone,
-                    msg: buildPreMatchReminderSms(booking)
+                    msg: buildPreMatchReminderSms(booking),
+                    logMeta: {
+                        category: 'pre_match_reminder',
+                        bookingCode: booking.bookingCode || '',
+                        recipientSummary: `${booking.captainName || booking.teamName || 'Captain'} (${booking.captainPhone})`,
+                        sentBy: 'System (15m Reminder)'
+                    }
                 });
                 if (res.ok) {
                     booking.reminderSmsRequestId = res.requestId || 'sent';

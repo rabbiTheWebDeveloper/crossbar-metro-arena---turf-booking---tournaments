@@ -3,12 +3,17 @@ import { Setting } from '@/models/setting-model';
 import { Booking } from '@/models/booking-model';
 import { User } from '@/models/user-model';
 import { Customer } from '@/models/customer-model';
+import { Investor } from '@/models/investor-model';
+import { SmsLog } from '@/models/sms-log-model';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
-import { kickoffDate } from '@/lib/booking';
+import { parsePhoneTokens, estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
+import { kickoffDate, todayDhaka } from '@/lib/booking';
 import { isDeliverableEmail, safeSendBookingConfirmationEmail } from '@/utils/mail';
 
 const SMS_API_BASE = 'https://api.sms.net.bd';
 const SCHEDULE_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
+export { parsePhoneTokens, estimateSmsParts, normalizeScheduleInput };
 
 export const SMS_ERROR_MESSAGES = {
     0: 'Success',
@@ -39,15 +44,7 @@ export function smsErrorMessage(code, fallback = '') {
  * accepted by https://api.sms.net.bd/sendsms.
  */
 export function formatSmsPhone(raw) {
-    const list = Array.isArray(raw) ? raw : String(raw || '').split(',');
-    const valid = [];
-    for (const entry of list) {
-        const cleaned = cleanPhone(entry);
-        if (isValidBdPhone(cleaned)) {
-            valid.push(`88${cleaned}`);
-        }
-    }
-    return [...new Set(valid)].join(',');
+    return parsePhoneTokens(raw).formatted;
 }
 
 /**
@@ -110,41 +107,80 @@ export async function getSmsConfig() {
     };
 }
 
+async function persistSmsLog(entry) {
+    try {
+        await connectToDatabase();
+        const doc = await SmsLog.create(entry);
+        return doc.toJSON();
+    } catch (err) {
+        console.warn('[SMS] Failed to persist SmsLog:', err?.message || err);
+        return null;
+    }
+}
+
 /**
  * Send an SMS (immediate or scheduled) via https://api.sms.net.bd/sendsms.
+ * Automatically records an SmsLog entry unless `logMeta === false`.
  */
-export async function sendSms({ to, msg, schedule = '', senderId = '', contentId = '' }) {
-    const cfg = await getSmsConfig();
-    if (!cfg.configured) {
-        return { ok: false, errorCode: 405, message: 'SMS gateway is not configured (set SMS_API_KEY in .env or Admin Settings).' };
-    }
+export async function sendSms({ to, msg, schedule = '', senderId = '', contentId = '', logMeta = null }) {
+    const parsedPhones = parsePhoneTokens(to);
+    const recipients = parsedPhones.formatted;
+    const cleanRecipients = parsedPhones.valid;
+    const messageText = String(msg || '').trim();
+    const sched = normalizeScheduleInput(schedule);
 
-    const recipients = formatSmsPhone(to);
     if (!recipients) {
         return { ok: false, errorCode: 416, message: SMS_ERROR_MESSAGES[416] };
     }
-
-    const messageText = String(msg || '').trim();
     if (!messageText) {
         return { ok: false, errorCode: 414, message: SMS_ERROR_MESSAGES[414] };
+    }
+    if (sched && !SCHEDULE_RE.test(sched)) {
+        return { ok: false, errorCode: 412, message: SMS_ERROR_MESSAGES[412] };
+    }
+
+    const cfg = await getSmsConfig();
+    const effectiveSender = String(senderId || cfg.senderId || '').trim();
+    const effectiveContentId = String(contentId || '').trim();
+    const seg = estimateSmsParts(messageText);
+
+    const shouldLog = logMeta !== false;
+    const meta = (logMeta && typeof logMeta === 'object') ? logMeta : {};
+    const category = meta.category || (cleanRecipients.length > 1 ? 'bulk_campaign' : 'manual');
+    const defaultSummary = cleanRecipients.length === 1
+        ? cleanRecipients[0]
+        : `${cleanRecipients[0]} + ${cleanRecipients.length - 1} more`;
+    const baseLog = {
+        category,
+        recipients: cleanRecipients,
+        recipientCount: cleanRecipients.length,
+        recipientSummary: meta.recipientSummary || defaultSummary,
+        message: messageText,
+        encoding: seg.encoding,
+        partsPerRecipient: Math.max(1, seg.parts),
+        totalSegments: Math.max(1, seg.parts) * cleanRecipients.length,
+        schedule: sched,
+        senderId: effectiveSender,
+        contentId: effectiveContentId,
+        bookingCode: meta.bookingCode || '',
+        sentBy: meta.sentBy || 'System'
+    };
+
+    if (!cfg.configured) {
+        const errMsg = 'SMS gateway is not configured (set SMS_API_KEY in .env or Admin Settings).';
+        const log = shouldLog
+            ? await persistSmsLog({ ...baseLog, status: 'failed', errorCode: 405, errorMessage: errMsg })
+            : null;
+        return { ok: false, errorCode: 405, message: errMsg, log };
     }
 
     const params = new URLSearchParams();
     params.set('api_key', cfg.apiKey);
     params.set('msg', messageText);
     params.set('to', recipients);
-
-    const effectiveSender = String(senderId || cfg.senderId || '').trim();
     if (effectiveSender) params.set('sender_id', effectiveSender);
-
-    const sched = String(schedule || '').trim();
-    if (sched) {
-        if (!SCHEDULE_RE.test(sched)) {
-            return { ok: false, errorCode: 412, message: SMS_ERROR_MESSAGES[412] };
-        }
-        params.set('schedule', sched);
-    }
-    if (contentId) params.set('content_id', String(contentId).trim());
+    if (sched) params.set('schedule', sched);
+    if (effectiveContentId) params.set('content_id', effectiveContentId);
 
     const res = await fetch(`${SMS_API_BASE}/sendsms`, {
         method: 'POST',
@@ -153,23 +189,47 @@ export async function sendSms({ to, msg, schedule = '', senderId = '', contentId
     });
     const data = await res.json().catch(() => ({}));
     const errorCode = Number(data?.error ?? (res.ok ? 0 : res.status));
+
     if (errorCode !== 0) {
+        const errMsg = smsErrorMessage(errorCode, data?.msg);
+        const log = shouldLog
+            ? await persistSmsLog({
+                ...baseLog,
+                status: 'failed',
+                errorCode,
+                errorMessage: errMsg,
+                deliveryReport: data?.data || null
+            })
+            : null;
         return {
             ok: false,
             errorCode,
-            message: smsErrorMessage(errorCode, data?.msg),
-            raw: data
+            message: errMsg,
+            raw: data,
+            log
         };
     }
+
+    const requestId = String(data?.data?.request_id ?? '');
+    const log = shouldLog
+        ? await persistSmsLog({
+            ...baseLog,
+            requestId,
+            status: sched ? 'scheduled' : 'submitted',
+            gatewayStatus: sched ? 'Scheduled' : 'Submitted'
+        })
+        : null;
 
     return {
         ok: true,
         errorCode: 0,
-        requestId: String(data?.data?.request_id ?? ''),
+        requestId,
         message: data?.msg || 'Request successfully submitted',
         recipients,
+        recipientCount: cleanRecipients.length,
         schedule: sched || null,
-        raw: data
+        raw: data,
+        log
     };
 }
 
@@ -208,11 +268,73 @@ export async function getSmsReport(requestId) {
     return { ok: true, errorCode: 0, report: data?.data || null, message: data?.msg || 'Success' };
 }
 
+/**
+ * Fetch live delivery report from api.sms.net.bd and sync the matching SmsLog record in MongoDB.
+ */
+export async function syncSmsLogReport({ logId = '', requestId = '' } = {}) {
+    await connectToDatabase();
+    let logDoc = null;
+    if (logId) {
+        logDoc = await SmsLog.findById(logId).catch(() => null);
+    }
+    const effectiveReqId = String(requestId || logDoc?.requestId || '').trim();
+    if (!effectiveReqId) {
+        return { ok: false, errorCode: 400, message: 'No gateway Request ID available for this SMS record.' };
+    }
+    if (!logDoc) {
+        logDoc = await SmsLog.findOne({ requestId: effectiveReqId }).sort({ createdAt: -1 }).catch(() => null);
+    }
+
+    const reportRes = await getSmsReport(effectiveReqId);
+    if (!reportRes.ok) {
+        return reportRes;
+    }
+
+    const report = reportRes.report || {};
+    if (logDoc) {
+        const reqStatus = String(report.request_status || '').trim();
+        const recips = Array.isArray(report.recipients) ? report.recipients : [];
+        let nextStatus = logDoc.status;
+
+        if (/complete/i.test(reqStatus)) {
+            if (recips.length > 0) {
+                const failedCount = recips.filter(r => /fail|reject|block|invalid|undeliver/i.test(String(r.status || ''))).length;
+                if (failedCount === recips.length) nextStatus = 'failed';
+                else if (failedCount > 0) nextStatus = 'partial';
+                else nextStatus = 'completed';
+            } else {
+                nextStatus = 'completed';
+            }
+        } else if (/fail|reject|cancel/i.test(reqStatus)) {
+            nextStatus = 'failed';
+        } else if (/schedule/i.test(reqStatus) || (logDoc.schedule && /pending|queue/i.test(reqStatus))) {
+            nextStatus = 'scheduled';
+        }
+
+        logDoc.status = nextStatus;
+        logDoc.gatewayStatus = reqStatus || logDoc.gatewayStatus;
+        if (report.request_charge !== undefined && report.request_charge !== null) {
+            logDoc.charge = String(report.request_charge);
+        }
+        logDoc.deliveryReport = report;
+        logDoc.lastCheckedAt = new Date();
+        await logDoc.save().catch(() => {});
+    }
+
+    return {
+        ok: true,
+        errorCode: 0,
+        report,
+        log: logDoc ? logDoc.toJSON() : null,
+        message: reportRes.message
+    };
+}
+
 /** GET https://api.sms.net.bd/user/balance/?api_key=... */
 export async function getSmsBalance() {
     const cfg = await getSmsConfig();
     if (!cfg.configured) {
-        return { ok: false, errorCode: 405, configured: false, balance: null, message: 'SMS gateway is not configured.' };
+        return { ok: false, errorCode: 405, configured: false, balance: null, validity: '', message: 'SMS gateway is not configured.' };
     }
     const res = await fetch(`${SMS_API_BASE}/user/balance/?api_key=${encodeURIComponent(cfg.apiKey)}`, {
         method: 'GET',
@@ -221,15 +343,91 @@ export async function getSmsBalance() {
     const data = await res.json().catch(() => ({}));
     const errorCode = Number(data?.error ?? (res.ok ? 0 : res.status));
     if (errorCode !== 0) {
-        return { ok: false, errorCode, configured: true, balance: null, message: smsErrorMessage(errorCode, data?.msg), raw: data };
+        return { ok: false, errorCode, configured: true, balance: null, validity: '', message: smsErrorMessage(errorCode, data?.msg), raw: data };
     }
     return {
         ok: true,
         errorCode: 0,
         configured: true,
         balance: data?.data?.balance ?? '0.0000',
+        validity: data?.data?.validity ?? '',
         message: data?.msg || 'Success'
     };
+}
+
+/**
+ * Resolve server-side audience presets into deduplicated 11-digit BD mobile numbers.
+ */
+export async function resolveSmsAudiencePhones(audienceKeys = []) {
+    const keys = [...new Set((Array.isArray(audienceKeys) ? audienceKeys : []).map(String))];
+    if (keys.length === 0) return { phones: [], labels: [] };
+
+    await connectToDatabase();
+    const phoneSet = new Set();
+    const labels = [];
+    const addPhone = (raw) => {
+        const p = cleanPhone(raw);
+        if (isValidBdPhone(p)) phoneSet.add(p);
+    };
+
+    const tasks = [];
+
+    if (keys.includes('all_customers')) {
+        labels.push('All Customers');
+        tasks.push(
+            Customer.find().select('phone').lean().then(rows => rows.forEach(r => addPhone(r.phone)))
+        );
+    }
+
+    if (keys.includes('booked_customers') || keys.includes('repeat_customers')) {
+        const minCount = keys.includes('booked_customers') ? 1 : 2;
+        labels.push(minCount === 1 ? 'Booked Customers' : 'Repeat Customers (2+)');
+        tasks.push(
+            Booking.aggregate([
+                { $match: { paymentStatus: { $in: ['confirmed_unpaid', 'paid_advance', 'paid_full'] } } },
+                { $group: { _id: '$captainPhone', count: { $sum: 1 } } },
+                { $match: { count: { $gte: minCount } } }
+            ]).then(rows => rows.forEach(r => addPhone(r._id)))
+        );
+    }
+
+    if (keys.includes('today_captains')) {
+        const today = todayDhaka();
+        labels.push(`Today's Match Captains (${today})`);
+        tasks.push(
+            Booking.find({
+                date: today,
+                paymentStatus: { $in: ['confirmed_unpaid', 'paid_advance', 'paid_full'] }
+            }).select('captainPhone').lean().then(rows => rows.forEach(r => addPhone(r.captainPhone)))
+        );
+    }
+
+    if (keys.includes('all_players')) {
+        labels.push('Registered Players');
+        tasks.push(
+            User.find({ role: 'player', disabled: { $ne: true } }).select('phone').lean()
+                .then(rows => rows.forEach(r => addPhone(r.phone)))
+        );
+    }
+
+    if (keys.includes('active_investors')) {
+        labels.push('Active Investors');
+        tasks.push(
+            Investor.find({ status: 'active' }).select('phone').lean()
+                .then(rows => rows.forEach(r => addPhone(r.phone)))
+        );
+    }
+
+    if (keys.includes('staff_admins')) {
+        labels.push('Staff & Admins');
+        tasks.push(
+            User.find({ role: { $in: ['staff', 'admin'] }, disabled: { $ne: true } }).select('phone').lean()
+                .then(rows => rows.forEach(r => addPhone(r.phone)))
+        );
+    }
+
+    await Promise.all(tasks);
+    return { phones: [...phoneSet], labels };
 }
 
 /* ------------------------------------------------------------------ Copy builders */
@@ -287,6 +485,12 @@ async function resolveBookingCustomerEmail(booking, explicitEmail = '') {
     return '';
 }
 
+function bookingRecipientSummary(booking) {
+    const phone = cleanPhone(booking?.captainPhone);
+    const label = booking?.captainName || booking?.teamName || '';
+    return label ? `${label} (${phone})` : phone;
+}
+
 /**
  * Schedule the 15-minute pre-match reminder SMS directly with sms.net.bd (`schedule` parameter).
  * Idempotent: skips if already scheduled or sent on this booking.
@@ -307,7 +511,13 @@ export async function scheduleBookingReminderSms(booking) {
     const res = await safeSendSms({
         to: booking.captainPhone,
         msg: buildPreMatchReminderSms(booking),
-        schedule
+        schedule,
+        logMeta: {
+            category: 'pre_match_reminder',
+            bookingCode: booking.bookingCode || '',
+            recipientSummary: bookingRecipientSummary(booking),
+            sentBy: 'System (15m Reminder)'
+        }
     });
 
     if (res.ok && booking._id) {
@@ -333,7 +543,13 @@ export async function notifyBookingConfirmed(booking, { customerEmail = '' } = {
     const [sms, reminder] = await Promise.all([
         safeSendSms({
             to: booking.captainPhone,
-            msg: buildBookingConfirmedSms(booking)
+            msg: buildBookingConfirmedSms(booking),
+            logMeta: {
+                category: 'booking_confirmed',
+                bookingCode: booking.bookingCode || '',
+                recipientSummary: bookingRecipientSummary(booking),
+                sentBy: 'System (Booking)'
+            }
         }),
         scheduleBookingReminderSms(booking)
     ]);
@@ -370,7 +586,13 @@ export async function notifyPaymentSuccess(booking, { paidAmount, customerEmail 
     const [sms, reminder, email] = await Promise.all([
         safeSendSms({
             to: booking.captainPhone,
-            msg: buildPaymentSuccessSms(booking, paidAmount)
+            msg: buildPaymentSuccessSms(booking, paidAmount),
+            logMeta: {
+                category: 'payment_success',
+                bookingCode: booking.bookingCode || '',
+                recipientSummary: bookingRecipientSummary(booking),
+                sentBy: `System (${gateway || booking.paymentMethod || 'Payment'})`
+            }
         }),
         scheduleBookingReminderSms(booking),
         toEmail

@@ -15,15 +15,19 @@ describe('admin permissions & route guards', () => {
         expect(canOpenAdminPath(admin, '/admin/roles')).toBe(true);
         expect(canOpenAdminPath(admin, '/admin/investors')).toBe(true);
         expect(canOpenAdminPath(admin, '/admin/customer-list')).toBe(true);
+        expect(canOpenAdminPath(admin, '/admin/bulk-sms')).toBe(true);
         expect(canOpenAdminPath(admin, '/admin/recurring')).toBe(true);
     });
 
-    it('enforces staff permissions including /admin/customer-list and blocks admin-only routes', () => {
+    it('enforces staff permissions including /admin/customer-list, /admin/bulk-sms and blocks admin-only routes', () => {
         expect(canOpenAdminPath(bookingsStaff, '/admin/recurring')).toBe(true);
         expect(canOpenAdminPath(bookingsStaff, '/admin/customer-list')).toBe(true);
+        expect(canOpenAdminPath(bookingsStaff, '/admin/bulk-sms')).toBe(true);
         expect(canOpenAdminPath(playersStaff, '/admin/customer-list')).toBe(true);
+        expect(canOpenAdminPath(playersStaff, '/admin/bulk-sms')).toBe(true);
         expect(canOpenAdminPath(financeStaff, '/admin/investors')).toBe(true);
         expect(canOpenAdminPath(financeStaff, '/admin/customer-list')).toBe(false);
+        expect(canOpenAdminPath(financeStaff, '/admin/bulk-sms')).toBe(false);
         expect(canOpenAdminPath(bookingsStaff, '/admin/users')).toBe(false);
         expect(canOpenAdminPath(bookingsStaff, '/admin/roles')).toBe(false);
         expect(canOpenAdminPath(player, '/admin')).toBe(false);

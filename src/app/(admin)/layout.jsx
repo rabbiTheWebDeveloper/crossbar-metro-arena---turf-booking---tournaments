@@ -10,7 +10,7 @@ import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
     Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
-    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList
+    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList, MessageSquare
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -151,6 +151,7 @@ export default function AdminLayout({ children }) {
                     { label: 'Customers', href: '/admin/customers', icon: Contact },
                     { label: 'Customer List', href: '/admin/customer-list', icon: ClipboardList },
                     { label: 'Players', href: '/admin/players', icon: UsersRound },
+                    { label: 'Bulk SMS', href: '/admin/bulk-sms', icon: MessageSquare },
                 ]
             },
             {
@@ -220,6 +221,7 @@ export default function AdminLayout({ children }) {
         if (pathname.includes('/customer-list')) return { section: 'Operations', title: 'Customer Booking List' };
         if (pathname.includes('/customers')) return { section: 'Operations', title: 'Customers' };
         if (pathname.includes('/players')) return { section: 'Operations', title: 'Registered Players' };
+        if (pathname.includes('/bulk-sms')) return { section: 'Operations', title: 'Bulk & Manual SMS' };
         if (pathname.includes('/financial-report')) {
             const monthLabel = parseLocalDate(todayDateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             return { section: 'Finance', title: `Financial Report · ${monthLabel}` };

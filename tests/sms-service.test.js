@@ -8,6 +8,11 @@ import {
     buildPreMatchReminderSms,
     smsErrorMessage
 } from '@/service/sms-service';
+import {
+    parsePhoneTokens,
+    estimateSmsParts,
+    normalizeScheduleInput
+} from '@/lib/smsUtils';
 
 describe('sms.net.bd helpers', () => {
     it('normalizes single and multiple Bangladeshi mobile numbers to 8801XXXXXXXXX', () => {
@@ -15,6 +20,40 @@ describe('sms.net.bd helpers', () => {
         expect(formatSmsPhone('+880 1812-345678')).toBe('8801812345678');
         expect(formatSmsPhone('01711223344, 8801911223344, 01711223344, invalid')).toBe('8801711223344,8801911223344');
         expect(formatSmsPhone('12345')).toBe('');
+    });
+
+    it('parses newline, space, and semicolon separated bulk numbers while tracking invalid entries', () => {
+        const res = parsePhoneTokens('01711223344\n01811223344 01911223344; bad_num; +880 1611-223344');
+        expect(res.valid).toEqual(['01711223344', '01811223344', '01911223344', '01611223344']);
+        expect(res.invalid).toEqual(['bad_num']);
+        expect(res.formatted).toBe('8801711223344,8801811223344,8801911223344,8801611223344');
+    });
+
+    it('calculates GSM-7 and Bangla Unicode SMS segments accurately', () => {
+        const empty = estimateSmsParts('');
+        expect(empty.parts).toBe(0);
+
+        const shortGsm = estimateSmsParts('Crossbar Metro Arena: Slot confirmed!');
+        expect(shortGsm.encoding).toBe('GSM-7');
+        expect(shortGsm.parts).toBe(1);
+
+        const multiGsm = estimateSmsParts('A'.repeat(165));
+        expect(multiGsm.encoding).toBe('GSM-7');
+        expect(multiGsm.parts).toBe(2);
+
+        const bangla = estimateSmsParts('ক্রসবার মেট্রো এরিনা: আপনার বুকিং নিশ্চিত হয়েছে!');
+        expect(bangla.encoding).toBe('Unicode');
+        expect(bangla.parts).toBe(1);
+
+        const multiBangla = estimateSmsParts('ক'.repeat(75));
+        expect(multiBangla.encoding).toBe('Unicode');
+        expect(multiBangla.parts).toBe(2);
+    });
+
+    it('normalizes datetime-local schedule inputs to Y-m-d H:i:s', () => {
+        expect(normalizeScheduleInput('2026-11-25T19:15')).toBe('2026-11-25 19:15:00');
+        expect(normalizeScheduleInput('2026-11-25 19:15:00')).toBe('2026-11-25 19:15:00');
+        expect(normalizeScheduleInput('')).toBe('');
     });
 
     it('formats dates in Asia/Dhaka time as Y-m-d H:i:s for sms.net.bd schedule', () => {

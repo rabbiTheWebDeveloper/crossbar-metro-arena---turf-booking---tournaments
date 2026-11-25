@@ -76,6 +76,7 @@ const ADMIN_PAGES = [
     { prefix: '/admin/players', permission: 'players' },
     { prefix: '/admin/customers', permission: 'players' },
     { prefix: '/admin/customer-list', permission: ['players', 'bookings'] },
+    { prefix: '/admin/bulk-sms', permission: ['players', 'bookings', 'settings'] },
     { prefix: '/admin/events', permission: 'events' },
     { prefix: '/admin/match-results', permission: 'matches' },
     { prefix: '/admin/gallery', permission: 'gallery' }

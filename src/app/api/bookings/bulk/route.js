@@ -288,7 +288,13 @@ export async function POST(request) {
         const weekAhead = addDays(todayDhaka(), 7);
         await safeSendSms({
             to: captainPhone,
-            msg: `Crossbar Metro Arena: ${created.length} fixed slots CONFIRMED for ${teamName.trim()} (${firstBooking.displayTime}) from ${summary.firstDate} to ${summary.lastDate}. Paid: Tk ${Math.round(createdCollected).toLocaleString('en-IN')}, Due: Tk ${Math.round(createdDue).toLocaleString('en-IN')}.`
+            msg: `Crossbar Metro Arena: ${created.length} fixed slots CONFIRMED for ${teamName.trim()} (${firstBooking.displayTime}) from ${summary.firstDate} to ${summary.lastDate}. Paid: Tk ${Math.round(createdCollected).toLocaleString('en-IN')}, Due: Tk ${Math.round(createdDue).toLocaleString('en-IN')}.`,
+            logMeta: {
+                category: 'bulk_booking_series',
+                bookingCode: seriesId,
+                recipientSummary: `${captainName.trim()} (${captainPhone.trim()})`,
+                sentBy: actor?.name || 'Admin Desk'
+            }
         }).catch(() => {});
         const upcomingThisWeek = created.filter(b => b.date <= weekAhead).slice(0, 14);
         await Promise.all(upcomingThisWeek.map(b => scheduleBookingReminderSms(b).catch(() => {})));
