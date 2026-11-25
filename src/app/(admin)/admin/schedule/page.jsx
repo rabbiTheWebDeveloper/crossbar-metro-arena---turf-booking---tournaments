@@ -184,10 +184,10 @@ export default function AdminSchedulePage() {
 
       {/* DATE STRIP + DATE PICKER */}
       <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar flex-1">
+        <div className="app-tab-strip pb-1 flex-1">
           {dateStrip.map(item => {
               const isSelected = selectedDate === item.iso;
-              return (<button key={item.iso} type="button" onClick={() => setSelectedDate(item.iso)} className={`flex-1 min-w-[62px] sm:min-w-[70px] py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all cursor-pointer ${isSelected
+              return (<button key={item.iso} type="button" onClick={() => setSelectedDate(item.iso)} className={`min-w-[60px] sm:min-w-[70px] py-2 px-1.5 rounded-2xl text-center flex flex-col items-center justify-center transition-all cursor-pointer app-card-press ${isSelected
                       ? 'bg-lime-400 text-slate-950 font-black shadow-lg shadow-lime-400/20'
                       : 'bg-[#0c131a] border border-white/5 text-slate-300 hover:border-lime-400/30'}`}>
                 <span className={`text-[11px] font-mono font-bold tracking-wider uppercase ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>
@@ -269,25 +269,27 @@ export default function AdminSchedulePage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {!isBooked ? (<button type="button" onClick={() => handleOpenWalkin(slot)} className="px-3 py-1.5 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold text-xs transition-colors cursor-pointer border border-lime-400/20">
+              <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto pt-2.5 sm:pt-0 border-t sm:border-t-0 border-white/[0.06]">
+                {!isBooked ? (<button type="button" onClick={() => handleOpenWalkin(slot)} className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold text-xs transition-colors cursor-pointer border border-lime-400/20 text-center">
                     + Book Walk-in
-                  </button>) : (<div className="flex flex-wrap items-center gap-2">
+                  </button>) : (<div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
                     {statusPill(b)}
 
-                    {!isHold && due > 0 && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-xs font-bold transition-colors cursor-pointer border border-amber-400/30 disabled:opacity-50" title="Record a partial or full payment">
-                        Collect
-                      </button>)}
-                    {!isHold && due > 0 && (<button type="button" disabled={isBusy} onClick={() => settleInFull(b)} className="hidden md:inline-flex px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50" title="Collect the entire remaining due">
-                        Settle in full
-                      </button>)}
-                    {!isHold && !b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b)} className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50" title="Mark match as played (payment unchanged)">
-                        Mark Played
-                      </button>)}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {!isHold && due > 0 && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-xs font-bold transition-colors cursor-pointer border border-amber-400/30 disabled:opacity-50" title="Record a partial or full payment">
+                          Collect
+                        </button>)}
+                      {!isHold && due > 0 && (<button type="button" disabled={isBusy} onClick={() => settleInFull(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50" title="Collect the entire remaining due">
+                          Settle
+                        </button>)}
+                      {!isHold && !b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50" title="Mark match as played (payment unchanged)">
+                          Played
+                        </button>)}
 
-                    <button type="button" disabled={isBusy} onClick={() => cancelBooking(b)} className="p-1 text-slate-500 hover:text-rose-400 transition-colors disabled:opacity-50" title="Cancel booking">
-                      <XCircle className="w-4 h-4"/>
-                    </button>
+                      <button type="button" disabled={isBusy} onClick={() => cancelBooking(b)} className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors disabled:opacity-50" title="Cancel booking">
+                        <XCircle className="w-4 h-4"/>
+                      </button>
+                    </div>
                   </div>)}
               </div>
 
@@ -296,8 +298,8 @@ export default function AdminSchedulePage() {
       </div>
 
       {/* COLLECT BALANCE MODAL */}
-      {collectingBooking && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {collectingBooking && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95">
             <h3 className="text-base font-bold text-white">Collect Due Balance</h3>
             <p className="text-xs text-slate-400">
               Team: <strong className="text-white">{collectingBooking.teamName}</strong> ({collectingBooking.captainName}) · {collectingBooking.bookingCode}
@@ -322,8 +324,8 @@ export default function AdminSchedulePage() {
         </div>)}
 
       {/* QUICK WALK-IN FROM SLOT MODAL */}
-      {walkinSlotDef && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+      {walkinSlotDef && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 shadow-2xl max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div>
                 <h3 className="text-base font-bold text-white font-display">Book Walk-in Slot</h3>

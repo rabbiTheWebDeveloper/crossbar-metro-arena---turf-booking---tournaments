@@ -141,7 +141,7 @@ export default function AdminRegistrationsPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Team, captain, phone, player, cup..." className={`${inputCls} pl-9`}/>
           </div>
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="app-tab-strip text-xs">
             {['all', 'pending', 'confirmed', 'rejected'].map(s => (<button key={s} type="button" onClick={() => setFilter(s)} className={`px-3 py-2 rounded-xl whitespace-nowrap font-bold capitalize transition-colors cursor-pointer ${filter === s ? 'bg-lime-400 text-slate-950 font-black' : 'bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white'}`}>
               {s} <span className="font-mono opacity-70">{counts[s]}</span>
             </button>))}
@@ -213,8 +213,8 @@ export default function AdminRegistrationsPage() {
       </div>)}
 
       {/* VIEW / EDIT MODAL */}
-      {editing && form && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-        <div className="bg-[#0c131a] border border-lime-400/30 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar">
+      {editing && form && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+        <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[92dvh] overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom sm:zoom-in-95">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div>
               <h3 className="text-base font-bold text-white font-display">Registration details</h3>

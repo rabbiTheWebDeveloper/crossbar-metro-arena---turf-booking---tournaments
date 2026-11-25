@@ -290,8 +290,8 @@ export default function AdminSettingsPage() {
             </section>
           ))}
 
-          {/* Save bar: stays in view while there are unsaved changes */}
-          <div className={`sticky bottom-3 z-20 p-3 rounded-2xl border backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${dirty ? 'bg-[#0c131a]/95 border-amber-400/30 shadow-2xl' : 'bg-[#0c131a]/80 border-white/5'}`}>
+          {/* Save bar: stays in view above mobile bottom dock while there are unsaved changes */}
+          <div className={`sticky bottom-[4.75rem] md:bottom-3 z-20 p-3 rounded-2xl border backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${dirty ? 'bg-[#0c131a]/95 border-amber-400/30 shadow-2xl' : 'bg-[#0c131a]/80 border-white/5'}`}>
             <div className="text-xs min-w-0">
               {saveMsg
                   ? <Message msg={saveMsg}/>

@@ -336,7 +336,7 @@ export default function AdminRecurringBookingsPage() {
           {/* 4. Dates */}
           <div className="space-y-2">
             <div className="text-[11px] font-mono font-bold tracking-widest text-lime-400 uppercase">4 · Date range</div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="bulk-start" className="block text-slate-300 text-xs mb-1">From</label>
                 <input id="bulk-start" type="date" value={startDate} min={todayStr} onChange={e => handleStartDateChange(e.target.value)} className={`${inputCls} font-mono`}/>
@@ -346,8 +346,8 @@ export default function AdminRecurringBookingsPage() {
                 <input id="bulk-end" type="date" value={endDate} min={startDate || todayStr} onChange={e => { invalidatePreview(); setEndDate(e.target.value); }} className={`${inputCls} font-mono`}/>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {presets.map(p => (<button key={p.label} type="button" onClick={() => { invalidatePreview(); setEndDate(p.apply(startDate || todayStr)); }} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 border border-white/10 text-slate-300 hover:border-lime-400/40 cursor-pointer flex items-center gap-1">
+            <div className="app-tab-strip sm:flex-wrap">
+              {presets.map(p => (<button key={p.label} type="button" onClick={() => { invalidatePreview(); setEndDate(p.apply(startDate || todayStr)); }} className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 border border-white/10 text-slate-300 hover:border-lime-400/40 cursor-pointer flex items-center gap-1">
                 <CalendarRange className="w-3 h-3"/> {p.label}
               </button>))}
             </div>

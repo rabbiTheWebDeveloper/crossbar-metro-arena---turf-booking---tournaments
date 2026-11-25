@@ -207,8 +207,8 @@ export default function AdminEventsPage() {
       </div>)}
 
       {/* CREATE / EDIT TOURNAMENT MODAL */}
-      {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-lg w-full space-y-4 max-h-[92vh] overflow-y-auto">
+      {showModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-lg w-full space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95">
             <div>
               <h3 className="text-base font-bold text-white font-display">{editing ? 'Edit Tournament' : 'Create Tournament'}</h3>
               <p className="text-xs text-slate-400">{editing ? 'Update the fixture details.' : 'Add a new competitive championship fixture. It opens for registration immediately.'}</p>

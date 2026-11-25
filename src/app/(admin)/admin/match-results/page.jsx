@@ -73,7 +73,7 @@ export default function AdminMatchResultsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+      <div className="app-tab-strip text-xs">
         {TABS.map(t => (<button key={t.key} type="button" onClick={() => setTab(t.key)} className={`px-3 py-2 rounded-xl whitespace-nowrap font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${tab === t.key ? 'bg-lime-400 text-slate-950 font-black' : 'bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white'}`}>
             <span>{t.label}</span>
             <span className={`px-1.5 rounded-full font-mono text-[10px] ${tab === t.key ? 'bg-slate-950/20 text-slate-950' : 'bg-white/10 text-slate-400'}`}>{counts[t.key]}</span>

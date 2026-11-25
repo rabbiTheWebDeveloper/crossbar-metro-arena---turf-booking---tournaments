@@ -179,7 +179,7 @@ export default function AdminUsersPage() {
 
       {/* Filters */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter accounts">
+        <div className="app-tab-strip sm:flex-wrap" role="tablist" aria-label="Filter accounts">
           {FILTERS.map(f => (
             <button key={f.key} type="button" role="tab" aria-selected={filter === f.key} onClick={() => setFilter(f.key)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border cursor-pointer transition-colors ${filter === f.key ? 'bg-lime-400 text-slate-950 border-lime-400' : 'bg-[#0c131a] text-slate-400 border-white/10 hover:text-white'}`}>
               {f.label} <span className={`font-mono ${filter === f.key ? 'text-slate-950/70' : 'text-slate-500'}`}>{counts[f.key] ?? 0}</span>
@@ -192,8 +192,72 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-3xl bg-[#0c131a] border border-white/5 overflow-hidden">
+      {/* Mobile App Cards */}
+      <div className="md:hidden space-y-2.5">
+        {isLoadingData && users.length === 0 ? (
+          [1, 2, 3].map(n => <div key={n} className="h-28 rounded-2xl bg-[#0c131a] border border-white/5 animate-pulse"/>)
+        ) : filtered.length === 0 ? (
+          <div className="p-10 rounded-2xl bg-[#0c131a] border border-white/5 text-center text-xs text-slate-500">
+            {search ? 'No accounts match your search.' : 'No accounts in this group.'}
+          </div>
+        ) : filtered.map(u => {
+          const locked = lockReason(u);
+          const busy = busyId === u.id;
+          const role = u.role === 'staff' ? roleById[u.staffRoleId] : null;
+          return (
+            <div key={u.id} className={`p-4 rounded-2xl bg-[#0c131a] border border-white/10 space-y-3 text-xs ${u.disabled ? 'opacity-60' : ''}`}>
+              <div className="flex items-start justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-white/10 text-white font-black flex items-center justify-center font-mono shrink-0">
+                    {(u.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-white truncate flex items-center gap-1.5">
+                      <span className="truncate">{u.name}</span>
+                      {u.id === myId && <span className="px-1.5 py-0.5 rounded text-[10px] uppercase bg-lime-400/15 text-lime-300 font-mono">you</span>}
+                    </div>
+                    <div className="font-mono text-[11px] text-slate-400 truncate">{u.phone}{u.email ? ` · ${u.email}` : ''}</div>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold uppercase shrink-0 ${typeStyle[u.role] || typeStyle.visitor}`}>
+                  {typeLabel(u.role)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="text-slate-400 truncate">
+                  {u.role === 'staff'
+                    ? (u.staffRoleName ? `${u.staffRoleName}${role ? ` (${role.permissions.length} perms)` : ''}` : 'No role assigned')
+                    : u.role === 'admin' ? 'Full Super Admin access' : 'Portal login account'}
+                </span>
+                {u.disabled
+                  ? <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold">DISABLED</span>
+                  : <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px] font-mono font-bold">ACTIVE</span>}
+              </div>
+
+              <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-end gap-2">
+                <button type="button" disabled={busy} onClick={() => openEdit(u)} className="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50">
+                  <Pencil className="w-3.5 h-3.5"/> Edit
+                </button>
+                <button type="button" disabled={busy} onClick={() => openReset(u)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 cursor-pointer disabled:opacity-50" title="Reset password">
+                  <KeyRound className="w-4 h-4"/>
+                </button>
+                <button type="button" disabled={busy || Boolean(locked)} onClick={() => toggleDisabled(u)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 cursor-pointer disabled:opacity-30" title={locked || (u.disabled ? 'Enable' : 'Disable')}>
+                  {u.disabled ? <CheckCircle2 className="w-4 h-4 text-emerald-400"/> : <Ban className="w-4 h-4"/>}
+                </button>
+                {isAdmin && (
+                  <button type="button" disabled={busy || Boolean(locked)} onClick={() => { setDeleteText(''); setDeleteError(''); setDeleteUser(u); }} className="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-30" title={locked || 'Delete account'}>
+                    <Trash2 className="w-4 h-4"/>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-3xl bg-[#0c131a] border border-white/5 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">

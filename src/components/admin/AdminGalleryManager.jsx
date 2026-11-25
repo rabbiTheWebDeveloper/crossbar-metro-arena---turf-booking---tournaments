@@ -165,28 +165,28 @@ export default function AdminGalleryManager() {
       </div>
 
       {/* COUNTS */}
-      <div className="grid grid-cols-3 gap-3.5 sm:gap-4">
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between text-slate-400 text-xs">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="p-3 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs">
             <span className="font-medium">Photos</span>
-            <ImageIcon className="w-4 h-4 text-emerald-400"/>
+            <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white mt-2">{totalPhotosCount}</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1.5 sm:mt-2">{totalPhotosCount}</div>
         </div>
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between text-slate-400 text-xs">
+        <div className="p-3 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs">
             <span className="font-medium">Featured</span>
-            <Star className="w-4 h-4 text-amber-400 fill-amber-400"/>
+            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 fill-amber-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-amber-400 mt-2">{featuredCount}</div>
-          <div className="text-[12px] font-mono text-slate-400 mt-1">Shown on the public home page</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-amber-400 mt-1.5 sm:mt-2">{featuredCount}</div>
+          <div className="hidden sm:block text-[12px] font-mono text-slate-400 mt-1">Shown on the public home page</div>
         </div>
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between text-slate-400 text-xs">
+        <div className="p-3 sm:p-5 rounded-2xl bg-gradient-to-b from-[#0c131a] to-[#080d12] border border-white/10 shadow-lg">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs">
             <span className="font-medium">Albums</span>
-            <Layers className="w-4 h-4 text-emerald-400"/>
+            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white mt-2">{albumCount}</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white mt-1.5 sm:mt-2">{albumCount}</div>
         </div>
       </div>
 
@@ -353,8 +353,8 @@ export default function AdminGalleryManager() {
         </div>)}
 
       {/* ADD / EDIT PHOTO MODAL */}
-      {showAddModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-5">
+      {showAddModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-7 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-7 max-w-xl w-full shadow-2xl relative max-h-[90dvh] overflow-y-auto space-y-5 animate-in slide-in-from-bottom sm:zoom-in-95">
 
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-2.5">

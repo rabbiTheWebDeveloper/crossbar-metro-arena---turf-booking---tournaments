@@ -263,43 +263,43 @@ export default function AdminCustomerListPage() {
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Booked customers</span>
             <Users className="w-4 h-4 text-emerald-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white">{overview.bookedCustomers}</div>
-          <div className="text-[11px] text-slate-500 font-mono">{overview.totalCustomers} total customers in system</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white">{overview.bookedCustomers}</div>
+          <div className="text-[11px] text-slate-500 font-mono">{overview.totalCustomers} total customers</div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Multiple bookings (2+)</span>
+            <span>Repeat (2+)</span>
             <Repeat className="w-4 h-4 text-lime-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-lime-400">{overview.repeatCustomers}</div>
-          <div className="text-[11px] text-slate-500 font-mono">{repeatRate}% repeat rate · {overview.singleBookingCustomers} single-booking</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-lime-400">{overview.repeatCustomers}</div>
+          <div className="text-[11px] text-slate-500 font-mono">{repeatRate}% repeat rate</div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Total active bookings</span>
+            <span>Active bookings</span>
             <Layers className="w-4 h-4 text-sky-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white">{overview.totalBookings}</div>
-          <div className="text-[11px] text-slate-500 font-mono">avg {avgBookings} bookings / customer</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white">{overview.totalBookings}</div>
+          <div className="text-[11px] text-slate-500 font-mono">avg {avgBookings} / customer</div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Collected / Due</span>
             <Wallet className="w-4 h-4 text-amber-400"/>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-400">{formatMoney(overview.totalRevenueCollected)}</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-emerald-400">{formatMoney(overview.totalRevenueCollected)}</div>
           <div className="text-[11px] font-mono">
             {overview.totalDueAmount > 0 ? (
-              <span className="text-amber-300">due {formatMoney(overview.totalDueAmount)} ({overview.customersWithDue} customer{overview.customersWithDue === 1 ? '' : 's'})</span>
+              <span className="text-amber-300">due {formatMoney(overview.totalDueAmount)}</span>
             ) : (
               <span className="text-slate-500">all bookings settled</span>
             )}
@@ -308,7 +308,7 @@ export default function AdminCustomerListPage() {
       </div>
 
       {/* SEGMENT TABS */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Customer booking segments">
+      <div className="app-tab-strip sm:flex-wrap" role="tablist" aria-label="Customer booking segments">
         {SEGMENTS.map(seg => {
             const active = segment === seg.key;
             const count = overview[seg.countKey] ?? 0;
@@ -478,8 +478,8 @@ export default function AdminCustomerListPage() {
                     </div>
 
                     {/* Right: Stats + Expand toggle */}
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-end gap-4 pl-13 lg:pl-0">
-                      <div className="grid grid-cols-3 gap-4 text-right font-mono">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-3 w-full lg:w-auto pt-2.5 lg:pt-0 border-t lg:border-t-0 border-white/[0.06]">
+                      <div className="grid grid-cols-3 gap-3 text-center sm:text-right font-mono bg-[#080d12]/70 sm:bg-transparent p-2.5 sm:p-0 rounded-xl">
                         <div>
                           <div className="text-[10px] text-slate-500 uppercase">Bookings</div>
                           <div className="text-sm font-black text-white">
@@ -511,7 +511,7 @@ export default function AdminCustomerListPage() {
                         onClick={() => toggleExpand(c.id)}
                         disabled={(c.bookings || []).length === 0}
                         aria-expanded={isExpanded}
-                        className={`px-3 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 disabled:opacity-35 disabled:cursor-not-allowed ${isExpanded
+                        className={`w-full sm:w-auto justify-center px-3 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 disabled:opacity-35 disabled:cursor-not-allowed ${isExpanded
                           ? 'bg-lime-400 text-slate-950 border-lime-400'
                           : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'}`}
                       >
@@ -563,8 +563,44 @@ export default function AdminCustomerListPage() {
 
                       {customerBookings.length === 0 ? (
                         <div className="py-4 text-center text-xs text-slate-500">No bookings match this status filter.</div>
-                      ) : (
-                        <div className="overflow-x-auto rounded-xl border border-white/10">
+                      ) : (<>
+                        {/* MOBILE BOOKING CARDS */}
+                        <div className="md:hidden space-y-2">
+                          {customerBookings.map(b => {
+                            const statusMeta = BOOKING_STATUS_META[b.paymentStatus] || {
+                              label: String(b.paymentStatus || '').replaceAll('_', ' '),
+                              cls: 'bg-white/10 text-slate-300 border-white/15'
+                            };
+                            const chMeta = CHANNEL_META[b.channel] || CHANNEL_META.online;
+                            return (
+                              <div key={b.id} className="p-3 rounded-xl bg-[#0c131a] border border-white/10 space-y-1.5 text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 font-mono">
+                                    <span className="font-bold text-lime-400">{b.bookingCode}</span>
+                                    <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase ${chMeta.cls}`}>{chMeta.label}</span>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold uppercase ${statusMeta.cls}`}>
+                                    {statusMeta.label}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] font-mono text-slate-300">
+                                  {formatDate(b.date, { day: 'numeric', month: 'short', year: 'numeric' })} · S{b.slotNumber} ({b.displayTime})
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/[0.05] font-mono">
+                                  <span className="text-slate-300 font-sans truncate max-w-[140px]">{b.teamName}</span>
+                                  <span>
+                                    <span className="text-emerald-400">{formatMoney(b.collectedAmount)}</span>
+                                    <span className="text-slate-500"> / {formatMoney(b.totalPrice)}</span>
+                                    {b.dueAmount > 0 && <span className="text-amber-300 font-bold ml-1.5">(Due {formatMoney(b.dueAmount)})</span>}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* DESKTOP BOOKING TABLE */}
+                        <div className="hidden md:block overflow-x-auto rounded-xl border border-white/10">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-slate-500 border-b border-white/10">
                               <tr>
@@ -638,7 +674,7 @@ export default function AdminCustomerListPage() {
                             </tbody>
                           </table>
                         </div>
-                      )}
+                      </>)}
 
                       {c.notes && (
                         <div className="text-[11px] text-slate-400 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5">

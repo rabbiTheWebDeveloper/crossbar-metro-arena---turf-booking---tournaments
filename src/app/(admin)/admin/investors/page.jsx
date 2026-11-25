@@ -604,33 +604,33 @@ export default function AdminInvestorsPage() {
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="text-xs text-slate-400">Active investor share</div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white">{totalInvestorPct}%</div>
-          <div className="text-[12px] text-slate-500">Owners keep {Math.max(0, Math.round((100 - totalInvestorPct) * 100) / 100)}% · {activeInvestors.length} active partner{activeInvestors.length === 1 ? '' : 's'}</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white">{totalInvestorPct}%</div>
+          <div className="text-[11px] sm:text-[12px] text-slate-500">Owners keep {Math.max(0, Math.round((100 - totalInvestorPct) * 100) / 100)}% · {activeInvestors.length} active</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
-          <div className="text-xs text-slate-400">Total invested amount</div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-lime-400">{formatMoney(totalActiveCapital)}</div>
-          <div className="text-[12px] text-slate-500">
-            {totalAllCapital !== totalActiveCapital ? `all partners ${formatMoney(totalAllCapital)}` : `${investors.length} partner${investors.length === 1 ? '' : 's'} total`}
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+          <div className="text-xs text-slate-400">Total invested</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-lime-400">{formatMoney(totalActiveCapital)}</div>
+          <div className="text-[11px] sm:text-[12px] text-slate-500">
+            {totalAllCapital !== totalActiveCapital ? `all ${formatMoney(totalAllCapital)}` : `${investors.length} partner${investors.length === 1 ? '' : 's'} total`}
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
           <div className="text-xs text-slate-400">Net profit</div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${financeReport.isLossMonth ? 'text-rose-400' : 'text-emerald-400'}`}>
             {financeReport.netProfit < 0 ? '-' : ''}{formatMoney(Math.abs(financeReport.netProfit))}
           </div>
-          <div className="text-[12px] text-slate-500">{formatMonth(selectedMonth)}{financeReport.isLossMonth ? ' · no dividend' : ''}</div>
+          <div className="text-[11px] sm:text-[12px] text-slate-500">{formatMonth(selectedMonth)}{financeReport.isLossMonth ? ' · no dividend' : ''}</div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
-          <div className="text-xs text-slate-400">Partner share this month</div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-white">{formatMoney(financeReport.totalInvestorShare)}</div>
-          <div className="text-[12px] text-slate-500">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a] border border-white/5 space-y-1">
+          <div className="text-xs text-slate-400">Partner share</div>
+          <div className="text-xl sm:text-3xl font-black font-mono text-white">{formatMoney(financeReport.totalInvestorShare)}</div>
+          <div className="text-[11px] sm:text-[12px] text-slate-500">
             paid {formatMoney((financeReport.investorShares || []).reduce((s, i) => s + i.paidAmount, 0))} · owed {formatMoney((financeReport.investorShares || []).reduce((s, i) => s + i.balance, 0))}
           </div>
         </div>
@@ -717,13 +717,15 @@ export default function AdminInvestorsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-3 pl-13 lg:pl-0">
-                <div className="text-right font-mono">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-3 w-full lg:w-auto pt-2.5 lg:pt-0 border-t lg:border-t-0 border-white/[0.06]">
+                <div className="flex sm:block items-baseline justify-between gap-2 text-left sm:text-right font-mono bg-[#080d12]/70 sm:bg-transparent p-2.5 sm:p-0 rounded-xl">
                   <div className="text-white font-bold text-sm">{formatMoney(share ? share.shareAmount : 0)} <span className="text-[10px] text-slate-500 font-normal">share</span></div>
-                  <div className="text-[11px] text-slate-400">
-                    paid {formatMoney(share ? share.paidAmount : 0)} this month{share && share.balance > 0 ? <span className="text-amber-300"> · owed {formatMoney(share.balance)}</span> : share && share.isPaid ? <span className="text-emerald-400"> · settled</span> : null}
+                  <div>
+                    <div className="text-[11px] text-slate-400">
+                      paid {formatMoney(share ? share.paidAmount : 0)}{share && share.balance > 0 ? <span className="text-amber-300"> · owed {formatMoney(share.balance)}</span> : share && share.isPaid ? <span className="text-emerald-400"> · settled</span> : null}
+                    </div>
+                    <div className="text-[10.5px] text-slate-500 sm:text-right">lifetime {formatMoney(lifetimePaidById[inv.id] || 0)}</div>
                   </div>
-                  <div className="text-[11px] text-slate-500">lifetime {formatMoney(lifetimePaidById[inv.id] || 0)}</div>
                 </div>
 
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -763,8 +765,9 @@ export default function AdminInvestorsPage() {
       </button>
 
       {/* ADD INVESTOR MODAL */}
-      {showAddModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="add-investor-title">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+      {showAddModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="add-investor-title">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 id="add-investor-title" className="text-base font-bold text-white font-display">
               {createdSummary ? 'Investor Partner Created' : 'Add Equity Partner'}
             </h3>
@@ -834,7 +837,7 @@ export default function AdminInvestorsPage() {
                     <input id="add-inv-email" type="email" placeholder="partner@email.com" maxLength={120} value={newInv.email} onChange={e => setNewInv(f => ({ ...f, email: e.target.value }))} className={inputCls}/>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   <div>
                     <label htmlFor="add-inv-share" className="block text-slate-300 font-semibold mb-1">Share % <span className="text-lime-400">*</span></label>
                     <input id="add-inv-share" type="number" required min={0} max={100} step="0.5" value={newInv.sharePercentage} onChange={e => setNewInv(f => ({ ...f, sharePercentage: e.target.value }))} className={`${inputCls} font-mono`}/>
@@ -843,7 +846,7 @@ export default function AdminInvestorsPage() {
                     <label htmlFor="add-inv-capital" className="block text-slate-300 font-semibold mb-1">Invested (৳)</label>
                     <input id="add-inv-capital" type="number" min={0} step="1" placeholder="0" value={newInv.capitalInvested} onChange={e => setNewInv(f => ({ ...f, capitalInvested: e.target.value }))} className={`${inputCls} font-mono`}/>
                   </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <label htmlFor="add-inv-joined" className="block text-slate-300 font-semibold mb-1">Joined date</label>
                     <input id="add-inv-joined" type="date" value={newInv.joinedDate} onChange={e => setNewInv(f => ({ ...f, joinedDate: e.target.value }))} className={`${inputCls} font-mono`}/>
                   </div>
@@ -897,8 +900,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* EDIT INVESTOR MODAL */}
-      {editInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-investor-title">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+      {editInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="edit-investor-title">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 id="edit-investor-title" className="text-base font-bold text-white font-display">Edit Equity Partner</h3>
             <p className="text-xs text-slate-400">
               Update partner details, equity share (up to {editAvailableShare}% available), and invested amount.
@@ -966,8 +970,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* SEND / RESEND EMAIL MODAL */}
-      {mailInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="mail-investor-title">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full space-y-4 text-xs">
+      {mailInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="mail-investor-title">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"><Mail className="w-4 h-4"/></div>
               <div>
@@ -1050,8 +1055,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* SEND SMS MODAL */}
-      {smsTargets && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="sms-investor-title">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-lg w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+      {smsTargets && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="sms-investor-title">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-lg w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-lime-400/10 border border-lime-400/30 text-lime-400"><MessageSquare className="w-4 h-4"/></div>
@@ -1187,8 +1193,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* RECORD PAYOUT MODAL */}
-      {payoutInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {payoutInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 className="text-base font-bold text-white">Record Investor Payout</h3>
             <p className="text-xs text-slate-400">
               <strong className="text-white">{payoutInvestor.name}</strong> ({payoutInvestor.sharePercentage}%) · {formatMonth(selectedMonth)}
@@ -1246,8 +1253,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* LINK LOGIN MODAL */}
-      {linkInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {linkInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 className="text-base font-bold text-white">Link login account</h3>
             <p className="text-xs text-slate-400">Choose which login sees <strong className="text-white">{linkInvestor.name}</strong>&rsquo;s portal. Only accounts with the investor role are listed; change a user&rsquo;s role under Users first.</p>
 
@@ -1266,8 +1274,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* DELETE PARTNER MODAL */}
-      {deleteInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="delete-partner-title">
-          <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
+      {deleteInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="delete-partner-title">
+          <div className="bg-[#0c131a] border-t sm:border border-rose-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
               <div>
@@ -1324,8 +1333,9 @@ export default function AdminInvestorsPage() {
         </div>)}
 
       {/* RESET PASSWORD / CREATE LOGIN MODAL */}
-      {resetInvestor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="reset-password-title">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full space-y-4 text-xs">
+      {resetInvestor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="reset-password-title">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-lime-400/10 border border-lime-400/30 text-lime-400">
                 {resetAccount ? <KeyRound className="w-4 h-4"/> : <UserPlus className="w-4 h-4"/>}

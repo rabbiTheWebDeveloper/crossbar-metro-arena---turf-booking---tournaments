@@ -36,7 +36,7 @@ export function ConfirmDeleteModal({
 
     return (
         <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans"
+            className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-delete-modal-title"
@@ -47,7 +47,8 @@ export function ConfirmDeleteModal({
                 }
             }}
         >
-            <div className="bg-[#0c131a] border border-rose-500/35 rounded-3xl p-6 max-w-md w-full shadow-2xl shadow-black/70 space-y-4 text-xs">
+            <div className="bg-[#0c131a] border-t sm:border border-rose-500/35 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full shadow-2xl shadow-black/70 space-y-4 text-xs animate-in slide-in-from-bottom sm:zoom-in-95">
+                <div className="w-10 h-1 rounded-full bg-white/15 mx-auto sm:hidden" aria-hidden="true" />
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">

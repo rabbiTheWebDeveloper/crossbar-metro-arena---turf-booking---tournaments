@@ -139,7 +139,7 @@ export default function AdminAllBookingsPage() {
             Reset
           </button>)}
 
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
+        <div className="app-tab-strip text-xs">
           {FILTERS.map(f => (<button key={f.key} type="button" onClick={() => changeFilter(f.key)} className={`px-3 py-2 rounded-xl whitespace-nowrap font-bold transition-colors cursor-pointer ${filterStatus === f.key
                 ? 'bg-lime-400 text-slate-950 font-black'
                 : 'bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white'}`}>
@@ -215,28 +215,30 @@ export default function AdminAllBookingsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 shrink-0 w-full sm:w-auto pt-2.5 sm:pt-0 border-t sm:border-t-0 border-white/[0.06]">
                   {statusPill(b)}
 
-                  {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2 py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer disabled:opacity-50" title="Record a partial or full cash payment">
-                      Collect
-                    </button>)}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer disabled:opacity-50" title="Record a partial or full cash payment">
+                        Collect
+                      </button>)}
 
-                  {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => settleInFull(b)} className="hidden sm:inline-flex px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[12px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Collect the entire remaining due">
-                      Settle in full
-                    </button>)}
+                    {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => settleInFull(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[12px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Collect the entire remaining due">
+                        Settle
+                      </button>)}
 
-                  {!isCancelled && !isHold && !b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b, true)} className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[12px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Mark the match as played (does not change payment)">
-                      Mark played
-                    </button>)}
+                    {!isCancelled && !isHold && !b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b, true)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[12px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Mark the match as played (does not change payment)">
+                        Played
+                      </button>)}
 
-                  {!isCancelled && b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b, false)} className="hidden sm:inline-flex px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Undo played">
-                      Undo
-                    </button>)}
+                    {!isCancelled && b.played && (<button type="button" disabled={isBusy} onClick={() => markPlayed(b, false)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-500 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50" title="Undo played">
+                        Undo
+                      </button>)}
 
-                  {!isCancelled && (<button type="button" disabled={isBusy} onClick={() => cancelBooking(b)} className="p-1 text-slate-500 hover:text-rose-400 transition-colors disabled:opacity-50" title="Cancel booking">
-                      <XCircle className="w-4 h-4"/>
-                    </button>)}
+                    {!isCancelled && (<button type="button" disabled={isBusy} onClick={() => cancelBooking(b)} className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors disabled:opacity-50" title="Cancel booking">
+                        <XCircle className="w-4 h-4"/>
+                      </button>)}
+                  </div>
                 </div>
 
               </div>);
@@ -250,8 +252,8 @@ export default function AdminAllBookingsPage() {
       </div>
 
       {/* COLLECT BALANCE MODAL */}
-      {collectingBooking && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {collectingBooking && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95">
             <h3 className="text-base font-bold text-white">Collect Due Balance</h3>
             <p className="text-xs text-slate-400">
               {collectingBooking.captainName} ({collectingBooking.teamName}) · {collectingBooking.bookingCode}

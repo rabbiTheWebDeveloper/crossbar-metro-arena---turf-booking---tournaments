@@ -5,7 +5,8 @@ import { useArena, todayDhaka, collectedAmount } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import {
     ShoppingBag, Star, Download, Upload, ChevronRight, AlertCircle, Award,
-    CalendarCheck, Wallet, BarChart3, TrendingUp, Clock, ArrowUpRight
+    CalendarCheck, Wallet, BarChart3, TrendingUp, Clock, ArrowUpRight,
+    Calendar, Layers, CreditCard, MessageSquare, Contact
 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,7 @@ const StatusPill = ({ booking }) => {
 export default function AdminTodayPage() {
     const {
         bookings, pricing, refunds, shopReservations, registrations, matchResults,
-        calculateMonthlyFinance, currentMonthFinance, exportDatabaseBackup, isLoadingData
+        calculateMonthlyFinance, currentMonthFinance, exportDatabaseBackup, isLoadingData, can
     } = useArena();
 
     const todayStr = useMemo(() => todayDhaka(), []);
@@ -172,9 +173,9 @@ export default function AdminTodayPage() {
         <div className="space-y-6 animate-fade-in font-sans">
 
             {/* 4 TOP KPI METRIC CARDS */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
+                <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-400">Today&apos;s slots</span>
                         <span className="p-1.5 rounded-lg bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
@@ -201,7 +202,7 @@ export default function AdminTodayPage() {
                     </div>
                 </div>
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
+                <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-400">Collected today</span>
                         <span className="p-1.5 rounded-lg bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
@@ -216,7 +217,7 @@ export default function AdminTodayPage() {
                     </div>
                 </div>
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
+                <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-400 truncate">
                             Bookings · {parseLocalDate(todayStr).toLocaleDateString('en-US', { month: 'short' })}
@@ -233,7 +234,7 @@ export default function AdminTodayPage() {
                     </div>
                 </div>
 
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
+                <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0c131a]/95 border border-white/[0.07] hover:border-emerald-400/25 transition-colors shadow-lg shadow-black/20 flex flex-col justify-between">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-400">Net profit · month</span>
                         <span className={`p-1.5 rounded-lg border ${
@@ -254,6 +255,30 @@ export default function AdminTodayPage() {
                     </div>
                 </div>
 
+            </div>
+
+            {/* MOBILE APP QUICK-SHORTCUTS STRIP */}
+            <div className="md:hidden app-tab-strip -mx-0.5 px-0.5 py-0.5">
+                {[
+                    { show: can('bookings'), href: '/admin/schedule', label: 'Schedule', icon: Calendar },
+                    { show: can('bookings'), href: '/admin/all-bookings', label: 'Bookings', icon: Layers },
+                    { show: can('bookings') || can('finance'), href: '/admin/payments', label: 'Payments', icon: CreditCard },
+                    { show: can('players') || can('bookings') || can('settings'), href: '/admin/bulk-sms', label: 'Bulk SMS', icon: MessageSquare },
+                    { show: can('players'), href: '/admin/customers', label: 'Customers', icon: Contact },
+                    { show: can('finance'), href: '/admin/financial-report', label: 'Finance', icon: TrendingUp }
+                ].filter(item => item.show).map(item => {
+                    const Icon = item.icon;
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className="px-3 py-2 rounded-2xl bg-[#0c131a] border border-white/[0.08] text-xs font-bold text-slate-200 flex items-center gap-1.5 app-card-press"
+                        >
+                            <Icon className="w-3.5 h-3.5 text-lime-400 shrink-0" />
+                            <span>{item.label}</span>
+                        </Link>
+                    );
+                })}
             </div>
 
             {/* ALERT BANNERS */}

@@ -217,7 +217,55 @@ Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
             <span className="block mt-1 text-slate-500">Changing a time applies to new bookings; existing bookings keep the time they were made for.</span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* MOBILE / TABLET APP CARDS FOR 12 SLOTS */}
+          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {slotPrices.map(slot => (
+              <div key={slot.slotNumber} className="p-3.5 rounded-2xl bg-[#080d12] border border-white/10 space-y-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-lg bg-lime-400/15 border border-lime-400/30 text-lime-300 font-mono font-bold text-[11px]">
+                      Slot {slot.slotNumber}
+                    </span>
+                    <span className="text-[11px] uppercase text-slate-400 font-semibold">{slot.period}</span>
+                  </div>
+                  <span className="font-mono text-[11px] text-white font-bold">{slot.displayTime}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-500 mb-1">Start</label>
+                    <input type="time" step={900} value={slot.startTime} onChange={e => handleUpdateTime(slot.slotNumber, 'startTime', e.target.value)} aria-label={`Slot ${slot.slotNumber} start time`} className="w-full bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-1.5 text-white font-mono text-xs [color-scheme:dark]"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-500 mb-1">End</label>
+                    <input type="time" step={900} value={slot.endTime === '24:00' ? '00:00' : slot.endTime} onChange={e => handleUpdateTime(slot.slotNumber, 'endTime', e.target.value)} aria-label={`Slot ${slot.slotNumber} end time`} className="w-full bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-1.5 text-white font-mono text-xs [color-scheme:dark]"/>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.06] font-mono">
+                  <div>
+                    <label className="block text-[10px] font-sans text-slate-400 mb-1">Weekday Actual (৳)</label>
+                    <input type="number" min={0} step={50} value={slot.weekdayActualPrice ?? 0} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekdayActualPrice', Number(e.target.value))} className="w-full bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-1.5 text-slate-300 text-xs"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-sans text-lime-300 font-bold mb-1">Weekday Offer (৳)</label>
+                    <input type="number" min={0} step={50} value={slot.weekdayPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekdayPrice', Number(e.target.value))} className="w-full bg-[#0c131a] border border-lime-400/35 rounded-xl px-2.5 py-1.5 text-lime-400 font-bold text-xs"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-sans text-slate-400 mb-1">Weekend Actual (৳)</label>
+                    <input type="number" min={0} step={50} value={slot.weekendActualPrice ?? 0} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekendActualPrice', Number(e.target.value))} className="w-full bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-1.5 text-slate-300 text-xs"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-sans text-lime-300 font-bold mb-1">Weekend Offer (৳)</label>
+                    <input type="number" min={0} step={50} value={slot.weekendPrice} onChange={e => handleUpdatePrice(slot.slotNumber, 'weekendPrice', Number(e.target.value))} className="w-full bg-[#0c131a] border border-lime-400/35 rounded-xl px-2.5 py-1.5 text-lime-400 font-bold text-xs"/>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP TABLE */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
                 <tr>
@@ -266,10 +314,10 @@ Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
 
         {error && (<div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">{error}</div>)}
 
-        {/* Save button */}
-        <div className="flex items-center justify-end gap-3">
-          {dirty && !isSubmitting && <span className="text-[11px] text-amber-300 font-mono">Unsaved changes</span>}
-          <button type="submit" disabled={isSubmitting} className="px-6 py-3 rounded-2xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-lime-400/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+        {/* Save button (sticky above mobile app dock when dirty) */}
+        <div className={`flex items-center justify-between sm:justify-end gap-3 ${dirty ? 'sticky bottom-[4.75rem] md:bottom-3 z-20 p-3 rounded-2xl bg-[#0c131a]/95 border border-amber-400/30 backdrop-blur-md shadow-2xl' : ''}`}>
+          {dirty && !isSubmitting ? <span className="text-[11px] text-amber-300 font-mono">Unsaved changes</span> : <span className="sm:hidden" />}
+          <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto justify-center px-6 py-3 rounded-2xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-lime-400/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
             <Save className="w-4 h-4"/>
             <span>{isSubmitting ? 'Saving…' : 'Save Price List & Rules'}</span>
           </button>

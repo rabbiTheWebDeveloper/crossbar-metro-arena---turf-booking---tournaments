@@ -140,7 +140,36 @@ export default function AdminRefundsPage() {
           <span>Refund ledger ({closedRefunds.length})</span>
         </h3>
 
-        <div className="overflow-x-auto">
+        {/* MOBILE REFUND LEDGER CARDS */}
+        <div className="md:hidden space-y-2">
+          {closedRefunds.length === 0 ? (
+            <div className="py-4 text-xs text-slate-500">No completed or rejected refunds yet.</div>
+          ) : closedRefunds.map(ref => (
+            <div key={ref.id} className="p-3.5 rounded-2xl bg-[#080d12] border border-white/5 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono font-bold text-white">{ref.bookingCode}</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${STATUS_STYLES[ref.status]}`}>
+                  {REFUND_STATUS_LABELS[ref.status]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-300">{ref.customerName} <span className="font-mono text-slate-500">({ref.customerPhone})</span></span>
+                <span className={`font-mono font-bold ${ref.status === 'completed' ? 'text-emerald-400' : 'text-slate-500 line-through'}`}>
+                  {formatMoney(ref.amount)}
+                </span>
+              </div>
+              <div className="text-[10.5px] font-mono text-slate-500 flex items-center justify-between pt-1 border-t border-white/[0.05]">
+                <span>{formatDate(ref.refundedDate || ref.requestDate, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span className="truncate max-w-[180px]">
+                  {ref.status === 'completed' ? `${paymentMethodLabel(ref.refundMethod)}${ref.transactionRef ? ` · ${ref.transactionRef}` : ''}` : (ref.transactionRef || '—')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* DESKTOP REFUND LEDGER TABLE */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
               <tr>
@@ -174,8 +203,8 @@ export default function AdminRefundsPage() {
       </div>
 
       {/* PROCESS / REJECT MODAL */}
-      {modal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className={`bg-[#0c131a] border rounded-2xl p-6 max-w-sm w-full space-y-4 ${modal.mode === 'reject' ? 'border-rose-400/30' : 'border-lime-400/30'}`}>
+      {modal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className={`bg-[#0c131a] border-t sm:border rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 ${modal.mode === 'reject' ? 'border-rose-400/30' : 'border-lime-400/30'}`}>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               {modal.mode === 'reject' ? <XCircle className="w-4 h-4 text-rose-400"/> : <ShieldCheck className="w-4 h-4 text-lime-400"/>}
               {modal.mode === 'reject' ? 'Reject refund claim' : 'Record processed refund'}

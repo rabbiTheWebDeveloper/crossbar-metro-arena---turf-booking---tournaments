@@ -85,15 +85,82 @@ const ADMIN_PAGES = [
     { prefix: '/admin/gallery', permission: 'gallery' }
 ];
 
-/** Can this user open the given admin page? `/admin` itself (Today) is the bookings desk. */
+/**
+ * Can this user open the given admin page?
+ * `/admin` (Overview) is open to full admins and any staff user with at least one role permission
+ * (staff without `bookings` see their tailored Role Overview Dashboard there).
+ */
 export function canOpenAdminPath(user, pathname) {
     if (!canAccessAdminPortal(user)) return false;
     if (user.role === 'admin') return true;
     const path = String(pathname || '').replace(/\/+$/, '') || '/admin';
-    if (path === '/admin') return hasPermission(user, 'bookings');
+    if (path === '/admin') {
+        return Array.isArray(user.permissions) && user.permissions.length > 0;
+    }
     const page = ADMIN_PAGES.find(p => path === p.prefix || path.startsWith(`${p.prefix}/`));
     if (!page) return false;
     if (page.adminOnly) return false;
     if (page.open) return true;
     return hasPermission(user, page.permission);
+}
+
+/** Primary portal home path for a role or user object. */
+export function getDefaultPortalForRole(userOrRole) {
+    const role = typeof userOrRole === 'string' ? userOrRole : userOrRole?.role;
+    if (role === 'admin' || role === 'staff') return '/admin';
+    if (role === 'investor') return '/investor';
+    if (role === 'player') return '/customer';
+    return '/login';
+}
+
+/**
+ * Strict panel isolation across the 3 private portals:
+ *   - `/admin*`    -> ONLY `admin` and `staff`
+ *   - `/investor*` -> ONLY `investor`
+ *   - `/customer*` -> ONLY `player` (customer)
+ * Visitors / unauthenticated users cannot access any private portal.
+ */
+export function canAccessPortal(user, pathname) {
+    const path = String(pathname || '') || '/';
+    const isAdminRoute = path === '/admin' || path.startsWith('/admin/');
+    const isInvestorRoute = path === '/investor' || path.startsWith('/investor/');
+    const isCustomerRoute = path === '/customer' || path.startsWith('/customer/');
+
+    if (!isAdminRoute && !isInvestorRoute && !isCustomerRoute) return true;
+    if (!user || !user.role || user.role === 'visitor') return false;
+
+    if (isAdminRoute) return user.role === 'admin' || user.role === 'staff';
+    if (isInvestorRoute) return user.role === 'investor';
+    if (isCustomerRoute) return user.role === 'player';
+    return true;
+}
+
+const AUTH_PATHS = new Set(['/login', '/register', '/signup', '/logout', '/forgot-password']);
+
+/**
+ * Compute a safe, role-authorized post-login redirect path.
+ * Prevents cross-panel redirect leaks (e.g. a customer logging in with `?callbackUrl=/admin`).
+ */
+export function resolvePostLoginPath(user, callbackUrl) {
+    const fallback = getDefaultPortalForRole(user);
+    if (!user || !user.role || user.role === 'visitor') return '/login';
+
+    const raw = typeof callbackUrl === 'string' ? callbackUrl.trim() : '';
+    if (!raw || !/^\/(?![\/\\])/.test(raw)) return fallback;
+
+    const cleanPathname = raw.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
+    if (AUTH_PATHS.has(cleanPathname)) return fallback;
+    if (!canAccessPortal(user, cleanPathname)) return fallback;
+
+    // If staff has loaded permissions and callbackUrl points to an unpermitted admin sub-route, land on /admin
+    if (
+        (cleanPathname === '/admin' || cleanPathname.startsWith('/admin/')) &&
+        user.role === 'staff' &&
+        Array.isArray(user.permissions) &&
+        !canOpenAdminPath(user, cleanPathname)
+    ) {
+        return '/admin';
+    }
+
+    return raw;
 }

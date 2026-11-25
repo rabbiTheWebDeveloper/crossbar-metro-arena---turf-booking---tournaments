@@ -40,10 +40,8 @@ export async function GET(request) {
             }
             const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
             const res = NextResponse.json({ authenticated: true, user: userJson }, { status: 200 });
-            // Keep the readable user cookie in sync with the database (role/name changes)
-            if (userJson.role !== authUser.role || userJson.name !== authUser.name) {
-                setAuthCookies(res, signJwtToken(tokenPayload(user)), userJson);
-            }
+            // Keep the readable user cookie & JWT in sync with the database (role/name/permissions)
+            setAuthCookies(res, signJwtToken(tokenPayload(user)), userJson);
             return res;
         } catch (dbErr) {
             console.warn('DB lookup in /api/auth/me failed, using token payload:', dbErr.message);

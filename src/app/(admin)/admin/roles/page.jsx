@@ -133,8 +133,9 @@ export default function AdminRolesPage() {
       )}
 
       {/* CREATE / EDIT MODAL */}
-      {form && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="role-form-title">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+      {form && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="role-form-title">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-2xl w-full max-h-[92vh] overflow-y-auto space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <h3 id="role-form-title" className="text-base font-bold text-white font-display">{isEditing ? 'Edit role' : 'New staff role'}</h3>
 
             <form onSubmit={submitForm} className="space-y-4">
@@ -212,8 +213,9 @@ export default function AdminRolesPage() {
         </div>)}
 
       {/* DELETE MODAL */}
-      {deleting && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="role-delete-title">
-          <div className="bg-[#0c131a] border border-rose-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4 text-xs">
+      {deleting && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="role-delete-title">
+          <div className="bg-[#0c131a] border-t sm:border border-rose-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300"><AlertTriangle className="w-4 h-4"/></div>
               <div>

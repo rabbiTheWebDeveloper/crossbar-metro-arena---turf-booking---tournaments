@@ -610,23 +610,23 @@ export default function AdminBulkSmsPage() {
     return (
         <div className="space-y-6">
             {/* TOP KPI & LIVE BALANCE BAR */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
                 {/* 1. Current Balance */}
-                <div className="p-5 rounded-3xl bg-gradient-to-br from-[#0e1a18] via-[#0c131a] to-[#0c131a] border border-emerald-500/25 shadow-lg shadow-black/20 flex flex-col justify-between gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                        <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-emerald-400 font-bold flex items-center gap-1.5">
-                                <Wallet className="w-3.5 h-3.5" />
-                                <span>Current SMS Balance</span>
+                <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0e1a18] via-[#0c131a] to-[#0c131a] border border-emerald-500/25 shadow-lg shadow-black/20 flex flex-col justify-between gap-2.5 sm:gap-3">
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0">
+                            <div className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-[0.12em] sm:tracking-[0.16em] text-emerald-400 font-bold flex items-center gap-1">
+                                <Wallet className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">SMS Balance</span>
                             </div>
-                            <div className="mt-2 flex items-baseline gap-2">
+                            <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
                                 {smsInfo.configured && smsInfo.balance !== null ? (
-                                    <span className="text-2xl sm:text-3xl font-black font-display text-white tracking-tight">
+                                    <span className="text-lg sm:text-3xl font-black font-display text-white tracking-tight truncate">
                                         ৳{Number(smsInfo.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 ) : (
-                                    <span className="text-lg font-extrabold text-amber-300">
-                                        {smsInfo.configured ? 'Unavailable' : 'Not Configured'}
+                                    <span className="text-sm sm:text-lg font-extrabold text-amber-300">
+                                        {smsInfo.configured ? 'Unavailable' : 'Not Set'}
                                     </span>
                                 )}
                             </div>
@@ -635,72 +635,72 @@ export default function AdminBulkSmsPage() {
                             type="button"
                             onClick={loadHistoryAndStatus}
                             disabled={logsLoading}
-                            className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1.5 sm:p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                             title="Refresh live balance & history"
                             aria-label="Refresh live balance"
                         >
-                            <RefreshCw className={`w-4 h-4 ${logsLoading ? 'animate-spin text-emerald-400' : ''}`} />
+                            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${logsLoading ? 'animate-spin text-emerald-400' : ''}`} />
                         </button>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 pt-1 border-t border-white/[0.06]">
-                        <span>
-                            Sender: <strong className="text-slate-200 font-mono">{smsInfo.smsSenderId || 'Default Route'}</strong>
+                    <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] sm:text-[11px] text-slate-400 pt-1.5 border-t border-white/[0.06]">
+                        <span className="truncate">
+                            ID: <strong className="text-slate-200 font-mono">{smsInfo.smsSenderId || 'Default'}</strong>
                         </span>
                         {validityDateLabel ? (
                             <span className="text-emerald-300/90 font-mono">Exp: {validityDateLabel}</span>
                         ) : (
                             <Link href="/admin/settings" className="text-lime-400 hover:underline inline-flex items-center gap-1 font-semibold">
                                 <Settings className="w-3 h-3" />
-                                <span>Gateway Settings</span>
+                                <span>Setup</span>
                             </Link>
                         )}
                     </div>
                 </div>
 
                 {/* 2. Dispatched & Recipients */}
-                <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-3">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-400 font-bold">
-                                SMS Dispatched
+                <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-2.5 sm:gap-3">
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0">
+                            <div className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-[0.12em] sm:tracking-[0.16em] text-slate-400 font-bold truncate">
+                                Dispatched
                             </div>
-                            <div className="mt-2 text-2xl sm:text-3xl font-black font-display text-white">
+                            <div className="mt-1.5 sm:mt-2 text-lg sm:text-3xl font-black font-display text-white">
                                 {stats.totalRecipients.toLocaleString('en-IN')}
-                                <span className="text-xs font-semibold text-slate-400 ml-1.5">recipients</span>
+                                <span className="hidden sm:inline text-xs font-semibold text-slate-400 ml-1.5">recipients</span>
                             </div>
                         </div>
-                        <div className="w-9 h-9 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-400">
-                            <Send className="w-4 h-4" />
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-400 shrink-0">
+                            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                     </div>
-                    <div className="text-[11px] text-slate-400 pt-1 border-t border-white/[0.06] flex items-center justify-between">
-                        <span>{stats.totalDispatched.toLocaleString('en-IN')} dispatches</span>
-                        <span className="font-mono text-slate-300">{stats.totalSegments.toLocaleString('en-IN')} total segs</span>
+                    <div className="text-[10px] sm:text-[11px] text-slate-400 pt-1.5 border-t border-white/[0.06] flex items-center justify-between gap-1">
+                        <span className="truncate">{stats.totalDispatched.toLocaleString('en-IN')} sends</span>
+                        <span className="font-mono text-slate-300 shrink-0">{stats.totalSegments.toLocaleString('en-IN')} segs</span>
                     </div>
                 </div>
 
                 {/* 3. Scheduled Queue + 15m Reminder Sync */}
-                <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-3">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-400 font-bold">
-                                Scheduled Queue
+                <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-2.5 sm:gap-3">
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0">
+                            <div className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-[0.12em] sm:tracking-[0.16em] text-slate-400 font-bold truncate">
+                                Scheduled
                             </div>
-                            <div className="mt-2 text-2xl sm:text-3xl font-black font-display text-amber-300">
+                            <div className="mt-1.5 sm:mt-2 text-lg sm:text-3xl font-black font-display text-amber-300">
                                 {stats.scheduledCount.toLocaleString('en-IN')}
                             </div>
                         </div>
-                        <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
-                            <Clock className="w-4 h-4" />
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
+                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
                     </div>
-                    <div className="pt-1 border-t border-white/[0.06] flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-slate-400 truncate">15m pre-match &amp; campaigns</span>
+                    <div className="pt-1.5 border-t border-white/[0.06] flex items-center justify-between gap-1.5">
+                        <span className="hidden sm:inline text-[11px] text-slate-400 truncate">15m pre-match &amp; campaigns</span>
                         <button
                             type="button"
                             onClick={handleSyncMatchReminders}
                             disabled={syncingReminders || !smsInfo.configured}
-                            className="px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[11px] font-bold text-amber-200 inline-flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-2 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-[10.5px] sm:text-[11px] font-bold text-amber-200 inline-flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-50"
                             title="Ensure all upcoming confirmed matches in the next 24h have 15-min SMS reminders scheduled"
                         >
                             {syncingReminders ? <Loader2 className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
@@ -710,33 +710,33 @@ export default function AdminBulkSmsPage() {
                 </div>
 
                 {/* 4. Gateway Failures */}
-                <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-3">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-400 font-bold">
-                                Failed / Rejected
+                <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0c131a] border border-white/[0.07] flex flex-col justify-between gap-2.5 sm:gap-3">
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="min-w-0">
+                            <div className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-[0.12em] sm:tracking-[0.16em] text-slate-400 font-bold truncate">
+                                Failed
                             </div>
-                            <div className={`mt-2 text-2xl sm:text-3xl font-black font-display ${stats.failedCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            <div className={`mt-1.5 sm:mt-2 text-lg sm:text-3xl font-black font-display ${stats.failedCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                                 {stats.failedCount.toLocaleString('en-IN')}
                             </div>
                         </div>
-                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center border ${
+                        <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl flex items-center justify-center border shrink-0 ${
                             stats.failedCount > 0
                                 ? 'bg-rose-500/10 border-rose-500/25 text-rose-400'
                                 : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
                         }`}>
-                            {stats.failedCount > 0 ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                            {stats.failedCount > 0 ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </div>
                     </div>
-                    <div className="text-[11px] text-slate-400 pt-1 border-t border-white/[0.06] flex items-center justify-between">
-                        <span>{contacts.length.toLocaleString('en-IN')} reachable contacts</span>
+                    <div className="text-[10px] sm:text-[11px] text-slate-400 pt-1.5 border-t border-white/[0.06] flex items-center justify-between gap-1">
+                        <span className="truncate">{contacts.length.toLocaleString('en-IN')} contacts</span>
                         {stats.failedCount > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setStatusFilter('failed')}
-                                className="text-rose-300 hover:underline font-semibold cursor-pointer"
+                                className="text-rose-300 hover:underline font-semibold cursor-pointer shrink-0"
                             >
-                                View failed
+                                View
                             </button>
                         )}
                     </div>
@@ -756,7 +756,7 @@ export default function AdminBulkSmsPage() {
             )}
 
             {/* COMPOSER HUB: RECIPIENTS (LEFT) + MESSAGE & SCHEDULE (RIGHT) */}
-            <form onSubmit={handleFormSubmit} className="rounded-3xl bg-[#0c131a] border border-white/[0.07] p-5 sm:p-6 space-y-5">
+            <form onSubmit={handleFormSubmit} className="rounded-2xl sm:rounded-3xl bg-[#0c131a] border border-white/[0.07] p-4 sm:p-6 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
                     <div>
                         <h2 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
@@ -813,18 +813,19 @@ export default function AdminBulkSmsPage() {
                     {/* LEFT COLUMN: RECIPIENT SELECTION (7 cols) */}
                     <div className="lg:col-span-7 space-y-4">
                         {/* Recipient Source Tabs */}
-                        <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[#080d12] border border-white/[0.07]">
+                        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 p-1 rounded-2xl bg-[#080d12] border border-white/[0.07]">
                             <button
                                 type="button"
                                 onClick={() => setRecipientTab('manual')}
-                                className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                className={`py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                                     recipientTab === 'manual'
                                         ? 'bg-lime-400 text-slate-950 shadow-sm'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
                                 <Phone className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Manual Numbers</span>
+                                <span className="sm:hidden truncate">Manual</span>
+                                <span className="hidden sm:inline truncate">Manual Numbers</span>
                                 {manualParsed.valid.length > 0 && (
                                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
                                         recipientTab === 'manual' ? 'bg-slate-950/20 text-slate-950' : 'bg-lime-400/20 text-lime-300'
@@ -837,14 +838,15 @@ export default function AdminBulkSmsPage() {
                             <button
                                 type="button"
                                 onClick={() => setRecipientTab('contacts')}
-                                className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                className={`py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                                     recipientTab === 'contacts'
                                         ? 'bg-lime-400 text-slate-950 shadow-sm'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
                                 <Users className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Customers &amp; Users</span>
+                                <span className="sm:hidden truncate">Contacts</span>
+                                <span className="hidden sm:inline truncate">Customers &amp; Users</span>
                                 {selectedPhones.size > 0 && (
                                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
                                         recipientTab === 'contacts' ? 'bg-slate-950/20 text-slate-950' : 'bg-lime-400/20 text-lime-300'
@@ -857,14 +859,15 @@ export default function AdminBulkSmsPage() {
                             <button
                                 type="button"
                                 onClick={() => setRecipientTab('audiences')}
-                                className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                className={`py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                                     recipientTab === 'audiences'
                                         ? 'bg-lime-400 text-slate-950 shadow-sm'
                                         : 'text-slate-400 hover:text-white'
                                 }`}
                             >
                                 <Layers className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Bulk Groups</span>
+                                <span className="sm:hidden truncate">Groups</span>
+                                <span className="hidden sm:inline truncate">Bulk Groups</span>
                                 {selectedAudiences.size > 0 && (
                                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
                                         recipientTab === 'audiences' ? 'bg-slate-950/20 text-slate-950' : 'bg-lime-400/20 text-lime-300'
@@ -922,13 +925,13 @@ export default function AdminBulkSmsPage() {
                         {/* TAB 2: CUSTOMERS & USERS PICKER */}
                         {recipientTab === 'contacts' && (
                             <div className="space-y-3">
-                                <div className="flex flex-wrap gap-1.5">
+                                <div className="app-tab-strip sm:flex-wrap">
                                     {CONTACT_FILTERS.map(f => (
                                         <button
                                             key={f.key}
                                             type="button"
                                             onClick={() => setContactGroupFilter(f.key)}
-                                            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
+                                            className={`shrink-0 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
                                                 contactGroupFilter === f.key
                                                     ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/40'
                                                     : 'bg-[#080d12] text-slate-400 border-white/10 hover:text-white'
@@ -1264,7 +1267,7 @@ export default function AdminBulkSmsPage() {
             </form>
 
             {/* SMS HISTORY & LIVE DELIVERY REPORTS */}
-            <section className="rounded-3xl bg-[#0c131a] border border-white/[0.07] p-5 sm:p-6 space-y-4">
+            <section className="rounded-2xl sm:rounded-3xl bg-[#0c131a] border border-white/[0.07] p-4 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
@@ -1300,13 +1303,13 @@ export default function AdminBulkSmsPage() {
 
                 {/* Filter Tabs + Search + Status Select */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="app-tab-strip sm:flex-wrap">
                         {HISTORY_TABS.map(tab => (
                             <button
                                 key={tab.key}
                                 type="button"
                                 onClick={() => setCategoryFilter(tab.key)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                                className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                                     categoryFilter === tab.key
                                         ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/40'
                                         : 'bg-[#080d12] text-slate-400 border-white/10 hover:text-white'
@@ -1318,7 +1321,7 @@ export default function AdminBulkSmsPage() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <div className="relative min-w-[220px]">
+                        <div className="relative sm:min-w-[220px]">
                             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
                                 type="text"
@@ -1350,8 +1353,125 @@ export default function AdminBulkSmsPage() {
                     </div>
                 )}
 
-                {/* History Table */}
-                <div className="overflow-x-auto rounded-2xl border border-white/[0.07] bg-[#080d12]">
+                {/* MOBILE APP HISTORY CARDS */}
+                <div className="md:hidden space-y-2.5">
+                    {logsLoading && logs.length === 0 ? (
+                        <div className="py-10 text-center text-xs text-slate-400 rounded-2xl border border-white/[0.07] bg-[#080d12] flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-lime-400" />
+                            <span>Loading SMS history…</span>
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <div className="py-10 text-center text-xs text-slate-500 rounded-2xl border border-white/[0.07] bg-[#080d12]">
+                            No SMS logs match your current filters yet.
+                        </div>
+                    ) : (
+                        logs.map(log => {
+                            const catMeta = CATEGORY_META[log.category] || CATEGORY_META.manual;
+                            const stMeta = STATUS_META[log.status] || STATUS_META.submitted;
+                            const isChecking = checkingLogId === log.id;
+
+                            return (
+                                <div key={log.id} className="p-3.5 rounded-2xl bg-[#080d12] border border-white/[0.07] space-y-2.5">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${catMeta.cls}`}>
+                                                {catMeta.label}
+                                            </span>
+                                            {log.bookingCode && (
+                                                <span className="font-mono text-[10.5px] font-bold text-emerald-300">
+                                                    {log.bookingCode}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${stMeta.cls}`}>
+                                            {stMeta.label}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <div className="text-xs font-bold text-white break-words">
+                                                {log.recipientSummary || (log.recipients || [])[0] || '—'}
+                                            </div>
+                                            <div className="mt-0.5 text-[10.5px] text-slate-400 font-mono">
+                                                {formatDateTime(log.createdAt)} · {log.recipientCount || 1} num{(log.recipientCount || 1) === 1 ? '' : 's'} · {log.totalSegments || 1} seg{(log.totalSegments || 1) === 1 ? '' : 's'}
+                                            </div>
+                                            {log.schedule && (
+                                                <div className="mt-0.5 text-[10.5px] font-mono text-amber-300 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3 shrink-0" />
+                                                    <span>Sched: {log.schedule}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] text-xs text-slate-200 leading-relaxed whitespace-pre-wrap break-words">
+                                        {log.message}
+                                    </div>
+
+                                    {log.errorMessage && (
+                                        <div className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl px-2.5 py-1.5">
+                                            {log.errorMessage}
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] font-mono text-slate-500">
+                                        <div className="flex items-center gap-2">
+                                            <span>By {log.sentBy || 'System'}</span>
+                                            {log.charge && <span className="text-emerald-300">৳{Number(log.charge).toFixed(2)}</span>}
+                                        </div>
+                                        {log.requestId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyText(log.id, log.requestId)}
+                                                className="inline-flex items-center gap-1 text-slate-400 hover:text-white cursor-pointer"
+                                                title="Copy Request ID"
+                                            >
+                                                <span>#{log.requestId}</span>
+                                                {copiedId === log.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-2 border-t border-white/[0.06] flex flex-wrap items-center justify-end gap-1.5">
+                                        {log.requestId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCheckDeliveryReport(log)}
+                                                disabled={isChecking}
+                                                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[11px] font-bold text-emerald-200 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                            >
+                                                {isChecking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                                <span>Check Report</span>
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleReuseInComposer(log)}
+                                            className="px-2.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-[11px] font-semibold text-slate-300 cursor-pointer"
+                                        >
+                                            Reuse
+                                        </button>
+                                        {isAdmin && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setDeleteLogError(''); setDeleteLogTarget(log); }}
+                                                className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-[11px] font-semibold text-rose-300 inline-flex items-center gap-1 cursor-pointer"
+                                                title="Delete SMS log (Super Admin only)"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                                <span>Delete</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Desktop History Table */}
+                <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/[0.07] bg-[#080d12]">
                     <table className="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr className="border-b border-white/[0.07] text-[10.5px] font-mono uppercase tracking-wider text-slate-400 bg-white/[0.02]">
@@ -1537,12 +1657,13 @@ export default function AdminBulkSmsPage() {
             {/* BULK DISPATCH CONFIRMATION MODAL */}
             {confirmBulkOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+                    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="confirm-bulk-sms-title"
                 >
-                    <div className="bg-[#0c131a] border border-lime-400/30 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+                    <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 shadow-2xl">
+                        <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1" />
                         <div className="flex items-center justify-between">
                             <h3 id="confirm-bulk-sms-title" className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
                                 <Send className="w-4 h-4 text-lime-400" />
@@ -1572,7 +1693,7 @@ export default function AdminBulkSmsPage() {
                                     {scheduleEnabled ? normalizeScheduleInput(scheduleInput) : 'Immediate'}
                                 </strong>
                             </div>
-                            <div className="pt-2 border-t border-white/[0.06] text-slate-300 whitespace-pre-wrap break-words">
+                            <div className="pt-2 border-t border-white/[0.06] text-slate-300 whitespace-pre-wrap break-words max-h-40 overflow-y-auto custom-scrollbar">
                                 {message.trim()}
                             </div>
                         </div>
@@ -1581,7 +1702,7 @@ export default function AdminBulkSmsPage() {
                             <button
                                 type="button"
                                 onClick={() => setConfirmBulkOpen(false)}
-                                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 cursor-pointer"
+                                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 cursor-pointer"
                             >
                                 Cancel
                             </button>
@@ -1589,7 +1710,7 @@ export default function AdminBulkSmsPage() {
                                 type="button"
                                 onClick={executeSendSms}
                                 disabled={sending}
-                                className="px-4 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
+                                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
                             >
                                 <Send className="w-3.5 h-3.5" />
                                 <span>Confirm &amp; Send ({mergedRecipients.total})</span>
@@ -1602,7 +1723,7 @@ export default function AdminBulkSmsPage() {
             {/* LIVE GATEWAY DELIVERY REPORT MODAL */}
             {activeReportModal && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+                    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="sms-report-modal-title"
@@ -1610,7 +1731,8 @@ export default function AdminBulkSmsPage() {
                         if (e.target === e.currentTarget) setActiveReportModal(null);
                     }}
                 >
-                    <div className="bg-[#0c131a] border border-emerald-500/30 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[88vh] flex flex-col">
+                    <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[88vh] flex flex-col">
+                        <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1 shrink-0" />
                         <div className="flex items-center justify-between shrink-0">
                             <div>
                                 <h3 id="sms-report-modal-title" className="text-sm font-extrabold text-white uppercase tracking-wider">

@@ -180,25 +180,25 @@ export default function AdminPaymentsPage() {
             </div>
 
             {/* Summary KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="p-4 rounded-2xl bg-[#0c131a] border border-emerald-500/20">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c131a] border border-emerald-500/20">
                     <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">Total Collected</div>
-                    <div className="text-2xl font-black font-mono text-emerald-400 mt-1">{money(overview.totalCollected)}</div>
+                    <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400 mt-1">{money(overview.totalCollected)}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">{overview.successCount} verified payments</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#0c131a] border border-white/10">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c131a] border border-white/10">
                     <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">EPS Online</div>
-                    <div className="text-2xl font-black font-mono text-white mt-1">{money(overview.epsCollected)}</div>
+                    <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">{money(overview.epsCollected)}</div>
                     <div className="text-[11px] text-emerald-400 mt-0.5">Easy Payment System</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#0c131a] border border-white/10">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c131a] border border-white/10">
                     <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">Desk / Counter</div>
-                    <div className="text-2xl font-black font-mono text-white mt-1">{money(overview.counterCollected)}</div>
+                    <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1">{money(overview.counterCollected)}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">Cash, bKash &amp; manual desk</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-[#0c131a] border border-white/10">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0c131a] border border-white/10">
                     <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">Pending / Failed</div>
-                    <div className="text-2xl font-black font-mono text-amber-300 mt-1">
+                    <div className="text-xl sm:text-2xl font-black font-mono text-amber-300 mt-1">
                         {overview.initiatedCount} <span className="text-sm text-rose-400">/ {overview.failedCount + overview.cancelledCount}</span>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5">{overview.totalTransactions} total records</div>
@@ -220,25 +220,25 @@ export default function AdminPaymentsPage() {
             )}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1 sm:max-w-sm">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                <div className="relative col-span-2 sm:flex-1 sm:min-w-[240px] sm:max-w-sm">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
                     <input
                         type="search"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search booking code, transaction ID, name, phone..."
-                        className="w-full bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder:text-slate-500 outline-none"
+                        className="w-full bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 sm:py-2 pl-9 pr-3 text-xs text-white placeholder:text-slate-500 outline-none"
                     />
                 </div>
                 <select
                     value={gatewayFilter}
                     onChange={e => setGatewayFilter(e.target.value)}
                     aria-label="Filter by gateway"
-                    className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                    className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2.5 sm:py-2 text-xs text-white outline-none w-full sm:w-auto"
                 >
                     <option value="">All Gateways</option>
-                    <option value="online">Online only (EPS + SSLCommerz)</option>
+                    <option value="online">Online only (EPS + SSL)</option>
                     <option value="eps">EPS Gateway</option>
                     <option value="counter">Counter / Desk</option>
                     <option value="sslcommerz">SSLCommerz</option>
@@ -247,7 +247,7 @@ export default function AdminPaymentsPage() {
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     aria-label="Filter by status"
-                    className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                    className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2.5 sm:py-2 text-xs text-white outline-none w-full sm:w-auto"
                 >
                     <option value="">All Statuses</option>
                     <option value="success">Paid / Verified</option>
@@ -256,7 +256,7 @@ export default function AdminPaymentsPage() {
                     <option value="cancelled">Cancelled</option>
                     <option value="refunded">Refunded</option>
                 </select>
-                <div className="flex items-center gap-1.5">
+                <div className="col-span-2 sm:col-span-1 flex items-center gap-1.5">
                     <input
                         type="date"
                         value={fromDate}
@@ -264,7 +264,7 @@ export default function AdminPaymentsPage() {
                         onChange={e => setFromDate(e.target.value)}
                         aria-label="Slot date from"
                         title="Slot date from"
-                        className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none [color-scheme:dark]"
+                        className="flex-1 sm:flex-none bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none [color-scheme:dark]"
                     />
                     <span className="text-slate-500 text-xs">to</span>
                     <input
@@ -274,13 +274,13 @@ export default function AdminPaymentsPage() {
                         onChange={e => setToDate(e.target.value)}
                         aria-label="Slot date to"
                         title="Slot date to"
-                        className="bg-[#0c131a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none [color-scheme:dark]"
+                        className="flex-1 sm:flex-none bg-[#0c131a] border border-white/10 rounded-xl px-2.5 py-2 text-xs text-white outline-none [color-scheme:dark]"
                     />
                     {(fromDate || toDate) && (
                         <button
                             type="button"
                             onClick={() => { setFromDate(''); setToDate(''); }}
-                            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white cursor-pointer"
+                            className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white cursor-pointer shrink-0"
                             aria-label="Clear date range"
                             title="Clear date range"
                         >
@@ -307,7 +307,65 @@ export default function AdminPaymentsPage() {
                     <p>Online EPS payments and desk collections appear here automatically. Click &ldquo;Sync Bookings&rdquo; to backfill existing paid bookings.</p>
                 </div>
             ) : (
-                <div className={`rounded-2xl bg-[#0c131a] border border-white/10 overflow-hidden transition-opacity ${loading ? 'opacity-60' : ''}`}>
+                <div className={`space-y-3 transition-opacity ${loading ? 'opacity-60' : ''}`}>
+                    {/* MOBILE APP CARDS */}
+                    <div className="md:hidden space-y-2.5">
+                        {rows.map(p => {
+                            const st = STATUS_STYLE[p.status] || STATUS_STYLE.initiated;
+                            const StIcon = st.icon;
+                            const gwCls = GATEWAY_STYLE[p.gateway] || GATEWAY_STYLE.counter;
+                            return (
+                                <div
+                                    key={p.id}
+                                    onClick={() => setSelected(p)}
+                                    className="p-3.5 rounded-2xl bg-[#0c131a] border border-white/10 space-y-2.5 text-xs app-card-press cursor-pointer"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <div className="text-lg font-black font-mono text-white leading-none">{money(p.amount)}</div>
+                                            <div className="text-[11px] font-mono text-lime-400 font-bold mt-1">
+                                                {p.bookingCode || '—'}{p.slotDate ? ` · ${p.slotDate}` : ''}
+                                            </div>
+                                        </div>
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold uppercase shrink-0 ${st.cls}`}>
+                                            <StIcon className="w-3 h-3"/>
+                                            <span>{st.label}</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                                        <div className="min-w-0">
+                                            <span className="font-bold text-slate-200">{p.customerName || '—'}</span>
+                                            {p.customerPhone && <span className="font-mono text-slate-400"> · {p.customerPhone}</span>}
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold uppercase shrink-0 ${gwCls}`}>
+                                            {p.gateway === 'eps' ? 'EPS' : p.gateway}
+                                        </span>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2 text-[10.5px] font-mono text-slate-400">
+                                        <span className="truncate">{p.merchantTransactionId || fmtDateTime(p.createdAt)}</span>
+                                        {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' ? (
+                                            <button
+                                                type="button"
+                                                disabled={verifyingId === p.id}
+                                                onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
+                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] font-sans shrink-0"
+                                            >
+                                                {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
+                                                <span>Verify EPS</span>
+                                            </button>
+                                        ) : (
+                                            <span className="shrink-0 text-slate-500">{fmtDateTime(p.verifiedAt || p.createdAt)}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* DESKTOP TABLE */}
+                    <div className="hidden md:block rounded-2xl bg-[#0c131a] border border-white/10 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
@@ -396,8 +454,9 @@ export default function AdminPaymentsPage() {
                             </tbody>
                         </table>
                     </div>
+                    </div>
 
-                    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-white/10 text-[11px] text-slate-400 font-mono">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-[#0c131a] border border-white/10 text-[11px] text-slate-400 font-mono">
                         <span>{total} payment{total === 1 ? '' : 's'} · page {page} of {pages}</span>
                         <div className="flex items-center gap-1.5">
                             <button

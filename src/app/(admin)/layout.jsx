@@ -10,7 +10,8 @@ import {
     Clock, Calendar, Layers, TrendingUp, Users, Tag, AlertCircle, ShoppingBag,
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
     Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
-    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList, MessageSquare
+    PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList, MessageSquare,
+    LayoutGrid, ChevronLeft
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -49,6 +50,7 @@ export default function AdminLayout({ children }) {
     } = useArena();
 
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [mobileLauncherOpen, setMobileLauncherOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showWalkinModal, setShowWalkinModal] = useState(false);
 
@@ -75,19 +77,21 @@ export default function AdminLayout({ children }) {
         });
     };
 
-    // Close mobile drawer on route change
+    // Close mobile drawer & app launcher on route change
     useEffect(() => {
         setMobileSidebarOpen(false);
+        setMobileLauncherOpen(false);
     }, [pathname]);
 
-    // Lock body scroll when mobile sidebar or walk-in modal is open; support Escape key
+    // Lock body scroll when mobile sidebar, app launcher, or walk-in modal is open; support Escape key
     useEffect(() => {
-        if (!mobileSidebarOpen && !showWalkinModal) return;
+        if (!mobileSidebarOpen && !mobileLauncherOpen && !showWalkinModal) return;
         const prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         const onKeyDown = (e) => {
             if (e.key === 'Escape') {
                 if (showWalkinModal) setShowWalkinModal(false);
+                else if (mobileLauncherOpen) setMobileLauncherOpen(false);
                 else if (mobileSidebarOpen) setMobileSidebarOpen(false);
             }
         };
@@ -96,7 +100,7 @@ export default function AdminLayout({ children }) {
             document.body.style.overflow = prevOverflow;
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, [mobileSidebarOpen, showWalkinModal]);
+    }, [mobileSidebarOpen, mobileLauncherOpen, showWalkinModal]);
 
     // Walk-in booking modal state
     const todayDateStr = useMemo(() => todayDhaka(), []);
@@ -201,9 +205,31 @@ export default function AdminLayout({ children }) {
     }, [currentUser, pendingRefundsCount, pendingOrdersCount, pendingRegistrationsCount, pendingResultsCount]);
 
     const navItems = useMemo(() => navGroups.flatMap(g => g.items), [navGroups]);
+    const totalPendingAlerts = pendingRefundsCount + pendingOrdersCount + pendingRegistrationsCount + pendingResultsCount;
+
+    // Primary tabs pinned in the mobile bottom app bar (up to 4 permitted routes + More launcher)
+    const mobilePrimaryTabs = useMemo(() => {
+        const preferred = ['/admin', '/admin/schedule', '/admin/all-bookings', '/admin/payments', '/admin/customers', '/admin/financial-report', '/admin/settings'];
+        const picked = [];
+        for (const href of preferred) {
+            if (picked.length >= 4) break;
+            const found = navItems.find(it => it.href === href);
+            if (found) picked.push(found);
+        }
+        for (const it of navItems) {
+            if (picked.length >= 4) break;
+            if (!picked.some(p => p.href === it.href)) picked.push(it);
+        }
+        return picked.map(it => ({
+            ...it,
+            shortLabel: it.href === '/admin/all-bookings' ? 'Bookings' : it.href === '/admin/financial-report' ? 'Finance' : it.label
+        }));
+    }, [navItems]);
+
     const pageAllowed = canOpenAdminPath(currentUser, pathname);
     const canTakeBookings = can('bookings');
     const roleBadge = isAdmin ? 'ADMIN' : (currentUser?.staffRoleName || 'STAFF');
+    const isRootToday = !pathname || pathname === '/admin' || pathname === '/admin/';
 
     // Consistent Header Section + Title
     const headerMeta = useMemo(() => {
@@ -215,6 +241,7 @@ export default function AdminLayout({ children }) {
             return { section: 'Operations', title: `Today · ${dayName}, ${dayNum} ${monthName}` };
         }
         if (pathname.includes('/schedule')) return { section: 'Operations', title: 'Daily Schedule' };
+        if (pathname.includes('/payments')) return { section: 'Operations', title: 'Booking Payments' };
         if (pathname.includes('/all-bookings') || pathname.includes('/bookings')) return { section: 'Operations', title: 'All Bookings' };
         if (pathname.includes('/recurring')) return { section: 'Operations', title: 'Fixed Weekly Slots' };
         if (pathname.includes('/refunds')) return { section: 'Operations', title: 'Refunds Queue' };
@@ -308,7 +335,7 @@ export default function AdminLayout({ children }) {
     }, [displayName]);
 
     return (
-        <div className="min-h-screen bg-[#060a0d] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
+        <div className="admin-app min-h-dvh bg-[#060a0d] text-slate-100 flex flex-col md:flex-row antialiased font-sans">
 
             {/* MOBILE BACKDROP OVERLAY */}
             {mobileSidebarOpen && (
@@ -608,76 +635,107 @@ export default function AdminLayout({ children }) {
             {/* MAIN ADMIN WORKSPACE */}
             <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#070b0e] bg-[radial-gradient(900px_480px_at_12%_-8%,rgba(76,191,2,0.08),transparent_62%)]">
 
-                {/* UNIFIED STICKY TOP HEADER (works cleanly on mobile + desktop with no double bar) */}
-                <header className="sticky top-0 z-30 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 border-b border-white/[0.07] bg-[#080d12]/85 backdrop-blur-md">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <button
-                            type="button"
-                            onClick={() => setMobileSidebarOpen(true)}
-                            className="md:hidden p-2 -ml-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-200 transition-colors shrink-0"
-                            aria-label="Open navigation"
-                        >
-                            <Menu className="w-5 h-5" />
-                        </button>
-
-                        <div className="min-w-0 leading-tight">
-                            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-400/80 font-bold truncate">
-                                {headerMeta.section}
-                            </div>
-                            <h1 className="text-[15px] sm:text-lg font-extrabold text-white tracking-tight font-display truncate">
-                                {headerMeta.title}
-                            </h1>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                        {canTakeBookings && (
+                {/* UNIFIED STICKY TOP APP HEADER */}
+                <header className="sticky top-0 z-30 pt-safe border-b border-white/[0.07] bg-[#080d12]/90 backdrop-blur-xl">
+                    <div className="h-14 sm:h-16 px-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                             <button
                                 type="button"
-                                onClick={() => {
-                                    resetWalkinForm();
-                                    setShowWalkinModal(true);
-                                }}
-                                className="btn-volt px-3 sm:px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="md:hidden relative w-9 h-9 rounded-xl bg-white/[0.04] active:scale-95 hover:bg-white/[0.08] border border-white/10 text-slate-200 flex items-center justify-center transition-all shrink-0"
+                                aria-label="Open navigation drawer"
                             >
-                                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                                <span className="hidden sm:inline">Walk-in booking</span>
-                                <span className="sm:hidden">Walk-in</span>
+                                <Menu className="w-4.5 h-4.5" />
+                                {totalPendingAlerts > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-[#080d12]" />
+                                )}
                             </button>
-                        )}
 
-                        <div
-                            className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08]"
-                            title={`${displayName} · ${isAdmin ? 'Full admin access' : `Staff role: ${roleBadge}`}`}
-                        >
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-sm shadow-emerald-400/30 shrink-0">
-                                {avatarInitial}
+                            {!isRootToday && (
+                                <Link
+                                    href="/admin"
+                                    className="md:hidden w-8 h-8 rounded-xl bg-white/[0.03] active:scale-95 border border-white/[0.07] text-slate-400 hover:text-white flex items-center justify-center shrink-0"
+                                    aria-label="Back to Today"
+                                    title="Back to Today"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Link>
+                            )}
+
+                            <div className="min-w-0 leading-tight">
+                                <div className="text-[9.5px] sm:text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-400/85 font-bold truncate">
+                                    {headerMeta.section}
+                                </div>
+                                <h1 className="text-[14.5px] sm:text-lg font-extrabold text-white tracking-tight font-display truncate">
+                                    {headerMeta.title}
+                                </h1>
                             </div>
-                            <div className="hidden lg:flex flex-col min-w-0 leading-none">
-                                <span className="text-xs font-bold text-slate-100 max-w-[110px] truncate">
-                                    {displayName}
-                                </span>
-                                <span className={`text-[10px] font-mono font-bold uppercase tracking-wider mt-0.5 truncate max-w-[110px] ${
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            {canTakeBookings && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        resetWalkinForm();
+                                        setShowWalkinModal(true);
+                                    }}
+                                    className="hidden sm:flex btn-volt px-3.5 py-2 rounded-xl text-xs font-extrabold items-center gap-1.5 cursor-pointer"
+                                >
+                                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                                    <span>Walk-in booking</span>
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => setMobileLauncherOpen(true)}
+                                className="md:hidden flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-white/[0.05] active:scale-95 border border-white/[0.09]"
+                                aria-label="Open quick app menu"
+                            >
+                                <div className="w-6.5 h-6.5 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 text-slate-950 font-black flex items-center justify-center text-[11px] shrink-0">
+                                    {avatarInitial}
+                                </div>
+                                <span className={`text-[9.5px] font-mono font-bold tracking-wider uppercase max-w-[72px] truncate ${
                                     isAdmin ? 'text-amber-300' : 'text-sky-300'
                                 }`}>
                                     {roleBadge}
                                 </span>
-                            </div>
-                            <span
-                                className={`lg:hidden px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase max-w-[96px] truncate ${
-                                    isAdmin
-                                        ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-                                        : 'bg-sky-400/15 text-sky-300 border border-sky-400/30'
-                                }`}
+                            </button>
+
+                            <div
+                                className="hidden md:flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08]"
+                                title={`${displayName} · ${isAdmin ? 'Full admin access' : `Staff role: ${roleBadge}`}`}
                             >
-                                {roleBadge}
-                            </span>
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-sm shadow-emerald-400/30 shrink-0">
+                                    {avatarInitial}
+                                </div>
+                                <div className="hidden lg:flex flex-col min-w-0 leading-none">
+                                    <span className="text-xs font-bold text-slate-100 max-w-[110px] truncate">
+                                        {displayName}
+                                    </span>
+                                    <span className={`text-[10px] font-mono font-bold uppercase tracking-wider mt-0.5 truncate max-w-[110px] ${
+                                        isAdmin ? 'text-amber-300' : 'text-sky-300'
+                                    }`}>
+                                        {roleBadge}
+                                    </span>
+                                </div>
+                                <span
+                                    className={`lg:hidden px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase max-w-[96px] truncate ${
+                                        isAdmin
+                                            ? 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
+                                            : 'bg-sky-400/15 text-sky-300 border border-sky-400/30'
+                                    }`}
+                                >
+                                    {roleBadge}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                {/* BODY CONTAINER */}
-                <main className="p-4 sm:p-6 lg:p-8 w-full max-w-[1440px] mx-auto flex-1">
+                {/* BODY CONTAINER (extra bottom padding on mobile for native bottom tab bar) */}
+                <main className="px-3.5 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:p-6 sm:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:p-6 lg:p-8 w-full max-w-[1440px] mx-auto flex-1">
                     {!authChecked ? (
                         <div className="space-y-4 animate-pulse" aria-busy="true">
                             <div className="h-10 w-64 rounded-xl bg-[#0c131a] border border-white/5" />
@@ -719,10 +777,213 @@ export default function AdminLayout({ children }) {
                 </main>
             </div>
 
-            {/* WALK-IN BOOKING MODAL */}
+            {/* NATIVE MOBILE BOTTOM APP NAVIGATION BAR */}
+            {authChecked && navItems.length > 0 && (
+                <nav
+                    aria-label="Mobile quick navigation"
+                    className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#080d12]/95 backdrop-blur-xl border-t border-white/[0.09] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.65)]"
+                >
+                    <div className="h-16 px-2 flex items-center justify-around gap-1 max-w-lg mx-auto">
+                        {mobilePrimaryTabs.slice(0, 2).map(tab => {
+                            const Icon = tab.icon;
+                            const active = tab.href === '/admin'
+                                ? pathname === '/admin' || pathname === '/admin/'
+                                : pathname === tab.href || (tab.altHref && pathname === tab.altHref);
+                            return (
+                                <Link
+                                    key={tab.href}
+                                    href={tab.href}
+                                    className={`relative flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-2xl transition-all active:scale-95 ${
+                                        active ? 'text-lime-400' : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    {active && (
+                                        <span className="absolute -top-1.5 w-6 h-0.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(90,214,10,0.9)]" />
+                                    )}
+                                    <Icon className={`w-5 h-5 ${active ? 'stroke-[2.4]' : 'stroke-[1.9]'}`} />
+                                    <span className="text-[10px] font-semibold tracking-tight truncate max-w-[68px]">
+                                        {tab.shortLabel}
+                                    </span>
+                                    {tab.badge > 0 && (
+                                        <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#080d12]" />
+                                    )}
+                                </Link>
+                            );
+                        })}
+
+                        {/* Center Floating "+ Walk-in" Action Button */}
+                        {canTakeBookings && (
+                            <div className="px-1 -mt-5 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        resetWalkinForm();
+                                        setShowWalkinModal(true);
+                                    }}
+                                    aria-label="New walk-in booking"
+                                    className="w-12 h-12 rounded-2xl btn-volt flex items-center justify-center shadow-lg shadow-emerald-500/35 ring-4 ring-[#080d12] active:scale-92 transition-transform"
+                                >
+                                    <Plus className="w-6 h-6 stroke-[3]" />
+                                </button>
+                            </div>
+                        )}
+
+                        {mobilePrimaryTabs.slice(2, 4).map(tab => {
+                            const Icon = tab.icon;
+                            const active = tab.href === '/admin'
+                                ? pathname === '/admin' || pathname === '/admin/'
+                                : pathname === tab.href || (tab.altHref && pathname === tab.altHref);
+                            return (
+                                <Link
+                                    key={tab.href}
+                                    href={tab.href}
+                                    className={`relative flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-2xl transition-all active:scale-95 ${
+                                        active ? 'text-lime-400' : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    {active && (
+                                        <span className="absolute -top-1.5 w-6 h-0.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(90,214,10,0.9)]" />
+                                    )}
+                                    <Icon className={`w-5 h-5 ${active ? 'stroke-[2.4]' : 'stroke-[1.9]'}`} />
+                                    <span className="text-[10px] font-semibold tracking-tight truncate max-w-[68px]">
+                                        {tab.shortLabel}
+                                    </span>
+                                    {tab.badge > 0 && (
+                                        <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#080d12]" />
+                                    )}
+                                </Link>
+                            );
+                        })}
+
+                        {/* "More" App Grid Sheet Trigger */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileLauncherOpen(prev => !prev)}
+                            className={`relative flex-1 py-1.5 flex flex-col items-center justify-center gap-0.5 rounded-2xl transition-all active:scale-95 ${
+                                mobileLauncherOpen ? 'text-lime-400' : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                            aria-expanded={mobileLauncherOpen}
+                            aria-label="All admin sections"
+                        >
+                            <LayoutGrid className={`w-5 h-5 ${mobileLauncherOpen ? 'stroke-[2.4]' : 'stroke-[1.9]'}`} />
+                            <span className="text-[10px] font-semibold tracking-tight">Apps</span>
+                            {totalPendingAlerts > 0 && (
+                                <span className="absolute top-0.5 right-3 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold flex items-center justify-center ring-2 ring-[#080d12]">
+                                    {totalPendingAlerts > 9 ? '9+' : totalPendingAlerts}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                </nav>
+            )}
+
+            {/* MOBILE SLIDE-UP APP LAUNCHER SHEET ("Apps") */}
+            {mobileLauncherOpen && (
+                <div
+                    className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end animate-fade-in"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="All Admin Sections"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setMobileLauncherOpen(false);
+                    }}
+                >
+                    <div className="w-full max-h-[84dvh] bg-[#0a1016] border-t border-white/15 rounded-t-3xl flex flex-col shadow-2xl animate-in slide-in-from-bottom pb-safe">
+                        <div className="pt-2.5 pb-3 px-5 border-b border-white/[0.07] shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-white/15 mx-auto mb-3" aria-hidden="true" />
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 text-slate-950 font-black flex items-center justify-center text-xs shrink-0">
+                                        {avatarInitials}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-bold text-white truncate">{displayName}</div>
+                                        <div className="text-[11px] font-mono text-emerald-400 truncate">
+                                            {roleDisplay}{userSubtext ? ` · ${userSubtext}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileLauncherOpen(false)}
+                                    className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white"
+                                    aria-label="Close app menu"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
+                            {navGroups.map(group => (
+                                <div key={group.id}>
+                                    <div className="px-1 mb-2 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-slate-500">
+                                        {group.label}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {group.items.map(item => {
+                                            const Icon = item.icon;
+                                            const active = item.href === '/admin'
+                                                ? pathname === '/admin' || pathname === '/admin/'
+                                                : pathname === item.href || (item.altHref && pathname === item.altHref);
+                                            return (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    onClick={() => setMobileLauncherOpen(false)}
+                                                    className={`relative p-3 rounded-2xl border flex flex-col items-center justify-center text-center gap-1.5 app-card-press ${
+                                                        active
+                                                            ? 'bg-emerald-400/15 border-emerald-400/40 text-white'
+                                                            : 'bg-[#0d151d] border-white/[0.06] text-slate-300 hover:border-white/15'
+                                                    }`}
+                                                >
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                                        active ? 'bg-lime-400 text-slate-950' : 'bg-white/[0.05] text-emerald-400'
+                                                    }`}>
+                                                        <Icon className="w-4.5 h-4.5" />
+                                                    </div>
+                                                    <span className="text-[11px] font-bold leading-tight line-clamp-1">
+                                                        {item.label}
+                                                    </span>
+                                                    {item.badge > 0 && (
+                                                        <span className="absolute top-1.5 right-1.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold flex items-center justify-center">
+                                                            {item.badge > 99 ? '99+' : item.badge}
+                                                        </span>
+                                                    )}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div className="pt-2 border-t border-white/[0.07] grid grid-cols-2 gap-2">
+                                <Link
+                                    href="/"
+                                    onClick={() => setMobileLauncherOpen(false)}
+                                    className="py-2.5 px-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-bold text-slate-200 flex items-center justify-center gap-2"
+                                >
+                                    <Globe className="w-4 h-4 text-emerald-400" />
+                                    <span>Public Website</span>
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={handleLogout}
+                                    className="py-2.5 px-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-xs font-bold text-rose-300 flex items-center justify-center gap-2"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    <span>Log out</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* WALK-IN BOOKING MODAL (Bottom sheet on phones, centered dialog on desktop) */}
             {showWalkinModal && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+                    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="walkin-modal-title"
@@ -730,7 +991,8 @@ export default function AdminLayout({ children }) {
                         if (e.target === e.currentTarget && !walkinSubmitting) setShowWalkinModal(false);
                     }}
                 >
-                    <div className="bg-[#0c131a] border border-emerald-500/25 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl shadow-black/70 relative space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar">
+                    <div className="bg-[#0c131a] border-t sm:border border-emerald-500/25 rounded-t-3xl sm:rounded-3xl p-5 sm:p-7 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-7 max-w-md w-full shadow-2xl shadow-black/70 relative space-y-4 max-h-[92dvh] overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom sm:zoom-in-95">
+                        <div className="w-10 h-1 rounded-full bg-white/15 mx-auto sm:hidden" aria-hidden="true" />
                         <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08]">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 rounded-xl bg-emerald-400/12 text-emerald-400 border border-emerald-400/25">

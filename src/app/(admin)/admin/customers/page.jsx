@@ -215,8 +215,8 @@ export default function AdminCustomersPage() {
         <button type="button" onClick={() => setFlash(null)} className="text-current opacity-70 hover:opacity-100 cursor-pointer" aria-label="Dismiss"><X className="w-4 h-4"/></button>
       </div>)}
 
-      {/* How people were added: click to filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* How people were added: swipeable on mobile, wrapped on desktop */}
+      <div className="app-tab-strip sm:flex-wrap">
         <button type="button" onClick={() => setSource('')} className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold cursor-pointer transition-colors ${source === '' ? 'bg-white/10 border-white/30 text-white' : 'bg-white/[0.02] border-white/10 text-slate-400 hover:text-white'}`}>
           All <span className="font-mono ml-1">{overview.total}</span>
         </button>
@@ -246,7 +246,57 @@ export default function AdminCustomersPage() {
         : rows.length === 0 ? (<div className="p-12 text-center rounded-2xl bg-[#0c131a] border border-white/10 text-slate-400 text-xs space-y-2">
           <div className="text-sm font-bold text-white">{filtersActive ? 'No customers match.' : 'No customers yet.'}</div>
           {!filtersActive && (<p>Click “Sync from all records” to pull in everyone who has already booked, registered or ordered, or add someone yourself.</p>)}
-        </div>) : (<div className={`rounded-2xl bg-[#0c131a] border border-white/10 overflow-hidden transition-opacity ${loading ? 'opacity-60' : ''}`}>
+        </div>) : (<div className={`space-y-3 transition-opacity ${loading ? 'opacity-60' : ''}`}>
+        {/* MOBILE APP CARDS */}
+        <div className="md:hidden space-y-2.5">
+          {rows.map(c => {
+            const st = c.stats || {};
+            const shown = (c.sources && c.sources.length ? c.sources : [c.source]).slice(0, 2);
+            return (
+              <div key={c.id} className="p-4 rounded-2xl bg-[#0c131a] border border-white/10 space-y-3 text-xs">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-300 font-black flex items-center justify-center shrink-0">
+                      {(c.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-white truncate flex items-center gap-1.5">
+                        <span className="truncate">{c.name}</span>
+                        {c.userId && <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0"/>}
+                      </div>
+                      <a href={`tel:${c.phone}`} className="font-mono text-[11.5px] text-emerald-300 flex items-center gap-1 mt-0.5">
+                        <Phone className="w-3 h-3"/> {c.phone}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="text-right font-mono shrink-0">
+                    <div className="text-sm font-black text-white">{money((st.paid || 0) + (st.orderTotal || 0))}</div>
+                    <div className="text-[10px] text-slate-500">{fmtDate(c.lastActivityAt)}</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+                  <span>{st.bookings || 0} bookings · {st.tournaments || 0} cups · {st.orders || 0} orders</span>
+                  <div className="flex gap-1">{shown.map(s => <SourceChip key={s} source={s}/>)}</div>
+                </div>
+
+                <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => openEdit(c)} className="flex-1 py-2 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold border border-lime-400/20 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                    <Pencil className="w-3.5 h-3.5"/> View / Edit
+                  </button>
+                  {isAdmin && (
+                    <button type="button" onClick={() => remove(c)} disabled={deletingId === c.id} className="p-2 rounded-xl bg-white/5 hover:bg-rose-500/15 border border-white/10 text-slate-400 hover:text-rose-300 cursor-pointer disabled:opacity-40" aria-label={`Delete ${c.name}`}>
+                      {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4"/>}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* DESKTOP TABLE */}
+        <div className="hidden md:block rounded-2xl bg-[#0c131a] border border-white/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -315,7 +365,8 @@ export default function AdminCustomersPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-white/10 text-[11px] text-slate-400 font-mono">
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-[#0c131a] border border-white/10 text-[11px] text-slate-400 font-mono">
           <span>{total} {total === 1 ? 'customer' : 'customers'}{filtersActive ? ' match' : ''} · page {page} of {pages}</span>
           <div className="flex items-center gap-1.5">
             <button type="button" disabled={page <= 1 || loading} onClick={() => setPage(p => Math.max(1, p - 1))} className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:text-white disabled:opacity-30 cursor-pointer" aria-label="Previous page"><ChevronLeft className="w-4 h-4"/></button>
@@ -325,8 +376,8 @@ export default function AdminCustomersPage() {
       </div>)}
 
       {/* ADD / EDIT MODAL */}
-      {editor && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in" onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditor(); }}>
-        <div role="dialog" aria-modal="true" aria-label={editor.mode === 'add' ? 'Add customer' : 'Customer details'} className="bg-[#0c131a] border border-lime-400/30 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto custom-scrollbar">
+      {editor && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm animate-fade-in" onMouseDown={(e) => { if (e.target === e.currentTarget) closeEditor(); }}>
+        <div role="dialog" aria-modal="true" aria-label={editor.mode === 'add' ? 'Add customer' : 'Customer details'} className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[92dvh] overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom sm:zoom-in-95">
           <div className="flex items-start justify-between pb-3 border-b border-white/10">
             <div>
               <h3 className="text-base font-bold text-white font-display">{editor.mode === 'add' ? 'Add a customer' : editor.customer.name}</h3>

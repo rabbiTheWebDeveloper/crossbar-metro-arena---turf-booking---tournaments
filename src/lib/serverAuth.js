@@ -97,8 +97,14 @@ export function setAuthCookies(response, token, user) {
             phone: user.phone,
             role: user.role,
             email: user.email || '',
+            emailVerified: Boolean(user.emailVerified),
             playingPosition: user.playingPosition || 'MID',
-            teamId: user.teamId || ''
+            teamId: user.teamId || '',
+            ...(user.role === 'staff' ? {
+                staffRoleId: user.staffRoleId || '',
+                staffRoleName: user.staffRoleName || '',
+                permissions: Array.isArray(user.permissions) ? user.permissions : []
+            } : {})
         };
 
         response.cookies.set({

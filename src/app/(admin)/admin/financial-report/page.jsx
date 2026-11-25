@@ -274,7 +274,40 @@ export default function AdminFinancialReportPage() {
             <Link href="/admin/investors" className="text-xs text-lime-400 hover:underline">Manage investors</Link>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile Partner Share Cards */}
+          <div className="sm:hidden space-y-2">
+            {(financeReport.investorShares || []).length === 0 ? (
+              <div className="py-2 text-xs text-slate-500">No active partners.</div>
+            ) : (
+              (financeReport.investorShares || []).map(item => (
+                <div key={item.investor.id} className="p-3 rounded-2xl bg-[#080d12] border border-white/5 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-bold text-white truncate">
+                      {item.investor.name} <span className="font-mono text-[11px] text-lime-300">({item.percentage}%)</span>
+                    </div>
+                    {item.shareAmount === 0
+                      ? <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-slate-400">no share</span>
+                      : item.isPaid
+                        ? <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300">paid</span>
+                        : <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-400/20 text-amber-300">owed</span>}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/[0.05] font-mono text-[11px]">
+                    <div><span className="block text-[9.5px] text-slate-500 uppercase">Share</span><strong className="text-slate-200">{formatMoney(item.shareAmount)}</strong></div>
+                    <div><span className="block text-[9.5px] text-slate-500 uppercase">Paid</span><strong className="text-emerald-400">{formatMoney(item.paidAmount)}</strong></div>
+                    <div className="text-right"><span className="block text-[9.5px] text-slate-500 uppercase">Balance</span><strong className={item.balance > 0 ? 'text-amber-300' : 'text-slate-400'}>{formatMoney(item.balance)}</strong></div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs font-bold text-white">
+              <span>Owners / retained ({retainedPct}%)</span>
+              <span className={`font-mono ${financeReport.ownersShare < 0 ? 'text-rose-400' : 'text-lime-400'}`}>
+                {financeReport.ownersShare < 0 ? '-' : ''}{formatMoney(Math.abs(financeReport.ownersShare))}
+              </span>
+            </div>
+          </div>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="text-[11px] text-slate-500 uppercase border-b border-white/5">
                 <tr>
@@ -397,8 +430,8 @@ export default function AdminFinancialReportPage() {
       </div>
 
       {/* ADD EXPENSE MODAL */}
-      {showExpenseModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {showExpenseModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95">
             <h3 className="text-base font-bold text-white">Add Expense Record</h3>
             <form onSubmit={handleExpenseSubmit} className="space-y-3 text-xs">
               <div>
@@ -439,8 +472,8 @@ export default function AdminFinancialReportPage() {
         </div>)}
 
       {/* ADD INCOME MODAL */}
-      {showIncomeModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-emerald-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4">
+      {showIncomeModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-emerald-500/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95">
             <h3 className="text-base font-bold text-white">Record Income</h3>
             <form onSubmit={handleIncomeSubmit} className="space-y-3 text-xs">
               <div>

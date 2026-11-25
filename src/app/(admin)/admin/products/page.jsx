@@ -155,7 +155,7 @@ export default function AdminProductsPage() {
         </button>
       </div>
 
-      <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+      <div className="app-tab-strip text-xs">
         {[['all', `All (${shopProducts.length})`], ['featured', 'Featured'], ['hidden', 'Hidden'], ['out', 'Out of stock']].map(([k, label]) => (<button key={k} type="button" onClick={() => setFilter(k)} className={`px-3 py-2 rounded-xl whitespace-nowrap font-bold transition-colors cursor-pointer ${filter === k ? 'bg-lime-400 text-slate-950 font-black' : 'bg-[#0c131a] border border-white/10 text-slate-400 hover:text-white'}`}>
             {label}
           </button>))}
@@ -222,8 +222,8 @@ export default function AdminProductsPage() {
       </div>)}
 
       {/* ADD / EDIT PRODUCT MODAL */}
-      {showModal && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0c131a] border border-lime-400/30 rounded-2xl p-6 max-w-md w-full space-y-4 max-h-[92vh] overflow-y-auto">
+      {showModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95">
             <h3 className="text-base font-bold text-white font-display">
               {editingProduct ? 'Edit Product' : 'Add New Inventory Item'}
             </h3>
