@@ -224,6 +224,7 @@ describe('invoice normalizers, schemas, and vector PDF generator', () => {
         expect(bookingToken.defaultFormat).toBe('token');
         expect(bookingToken.invoiceNumber).toBe('RCPT-CMA-99AA11');
         expect(bookingToken.statusBadge).toBe('ADVANCE PAID');
-        expect(buildInvoiceFilename(bookingToken, { format: 'token' })).toBe('RCPT-CMA-99AA11-TOKEN.pdf');
+        expect(buildInvoiceFilename(bookingToken, { format: 'token' })).toBe('RCPT-CMA-99AA11.pdf');
+        expect(buildInvoiceFilename(buildBookingInvoice({ bookingCode: 'CMA-99AA11' }), { format: 'token' })).toBe('INV-CMA-99AA11_Token.pdf');
     });
 });
