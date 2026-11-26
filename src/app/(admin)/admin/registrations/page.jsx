@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
-import { Search, Pencil, Users, Phone, Mail, Shirt, CreditCard, CheckCircle2, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
+import { buildRegistrationInvoice } from '@/lib/invoice';
+import { Search, Pencil, Users, Phone, Mail, Shirt, CreditCard, CheckCircle2, AlertTriangle, Loader2, Trash2, FileText, Download } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const inputCls = 'w-full bg-[#080d12] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition-colors';
@@ -17,7 +18,7 @@ const playersOf = (r) => {
 };
 
 export default function AdminRegistrationsPage() {
-    const { registrations, handleUpdateRegistration, handleDeleteRegistration, isAdmin } = useArena();
+    const { registrations, siteSettings, openInvoice, downloadInvoice, handleUpdateRegistration, handleDeleteRegistration, isAdmin } = useArena();
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('all');
     const [editing, setEditing] = useState(null);
@@ -187,9 +188,26 @@ export default function AdminRegistrationsPage() {
               {reg.notes && <div className="text-[11px] text-slate-500 italic">“{reg.notes}”</div>}
             </div>
 
-            <div className="pt-3 border-t border-white/10 flex gap-2">
-              <button type="button" onClick={() => openEdit(reg)} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 font-bold cursor-pointer flex items-center gap-1">
-                <Pencil className="w-3 h-3"/> View / Edit
+            <div className="pt-3 border-t border-white/10 flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => openEdit(reg)} className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 font-bold cursor-pointer flex items-center gap-1">
+                <Pencil className="w-3 h-3"/> Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => openInvoice(buildRegistrationInvoice(reg, siteSettings))}
+                className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold cursor-pointer inline-flex items-center gap-1"
+                title="Preview registration invoice"
+              >
+                <FileText className="w-3 h-3 text-lime-400"/> Invoice
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadInvoice(buildRegistrationInvoice(reg, siteSettings))}
+                className="p-1.5 rounded-xl bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 border border-lime-400/25 cursor-pointer"
+                title="Download Entry Invoice PDF"
+                aria-label="Download Entry Invoice PDF"
+              >
+                <Download className="w-3.5 h-3.5"/>
               </button>
               {!confirmed && !rejected && (<>
                 <button type="button" onClick={() => setStatus(reg, 'confirmed')} className="flex-1 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black cursor-pointer">

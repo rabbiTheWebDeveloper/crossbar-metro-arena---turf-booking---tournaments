@@ -167,6 +167,7 @@ function StaffRoleDashboard({
 
     const modules = [
         can('finance') && { href: '/admin/financial-report', label: 'Financial Report', desc: 'Monthly revenue, expenses & profit share', icon: TrendingUp },
+        (can('bookings') || can('finance') || can('investors') || can('shop_orders') || can('registrations')) && { href: '/admin/invoices', label: 'Invoices & Vouchers', desc: 'Create, preview & download PDF invoices & payout vouchers', icon: ClipboardList },
         (can('finance') || can('bookings')) && { href: '/admin/payments', label: 'Payments Ledger', desc: 'Online EPS & counter payment records', icon: CreditCard },
         can('investors') && { href: '/admin/investors', label: 'Investors & Payouts', desc: 'Partner shares, SMS alerts & dividend payouts', icon: Users },
         can('pricing') && { href: '/admin/slot-pricing', label: 'Slot Pricing & Rules', desc: 'Weekday/weekend turf rates & booking rules', icon: Tag },

@@ -1,9 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useArena } from '@/context/ArenaContext';
+import { buildPaymentInvoice } from '@/lib/invoice';
 import {
     Search, RefreshCw, CreditCard, CheckCircle2, AlertTriangle, Clock, XCircle,
-    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check
+    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check, Download, FileText
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +30,7 @@ const GATEWAY_STYLE = {
 };
 
 export default function AdminPaymentsPage() {
+    const { siteSettings, openInvoice, downloadInvoice } = useArena();
     const [rows, setRows] = useState([]);
     const [total, setTotal] = useState(0);
     const [pages, setPages] = useState(1);
@@ -434,19 +437,37 @@ export default function AdminPaymentsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-right whitespace-nowrap">
-                                                {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' ? (
+                                                <div className="inline-flex items-center justify-end gap-1.5">
+                                                    {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' && (
+                                                        <button
+                                                            type="button"
+                                                            disabled={verifyingId === p.id}
+                                                            onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-bold text-[11px] transition-colors cursor-pointer disabled:opacity-50"
+                                                        >
+                                                            {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
+                                                            <span>Verify EPS</span>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
-                                                        disabled={verifyingId === p.id}
-                                                        onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-bold text-[11px] transition-colors cursor-pointer disabled:opacity-50"
+                                                        onClick={(e) => { e.stopPropagation(); openInvoice(buildPaymentInvoice(p, null, siteSettings)); }}
+                                                        className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                                                        title="Preview Payment Receipt"
                                                     >
-                                                        {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
-                                                        <span>Verify EPS</span>
+                                                        <FileText className="w-3 h-3 text-lime-400"/>
+                                                        <span>Receipt</span>
                                                     </button>
-                                                ) : (
-                                                    <span className="text-[11px] text-slate-500 font-mono">{p.recordedBy || 'Verified'}</span>
-                                                )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); downloadInvoice(buildPaymentInvoice(p, null, siteSettings)); }}
+                                                        className="p-1.5 rounded-lg bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 border border-lime-400/25 cursor-pointer"
+                                                        title="Download Receipt PDF"
+                                                        aria-label="Download Receipt PDF"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5"/>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -539,6 +560,7 @@ function DetailRow({ label, children }) {
 }
 
 function PaymentDetailDrawer({ payment: p, onClose, onVerify, verifying }) {
+    const { siteSettings, openInvoice, downloadInvoice } = useArena();
     const [booking, setBooking] = useState(null);
     const [bookingState, setBookingState] = useState('idle'); // idle | loading | error | none
 
@@ -603,6 +625,25 @@ function PaymentDetailDrawer({ payment: p, onClose, onVerify, verifying }) {
                             <div className="mt-0.5 break-words">{p.errorMessage}</div>
                         </div>
                     )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => openInvoice(buildPaymentInvoice(p, booking, siteSettings))}
+                            className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                            <FileText className="w-4 h-4 text-emerald-400"/>
+                            <span>Preview Invoice</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => downloadInvoice(buildPaymentInvoice(p, booking, siteSettings))}
+                            className="py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                            <Download className="w-4 h-4"/>
+                            <span>Download PDF</span>
+                        </button>
+                    </div>
 
                     {canVerify && (
                         <button

@@ -298,3 +298,64 @@ export const REGISTRATION_EDIT_SCHEMA = {
     notes: { type: 'text', max: 500 },
     status: { type: 'enum', values: ['pending', 'confirmed', 'rejected'], label: 'Status' }
 };
+
+export const INVOICE_CATEGORIES = ['booking', 'investor_payout', 'shop_order', 'tournament', 'sponsorship', 'custom'];
+export const INVOICE_RECIPIENT_ROLES = ['customer', 'investor', 'organization'];
+export const INVOICE_PAYMENT_METHODS = ['cash', 'bkash', 'nagad', 'rocket', 'upay', 'bank_transfer', 'bank', 'card', 'eps', 'cheque', 'unpaid'];
+
+export const INVOICE_SCHEMA = {
+    category: { type: 'enum', values: INVOICE_CATEGORIES, default: 'custom', label: 'Invoice category' },
+    recipientRole: { type: 'enum', values: INVOICE_RECIPIENT_ROLES, default: 'customer', label: 'Recipient type' },
+    recipientName: { type: 'string', required: true, min: 2, max: 100, label: 'Recipient name' },
+    recipientPhone: { type: 'string', max: 20, default: '', label: 'Recipient phone' },
+    recipientEmail: { type: 'email', label: 'Recipient email' },
+    recipientSubtitle: { type: 'string', max: 140, default: '', label: 'Team / organization / subtitle' },
+    userId: { type: 'string', max: 40, default: '' },
+    investorId: { type: 'string', max: 40, default: '' },
+    issueDate: { type: 'date', label: 'Issue date' },
+    dueDate: { type: 'date', label: 'Due date' },
+    discount: { type: 'money', min: 0, max: 100000000, default: 0, label: 'Discount' },
+    tax: { type: 'money', min: 0, max: 100000000, default: 0, label: 'Tax / VAT' },
+    paidAmount: { type: 'money', min: 0, max: 100000000, default: 0, label: 'Paid amount' },
+    paymentMethod: { type: 'enum', values: INVOICE_PAYMENT_METHODS, default: 'cash', label: 'Payment method' },
+    transactionRef: { type: 'string', max: 100, default: '', label: 'Transaction reference' },
+    notes: { type: 'text', max: 500, default: '' },
+    status: { type: 'enum', values: ['paid', 'partial', 'unpaid', 'disbursed', 'cancelled'], label: 'Status' }
+};
+
+/**
+ * Validate and compute line-item amounts for a custom invoice.
+ * Returns `{ value, subtotal }` or `{ error }`.
+ */
+export function validateInvoiceItems(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return { error: 'Add at least one invoice line item.' };
+    }
+    if (items.length > 30) {
+        return { error: 'An invoice can contain at most 30 line items.' };
+    }
+    const cleaned = [];
+    let subtotal = 0;
+    for (let i = 0; i < items.length; i++) {
+        const raw = items[i] || {};
+        const description = String(raw.description || '').trim().replace(/\s+/g, ' ');
+        if (description.length < 2 || description.length > 160) {
+            return { error: `Item #${i + 1}: description must be between 2 and 160 characters.` };
+        }
+        const meta = String(raw.meta || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+        const quantity = Number(raw.quantity ?? 1);
+        if (!Number.isFinite(quantity) || quantity < 1 || quantity > 10000) {
+            return { error: `Item "${description}": quantity must be between 1 and 10,000.` };
+        }
+        const unitPrice = Number(raw.unitPrice ?? 0);
+        if (!Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 100000000) {
+            return { error: `Item "${description}": unit price must be ৳0 or more.` };
+        }
+        const qtyInt = Math.round(quantity * 100) / 100;
+        const unitRounded = Math.round(unitPrice);
+        const amount = Math.round(qtyInt * unitRounded);
+        subtotal += amount;
+        cleaned.push({ description, meta, quantity: qtyInt, unitPrice: unitRounded, amount });
+    }
+    return { value: cleaned, subtotal };
+}

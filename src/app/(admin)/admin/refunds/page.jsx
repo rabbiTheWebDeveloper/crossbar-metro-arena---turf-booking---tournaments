@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { formatMoney, formatDate, REFUND_METHODS, REFUND_STATUS_LABELS, paymentMethodLabel } from '@/data/finance';
-import { CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
+import { buildRefundInvoice } from '@/lib/invoice';
+import { CheckCircle2, Clock, ShieldCheck, XCircle, Download, FileText } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const STATUS_STYLES = {
@@ -15,7 +16,7 @@ const STATUS_STYLES = {
 const reasonLabel = (reason) => String(reason || 'player_cancelled').replaceAll('_', ' ');
 
 export default function AdminRefundsPage() {
-    const { refunds, isLoadingData, handleRecordRefund } = useArena();
+    const { refunds, siteSettings, openInvoice, downloadInvoice, isLoadingData, handleRecordRefund } = useArena();
 
     // Modal: { refund, mode: 'complete' | 'reject' }
     const [modal, setModal] = useState(null);
@@ -179,11 +180,12 @@ export default function AdminRefundsPage() {
                 <th className="py-2 px-3">Amount</th>
                 <th className="py-2 px-3">Method &amp; reference</th>
                 <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 text-right">Voucher</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 font-mono text-[12px]">
               {closedRefunds.length === 0 && (
-                <tr><td colSpan={6} className="py-4 px-3 font-sans text-slate-500">No completed or rejected refunds yet.</td></tr>
+                <tr><td colSpan={7} className="py-4 px-3 font-sans text-slate-500">No completed or rejected refunds yet.</td></tr>
               )}
               {closedRefunds.map(ref => (<tr key={ref.id}>
                   <td className="py-2.5 px-3 text-slate-400">{formatDate(ref.refundedDate || ref.requestDate, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
@@ -195,6 +197,26 @@ export default function AdminRefundsPage() {
                   </td>
                   <td className="py-2.5 px-3">
                     <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${STATUS_STYLES[ref.status]}`}>{REFUND_STATUS_LABELS[ref.status]}</span>
+                  </td>
+                  <td className="py-2.5 px-3 text-right whitespace-nowrap font-sans">
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openInvoice(buildRefundInvoice(ref, siteSettings))}
+                        className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileText className="w-3 h-3 text-lime-400"/> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoice(buildRefundInvoice(ref, siteSettings))}
+                        className="p-1 rounded-lg bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 cursor-pointer"
+                        title="Download Refund Voucher PDF"
+                        aria-label="Download Refund Voucher PDF"
+                      >
+                        <Download className="w-3.5 h-3.5"/>
+                      </button>
+                    </div>
                   </td>
                 </tr>))}
             </tbody>

@@ -5,6 +5,7 @@ import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, ge
 import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '../data/initialData';
 import { cleanPhone } from '../lib/phone';
 import { hasPermission } from '../lib/permissions';
+import { downloadInvoicePdf } from '../lib/invoicePdf';
 
 const ArenaContext = createContext(undefined);
 
@@ -105,6 +106,7 @@ export const ArenaProvider = ({ children }) => {
     const [payouts, setPayouts] = useState([]);
     const [refunds, setRefunds] = useState([]);
     const [otherIncome, setOtherIncome] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [teams, setTeams] = useState([]);
     const [matchResults, setMatchResults] = useState([]);
     const [myMatchResults, setMyMatchResults] = useState([]);
@@ -133,6 +135,7 @@ export const ArenaProvider = ({ children }) => {
 
     // ---- UI / modal state ----
     const [activeTicketPass, setActiveTicketPass] = useState(null);
+    const [activeInvoice, setActiveInvoice] = useState(null);
     const [showSquadModal, setShowSquadModal] = useState(false);
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [showPassesDrawer, setShowPassesDrawer] = useState(false);
@@ -216,6 +219,7 @@ export const ArenaProvider = ({ children }) => {
                     payouts: get('/api/payouts'),
                     refunds: get('/api/refunds'),
                     otherIncome: get('/api/other-income'),
+                    invoices: get('/api/invoices'),
                     shopOrders: get('/api/shop-orders'),
                     registrations: get('/api/registrations'),
                     users: get('/api/users?includeDisabled=1'),
@@ -230,6 +234,9 @@ export const ArenaProvider = ({ children }) => {
                     roleCalls.investors = get('/api/investors');
                     roleCalls.payouts = get('/api/payouts');
                     roleCalls.otherIncome = get('/api/other-income');
+                }
+                if (hasPermission(targetUser, ['bookings', 'finance', 'investors', 'shop_orders', 'registrations'])) {
+                    roleCalls.invoices = get('/api/invoices');
                 }
                 if (hasPermission(targetUser, ['refunds', 'finance'])) {
                     roleCalls.refunds = get('/api/refunds');
@@ -250,13 +257,14 @@ export const ArenaProvider = ({ children }) => {
             } else if (userRole === 'investor') {
                 Object.assign(roleCalls, {
                     expenses: get('/api/expenses'), investors: get('/api/investors'), payouts: get('/api/payouts'),
-                    refunds: get('/api/refunds'), otherIncome: get('/api/other-income')
+                    refunds: get('/api/refunds'), otherIncome: get('/api/other-income'), myInvoices: get('/api/invoices?mine=1')
                 });
             } else if (userRole === 'player') {
                 Object.assign(roleCalls, {
                     myBookings: get('/api/bookings?mine=1'), myResults: get('/api/match-results?mine=1'),
                     myChallenges: get('/api/challenges?mine=1'), myRegistrations: get('/api/registrations?mine=1'),
-                    myOrders: get('/api/shop-orders?mine=1'), customerSettings: get('/api/customer/settings')
+                    myOrders: get('/api/shop-orders?mine=1'), customerSettings: get('/api/customer/settings'),
+                    myInvoices: get('/api/invoices?mine=1')
                 });
             }
             const keys = [...Object.keys(publicCalls), ...Object.keys(roleCalls)];
@@ -290,6 +298,8 @@ export const ArenaProvider = ({ children }) => {
             if (r.payouts && r.payouts.ok) setPayouts(unwrap(r.payouts.data, 'payouts') || []);
             if (r.refunds && r.refunds.ok) setRefunds(unwrap(r.refunds.data, 'refunds') || []);
             if (r.otherIncome && r.otherIncome.ok) setOtherIncome(unwrap(r.otherIncome.data, 'otherIncome') || []);
+            if (r.invoices && r.invoices.ok) setInvoices(unwrap(r.invoices.data, 'invoices') || []);
+            if (r.myInvoices && r.myInvoices.ok) setInvoices(unwrap(r.myInvoices.data, 'invoices') || []);
             if (r.shopOrders && r.shopOrders.ok) setShopReservations(unwrap(r.shopOrders.data, 'reservations') || []);
             if (r.myOrders && r.myOrders.ok) setShopReservations(unwrap(r.myOrders.data, 'reservations') || []);
             if (r.registrations && r.registrations.ok) setRegistrations(unwrap(r.registrations.data, 'registrations') || []);
@@ -370,8 +380,8 @@ export const ArenaProvider = ({ children }) => {
             loadSeqRef.current += 1;
             setIsLoadingData(false);
             setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]);
-            setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
-            setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null);
+            setOtherIncome([]); setInvoices([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+            setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null); setActiveInvoice(null);
         };
 
         const recheckSession = async () => {
@@ -551,8 +561,8 @@ export const ArenaProvider = ({ children }) => {
         fullDataLoadedKeyRef.current = '';
         loadSeqRef.current += 1;
         setIsLoadingData(false);
-        setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
-        setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null);
+        setUsers([]); setRoles([]); setExpenses([]); setInvestors([]); setPayouts([]); setRefunds([]); setOtherIncome([]); setInvoices([]); setShopReservations([]); setRegistrations([]); setMyMatchResults([]); setMyChallenges([]);
+        setMyCustomer(null); setCustomerSettings(null); setActiveTicketPass(null); setActiveInvoice(null);
         broadcastAuthSync('visitor', '');
         await api('/api/auth/logout', { method: 'POST' });
     }, []);
@@ -819,6 +829,51 @@ export const ArenaProvider = ({ children }) => {
         const r = await api(`/api/expenses/${id}`, { method: 'DELETE' });
         if (r.ok) { setExpenses(prev => prev.filter(e => e.id !== id)); return { ok: true }; }
         showNotice('error', r.error); return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    // ---- Invoices & Vouchers (preview, PDF download, and custom MongoDB invoices) ----
+    const openInvoice = useCallback((normalizedInvoice) => {
+        if (normalizedInvoice) setActiveInvoice(normalizedInvoice);
+    }, []);
+
+    const downloadInvoice = useCallback((normalizedInvoice) => {
+        if (!normalizedInvoice) return false;
+        downloadInvoicePdf(normalizedInvoice);
+        showNotice('success', `Downloaded ${normalizedInvoice.invoiceNumber || 'Invoice'}.pdf`);
+        return true;
+    }, [showNotice]);
+
+    const handleCreateInvoice = useCallback(async (payload) => {
+        const r = await api('/api/invoices', { method: 'POST', body: payload });
+        if (r.ok && r.data.invoice) {
+            setInvoices(prev => [r.data.invoice, ...prev]);
+            showNotice('success', r.data.message || 'Invoice created');
+            return { ok: true, invoice: r.data.invoice };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleUpdateInvoice = useCallback(async (id, patch) => {
+        const r = await api(`/api/invoices/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch });
+        if (r.ok && r.data.invoice) {
+            setInvoices(prev => prev.map(inv => (inv.id === id || inv.invoiceNumber === id ? r.data.invoice : inv)));
+            showNotice('success', r.data.message || 'Invoice updated');
+            return { ok: true, invoice: r.data.invoice };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleDeleteInvoice = useCallback(async (id) => {
+        const r = await api(`/api/invoices/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (r.ok) {
+            setInvoices(prev => prev.filter(inv => inv.id !== id && inv.invoiceNumber !== id));
+            showNotice('success', r.data.message || 'Invoice deleted');
+            return { ok: true };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
     }, [showNotice]);
 
     const handleSavePricing = useCallback(async (newConfig) => {
@@ -1121,25 +1176,26 @@ export const ArenaProvider = ({ children }) => {
 
     // ---- Backup ----
     const exportDatabaseBackup = useCallback(() => {
-        const fullBackup = { venue: 'Crossbar Metro Arena (bookcrossbar.com)', backupGeneratedAt: new Date().toISOString(), bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings };
+        const fullBackup = { venue: 'Crossbar Metro Arena (bookcrossbar.com)', backupGeneratedAt: new Date().toISOString(), bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, invoices, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings };
         const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
         const a = document.createElement('a');
         a.setAttribute('href', jsonStr);
         a.setAttribute('download', `crossbar_metro_backup_${todayDhaka()}.json`);
         document.body.appendChild(a); a.click(); a.remove();
-    }, [bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings]);
+    }, [bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, invoices, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings]);
     const handleRestoreDatabase = useCallback(() => {
         showNotice('info', 'Restore from a JSON file is not supported. Backups are read-only exports; data lives in the MongoDB database.');
         return false;
     }, [showNotice]);
 
     const value = useMemo(() => ({
-        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, invoices, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
-        activeTicketPass, setActiveTicketPass, showSquadModal, setShowSquadModal, showAdminModal, setShowAdminModal,
+        activeTicketPass, setActiveTicketPass, activeInvoice, setActiveInvoice, openInvoice, downloadInvoice,
+        showSquadModal, setShowSquadModal, showAdminModal, setShowAdminModal,
         showPassesDrawer, setShowPassesDrawer, showInstallModal, setShowInstallModal, showAuthModal, setShowAuthModal,
         authModalInitialTab, setAuthModalInitialTab, showSSLCommerzModal, setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
         showHandoverGuide, setShowHandoverGuide,
@@ -1151,6 +1207,7 @@ export const ArenaProvider = ({ children }) => {
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
         handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
+        handleCreateInvoice, handleUpdateInvoice, handleDeleteInvoice,
         handleAddExpense, handleDeleteExpense,
         handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
@@ -1161,12 +1218,12 @@ export const ArenaProvider = ({ children }) => {
         handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
         sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
     }), [
-        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, invoices, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,
         grossRevenue, totalExpenses, netProfit, isLossMonth, currentMonthFinance, calculateMonthlyFinance,
-        activeTicketPass, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
+        activeTicketPass, activeInvoice, openInvoice, downloadInvoice, showSquadModal, showAdminModal, showPassesDrawer, showInstallModal, showAuthModal, authModalInitialTab,
         showSSLCommerzModal, pendingBookingData, showHandoverGuide,
         login, signup, logout, switchDemoUser, resetPasswordSMS, handleUpdateProfile, handleChangePassword, handleSendEmailVerification, handleConfirmEmailVerification,
         myCustomer, customerSettings, handleSaveCustomerSettings,
@@ -1176,6 +1233,7 @@ export const ArenaProvider = ({ children }) => {
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
         handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
+        handleCreateInvoice, handleUpdateInvoice, handleDeleteInvoice,
         handleAddExpense, handleDeleteExpense,
         handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,

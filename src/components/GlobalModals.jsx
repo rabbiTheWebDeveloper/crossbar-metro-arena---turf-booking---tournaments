@@ -14,6 +14,7 @@ const AuthModal = dynamic(() => import('./AuthModal').then(m => m.AuthModal), { 
 const SSLCommerzModal = dynamic(() => import('./SSLCommerzModal').then(m => m.SSLCommerzModal), { ssr: false });
 const ShopCartDrawer = dynamic(() => import('./ShopCartDrawer').then(m => m.ShopCartDrawer), { ssr: false });
 const HandoverGuideModal = dynamic(() => import('./HandoverGuideModal').then(m => m.HandoverGuideModal), { ssr: false });
+const InvoiceModal = dynamic(() => import('./InvoiceModal').then(m => m.InvoiceModal), { ssr: false });
 
 const noticeStyles = {
     success: 'border-emerald-500/40 bg-emerald-950/90 text-emerald-100',
@@ -24,13 +25,15 @@ const NoticeIcon = ({ type }) => (type === 'success' ? <CheckCircle2 className="
 
 export const GlobalModals = () => {
     const {
-        myBookings, activeTicketPass, setActiveTicketPass, showSquadModal, setShowSquadModal,
+        myBookings, activeTicketPass, setActiveTicketPass, activeInvoice, setActiveInvoice,
+        showSquadModal, setShowSquadModal,
         showPassesDrawer, setShowPassesDrawer, showInstallModal, showAuthModal, showSSLCommerzModal,
         showCartDrawer, showHandoverGuide, notice, setNotice
     } = useArena();
 
     return (<>
       {activeTicketPass && (<TicketPassModal booking={activeTicketPass} onClose={() => setActiveTicketPass(null)}/>)}
+      {activeInvoice && (<InvoiceModal invoice={activeInvoice} onClose={() => setActiveInvoice(null)}/>)}
       {showSquadModal && (<SquadBuilderModal onClose={() => setShowSquadModal(false)}/>)}
       {showPassesDrawer && (<MyPassesDrawer bookings={myBookings} onClose={() => setShowPassesDrawer(false)} onSelectBooking={(b) => { setShowPassesDrawer(false); setActiveTicketPass(b); }} onBookMore={() => setShowPassesDrawer(false)}/>)}
       {showInstallModal && <InstallAppModal />}

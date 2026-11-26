@@ -68,6 +68,7 @@ const ADMIN_PAGES = [
     { prefix: '/admin/all-bookings', permission: 'bookings' },
     { prefix: '/admin/bookings', permission: 'bookings' },
     { prefix: '/admin/payments', permission: ['bookings', 'finance'] },
+    { prefix: '/admin/invoices', permission: ['bookings', 'finance', 'investors', 'shop_orders', 'registrations'] },
     { prefix: '/admin/recurring', permission: 'bookings' },
     { prefix: '/admin/financial-report', permission: 'finance' },
     { prefix: '/admin/investors', permission: 'investors' },

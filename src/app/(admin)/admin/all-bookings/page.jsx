@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
-import { Search, XCircle } from 'lucide-react';
+import { buildBookingInvoice } from '@/lib/invoice';
+import { Search, XCircle, FileText, Download } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 50;
@@ -42,7 +43,7 @@ const statusPill = (b) => {
 };
 
 export default function AdminAllBookingsPage() {
-    const { bookings, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking, showNotice, isLoadingData } = useArena();
+    const { bookings, siteSettings, openInvoice, downloadInvoice, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking, showNotice, isLoadingData } = useArena();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -219,6 +220,30 @@ export default function AdminAllBookingsPage() {
                   {statusPill(b)}
 
                   <div className="flex flex-wrap items-center gap-1.5">
+                    {!isHold && (
+                      <button
+                        type="button"
+                        onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
+                        className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[12px] font-bold border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1"
+                        title="Preview & print booking invoice"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-lime-400"/>
+                        <span>Invoice</span>
+                      </button>
+                    )}
+
+                    {!isHold && (
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
+                        className="p-1.5 rounded-lg bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 border border-lime-400/25 transition-colors cursor-pointer"
+                        title="Download Booking Invoice PDF"
+                        aria-label="Download Booking Invoice PDF"
+                      >
+                        <Download className="w-3.5 h-3.5"/>
+                      </button>
+                    )}
+
                     {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer disabled:opacity-50" title="Record a partial or full cash payment">
                         Collect
                       </button>)}

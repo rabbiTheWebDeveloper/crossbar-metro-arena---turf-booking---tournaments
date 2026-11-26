@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { useArena } from '../context/ArenaContext';
 import { CrossbarLogo } from './CrossbarLogo';
-import { X, CheckCircle2, Share2, MapPin, Calendar, Clock, Users, Shield, Copy, Check, AlertCircle } from 'lucide-react';
+import { buildBookingInvoice } from '../lib/invoice';
+import { X, CheckCircle2, Share2, MapPin, Calendar, Clock, Users, Shield, Copy, Check, AlertCircle, Download, FileText } from 'lucide-react';
 
 const HEADER = {
     paid_full: { label: 'Slot Booking Confirmed', cls: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300', Icon: CheckCircle2 },
@@ -23,7 +24,7 @@ const PAY_LABEL = {
 const money = (n) => `৳${(Number(n) || 0).toLocaleString()}`;
 
 export const TicketPassModal = ({ booking, onClose }) => {
-    const { siteSettings } = useArena();
+    const { siteSettings, openInvoice, downloadInvoice } = useArena();
     const [copied, setCopied] = useState(false);
     const [copyError, setCopyError] = useState('');
     const b = booking || {};
@@ -150,14 +151,34 @@ export const TicketPassModal = ({ booking, onClose }) => {
 
           {copyError && <div className="text-[11px] text-rose-300">{copyError}</div>}
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-            <button type="button" onClick={handleShareWhatsApp} className="flex-1 py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-green-500/20">
-              <Share2 className="w-4 h-4"/>
-              <span>Share Pass with Squad</span>
-            </button>
-            <button type="button" onClick={handleCopyInvite} className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer border border-white/10">
-              {copied ? (<><Check className="w-4 h-4 text-emerald-400"/><span className="text-emerald-400">Copied!</span></>) : (<><Copy className="w-4 h-4"/><span>Copy Text</span></>)}
-            </button>
+          <div className="pt-2 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
+                className="py-2.5 px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-emerald-400"/>
+                <span>View Invoice</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
+                className="py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-lime-400/15"
+              >
+                <Download className="w-4 h-4"/>
+                <span>Download PDF</span>
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button type="button" onClick={handleShareWhatsApp} className="flex-1 py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-green-500/20">
+                <Share2 className="w-4 h-4"/>
+                <span>Share Pass with Squad</span>
+              </button>
+              <button type="button" onClick={handleCopyInvite} className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer border border-white/10">
+                {copied ? (<><Check className="w-4 h-4 text-emerald-400"/><span className="text-emerald-400">Copied!</span></>) : (<><Copy className="w-4 h-4"/><span>Copy Text</span></>)}
+              </button>
+            </div>
           </div>
         </div>
       </div>

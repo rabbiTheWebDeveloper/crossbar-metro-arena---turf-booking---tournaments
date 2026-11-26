@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { buildShopOrderInvoice } from '@/lib/invoice';
+import { FileText, Download } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const FILTERS = [
@@ -15,7 +17,7 @@ const parseLocalDate = (iso) => {
 };
 
 export default function AdminShopOrdersPage() {
-    const { shopReservations, handleUpdateShopReservationStatus, showNotice, isLoadingData } = useArena();
+    const { shopReservations, siteSettings, openInvoice, downloadInvoice, handleUpdateShopReservationStatus, showNotice, isLoadingData } = useArena();
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('reserved_pickup');
     const [busyId, setBusyId] = useState(null);
@@ -132,7 +134,26 @@ export default function AdminShopOrdersPage() {
 
                 {errors[res.id] && (<div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px]">{errors[res.id]}</div>)}
 
-                {!isCollected && !isCancelled && (<div className="pt-3 border-t border-white/10 flex gap-2">
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openInvoice(buildShopOrderInvoice(res, siteSettings))}
+                    className="px-2.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/10 text-slate-200 font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-lime-400"/>
+                    <span>Invoice</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadInvoice(buildShopOrderInvoice(res, siteSettings))}
+                    className="px-2.5 py-1.5 rounded-xl bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 border border-lime-400/25 font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5"/>
+                    <span>Download PDF</span>
+                  </button>
+                </div>
+
+                {!isCollected && !isCancelled && (<div className="pt-2 flex gap-2">
                     <button type="button" disabled={isBusy} onClick={() => setStatus(res, 'collected')} className="flex-1 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs cursor-pointer shadow-md shadow-lime-400/10 disabled:opacity-60">
                       {isBusy ? 'Saving…' : 'Mark Collected (Paid)'}
                     </button>

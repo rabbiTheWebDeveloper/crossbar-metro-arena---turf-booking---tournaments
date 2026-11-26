@@ -5,10 +5,11 @@ import { formatMoney, formatDate, formatMonth, shiftMonth, PAYOUT_METHODS, payme
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
 import { INVESTOR_SMS_TEMPLATES, renderInvestorSms, tk } from '@/lib/investorSms';
+import { buildPayoutInvoice, buildInvestorStatementInvoice } from '@/lib/invoice';
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Mail, Send, Link2, UserMinus, UserCheck,
     Trash2, KeyRound, AlertTriangle, Copy, Check, CheckCircle2, Info, UserPlus,
-    MessageSquare, CheckSquare, Square, Loader2, X
+    MessageSquare, CheckSquare, Square, Loader2, X, FileText, Download
 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,8 @@ const makeEmptyNewInvestor = () => ({
 
 export default function AdminInvestorsPage() {
     const {
-        investors, payouts, users, isAdmin, isLoadingData, showNotice, calculateMonthlyFinance,
+        investors, payouts, users, siteSettings, isAdmin, isLoadingData, showNotice, calculateMonthlyFinance,
+        openInvoice, downloadInvoice,
         refreshUsers, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor,
         handleInvestorMailAction, handleRecordPayout
     } = useArena();
@@ -752,6 +754,15 @@ export default function AdminInvestorsPage() {
                       <Trash2 className="w-3.5 h-3.5"/>
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => openInvoice(buildInvestorStatementInvoice({ investor: inv, payouts: payouts.filter(p => p.investorId === inv.id), month: selectedMonth, monthlyFinance: financeReport, siteSettings }))}
+                    title={`Monthly statement invoice for ${formatMonth(selectedMonth)}`}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-[12px] font-bold cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <FileText className="w-3 h-3 text-emerald-400"/>
+                    <span>Statement</span>
+                  </button>
                   <button type="button" disabled={busy || !isActive} onClick={() => openPayout(inv)} className="px-3 py-1.5 rounded-lg bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 text-[12px] font-bold border border-lime-400/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Payout</button>
                 </div>
               </div>
@@ -763,6 +774,82 @@ export default function AdminInvestorsPage() {
         <Plus className="w-4 h-4 stroke-[3]"/>
         <span>Add investor</span>
       </button>
+
+      {/* INVESTOR PAYOUT LEDGER & DOWNLOADABLE VOUCHERS */}
+      <div className="p-5 rounded-3xl bg-[#0c131a] border border-white/10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <FileText className="w-4 h-4 text-lime-400"/>
+              <span>Investor Dividend Payout Ledger &amp; Vouchers ({payouts.length})</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Preview or download an official A4 PDF payout voucher for any recorded partner distribution.
+            </p>
+          </div>
+        </div>
+
+        {payouts.length === 0 ? (
+          <div className="py-6 text-center text-xs text-slate-500">
+            No investor dividend payouts recorded yet. Click &ldquo;Payout&rdquo; on any active partner above to record a distribution.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.06] text-xs">
+            {[...payouts]
+              .sort((a, b) => String(b.datePaid || b.createdAt || '').localeCompare(String(a.datePaid || a.createdAt || '')))
+              .slice(0, 30)
+              .map(pay => {
+                const partner = investors.find(i => i.id === pay.investorId);
+                const mFin = pay.month === selectedMonth ? financeReport : calculateMonthlyFinance(pay.month || selectedMonth);
+                const voucher = buildPayoutInvoice(pay, partner, mFin, siteSettings);
+                return (
+                  <div key={pay.id} className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white">{pay.investorName || partner?.name || 'Partner'}</span>
+                        <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-lime-400/10 border border-lime-400/25 text-lime-300">
+                          {pay.month ? formatMonth(pay.month) : 'Dividend'}
+                        </span>
+                        <span className="font-mono text-[11px] text-slate-400">
+                          {paymentMethodLabel(pay.paymentMethod)}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono text-slate-500 mt-0.5 truncate">
+                        {voucher.invoiceNumber} · Paid {pay.datePaid ? formatDate(pay.datePaid) : '—'}
+                        {pay.transactionNote ? ` · ${pay.transactionNote}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                      <span className="font-mono font-black text-emerald-400 text-sm">
+                        {formatMoney(pay.amount)}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openInvoice(voucher)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileText className="w-3 h-3 text-emerald-400"/>
+                          <span>Voucher</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadInvoice(voucher)}
+                          className="px-2.5 py-1.5 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                          title="Download Payout Voucher PDF"
+                        >
+                          <Download className="w-3.5 h-3.5"/>
+                          <span>PDF</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
 
       {/* ADD INVESTOR MODAL */}
       {showAddModal && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="add-investor-title">

@@ -11,7 +11,7 @@ import {
     Package, ClipboardCheck, Trophy, Award, Camera, Settings, ShieldCheck, KeyRound,
     Lock, Globe, UserCheck, LogOut, Menu, X, Plus, Repeat, UsersRound, Contact,
     PanelLeftClose, PanelLeftOpen, ExternalLink, CreditCard, ClipboardList, MessageSquare,
-    LayoutGrid, ChevronLeft
+    LayoutGrid, ChevronLeft, FileText
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -163,6 +163,7 @@ export default function AdminLayout({ children }) {
                 label: 'Finance',
                 items: [
                     { label: 'Financial Report', href: '/admin/financial-report', icon: TrendingUp },
+                    { label: 'Invoices & Vouchers', href: '/admin/invoices', icon: FileText },
                     { label: 'Investors', href: '/admin/investors', icon: Users },
                     { label: 'Pricing & Add-Ons', href: '/admin/slot-pricing', icon: Tag },
                 ]
@@ -270,6 +271,7 @@ export default function AdminLayout({ children }) {
             const monthLabel = parseLocalDate(todayDateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             return { section: 'Finance', title: `Financial Report · ${monthLabel}` };
         }
+        if (pathname.includes('/invoices')) return { section: 'Finance', title: 'Invoices & Payout Vouchers' };
         if (pathname.includes('/investors')) return { section: 'Finance', title: 'Investors & Payouts' };
         if (pathname.includes('/slot-pricing')) return { section: 'Finance', title: 'Slot Pricing & Turf Add-Ons' };
         if (pathname.includes('/shop-orders')) return { section: 'Pro Shop', title: 'Shop Orders' };

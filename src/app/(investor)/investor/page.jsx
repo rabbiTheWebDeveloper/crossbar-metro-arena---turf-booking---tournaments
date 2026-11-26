@@ -3,12 +3,13 @@ import React, { useState, useMemo } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { useInvestor } from '@/context/InvestorContext';
 import { formatMoney, buildMonthList } from '@/data/finance';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { buildInvestorStatementInvoice } from '@/lib/invoice';
+import { ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react';
 
 const HISTORY_MONTHS = 6;
 
 export default function InvestorOverviewPage() {
-    const { payouts, calculateMonthlyFinance, isLoadingData } = useArena();
+    const { payouts, siteSettings, openInvoice, downloadInvoice, calculateMonthlyFinance, isLoadingData } = useArena();
     const { activeInvestor } = useInvestor();
     const myInvestorId = activeInvestor?.id || null;
 
@@ -85,12 +86,37 @@ export default function InvestorOverviewPage() {
       <div className="bg-[#0c131a]/95 border border-emerald-500/25 rounded-2xl p-5 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"/>
 
-        <div className="text-[12px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-          YOUR SHARE · {currentMonthObj.label}
-        </div>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div>
+            <div className="text-[12px] font-mono font-bold uppercase tracking-widest text-emerald-400">
+              YOUR SHARE · {currentMonthObj.label}
+            </div>
 
-        <div className="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-400 font-mono tracking-tight mt-1">
-          {formatMoney(myMonthlyShare)}
+            <div className="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-400 font-mono tracking-tight mt-1">
+              {formatMoney(myMonthlyShare)}
+            </div>
+          </div>
+
+          {activeInvestor && (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => openInvoice(buildInvestorStatementInvoice({ investor: activeInvestor, payouts: payouts.filter(p => p.investorId === myInvestorId), month: selectedMonth, monthlyFinance: finance, siteSettings }))}
+                className="px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-200 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-emerald-400"/>
+                <span>Statement</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadInvoice(buildInvestorStatementInvoice({ investor: activeInvestor, payouts: payouts.filter(p => p.investorId === myInvestorId), month: selectedMonth, monthlyFinance: finance, siteSettings }))}
+                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5"/>
+                <span>PDF</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="text-xs font-mono text-slate-300 mt-1.5">

@@ -5,7 +5,8 @@ import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { PageHero } from '@/components/PageHero';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
-import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal } from 'lucide-react';
+import { buildBookingInvoice, buildShopOrderInvoice, buildRegistrationInvoice, buildCustomInvoice } from '@/lib/invoice';
+import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal, FileText, Download } from 'lucide-react';
 import { DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, CHANNEL_LABELS, REMINDER_HOURS } from '@/lib/customerMeta';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
@@ -57,13 +58,14 @@ const Skeleton = () => (<div className="space-y-4 animate-pulse" aria-busy="true
 
 export default function CustomerDashboard() {
     const {
-        myBookings, teams, myMatchResults, myChallenges, currentUser, authChecked, isVisitor, pricing, smsLogs, siteSettings, isLoadingData,
+        myBookings, shopReservations, registrations, invoices,
+        teams, myMatchResults, myChallenges, currentUser, authChecked, isVisitor, pricing, smsLogs, siteSettings, isLoadingData,
         myCustomer, customerSettings, handleSaveCustomerSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam,
         handleSaveMatchResult, handleDeleteMatchResult, handleCancelBooking,
         handleAddChallenge, handleUpdateChallenge, handleDeleteChallenge,
         handleUpdateProfile, handleChangePassword,
-        setActiveTicketPass, setShowAuthModal, setAuthModalInitialTab
+        setActiveTicketPass, openInvoice, downloadInvoice, setShowAuthModal, setAuthModalInitialTab
     } = useArena();
     const [activeTab, setActiveTab] = useState('overview');
     const openLogin = () => { setAuthModalInitialTab('login'); setShowAuthModal(true); };
@@ -489,9 +491,32 @@ export default function CustomerDashboard() {
     const deskPhoneLabel = siteSettings?.phoneFormatted || siteSettings?.phone || 'the arena desk';
     const renderMsg = (m) => (m ? (<div className={`p-3 rounded-xl text-xs border ${m.type === 'success' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>{m.text}</div>) : null);
 
+    const customerAllInvoices = useMemo(() => {
+        if (isVisitor) return [];
+        const list = [];
+        (myBookings || []).forEach(b => {
+            if (b.paymentStatus === 'pending_payment') return;
+            list.push({ key: `bk-${b.id}`, sortDate: b.date || '', inv: buildBookingInvoice(b, siteSettings) });
+        });
+        (shopReservations || []).forEach(o => {
+            const inv = buildShopOrderInvoice(o, siteSettings);
+            list.push({ key: `shop-${o.id}`, sortDate: inv.issueDate, inv });
+        });
+        (registrations || []).forEach(r => {
+            const inv = buildRegistrationInvoice(r, siteSettings);
+            list.push({ key: `reg-${r.id}`, sortDate: inv.issueDate, inv });
+        });
+        (invoices || []).forEach(doc => {
+            const inv = buildCustomInvoice(doc, siteSettings);
+            list.push({ key: `custom-${doc.id}`, sortDate: inv.issueDate, inv });
+        });
+        return list.sort((a, b) => String(b.sortDate || '').localeCompare(String(a.sortDate || '')));
+    }, [isVisitor, myBookings, shopReservations, registrations, invoices, siteSettings]);
+
     const tabs = [
         { id: 'overview', label: 'Overview', icon: Trophy },
         { id: 'bookings', label: `My Bookings (${(myBookings || []).length})`, icon: Calendar },
+        { id: 'invoices', label: `Invoices (${customerAllInvoices.length})`, icon: FileText },
         { id: 'teams', label: `My Teams (${myTeams.length})`, icon: Users },
         ...(hasTeam ? [{ id: 'post_score', label: 'Post Match Result', icon: PlusCircle }] : []),
         { id: 'find_opponent', label: 'Find an Opponent', icon: MessageSquare },
@@ -521,9 +546,30 @@ export default function CustomerDashboard() {
               {meta.hint && !past && <div className="text-[11px] text-slate-500">{meta.hint}</div>}
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
-              <button type="button" onClick={() => setActiveTicketPass(b)} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 transition-colors cursor-pointer">
+              <button type="button" onClick={() => setActiveTicketPass(b)} className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 transition-colors cursor-pointer">
                 View Pass
               </button>
+              {b?.paymentStatus !== 'pending_payment' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
+                    className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 font-bold text-xs border border-emerald-500/25 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5"/>
+                    <span>Invoice</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
+                    className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Download Booking Invoice PDF"
+                  >
+                    <Download className="w-3.5 h-3.5"/>
+                    <span>PDF</span>
+                  </button>
+                </>
+              )}
               {!past && !isCancelled && due > 0 && (
                 <span className="px-3 py-2 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold" title="Online balance payment is not available. Pay the remaining amount at the arena desk.">
                   Pay {money(due)} at arena
@@ -615,9 +661,20 @@ export default function CustomerDashboard() {
                           Paid: {money(b.advanceAmount)} · Due: <strong className="text-amber-400">{money(b.dueAmount)}</strong>
                         </div>
                       </div>
-                      <button type="button" onClick={() => setActiveTicketPass(b)} className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs uppercase transition-colors shrink-0 cursor-pointer">
-                        Open Pass
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-emerald-300 transition-colors cursor-pointer"
+                          title="Download Invoice PDF"
+                          aria-label="Download Invoice PDF"
+                        >
+                          <Download className="w-3.5 h-3.5"/>
+                        </button>
+                        <button type="button" onClick={() => setActiveTicketPass(b)} className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-bold text-xs uppercase transition-colors shrink-0 cursor-pointer">
+                          Open Pass
+                        </button>
+                      </div>
                     </div>))}
                 </div>)}
             </div>
@@ -652,6 +709,71 @@ export default function CustomerDashboard() {
                     : pastBookings.map(b => renderBookingCard(b, true))}
                 </div>
               </>)}
+          </div>)}
+
+        {/* 2B. INVOICES & RECEIPTS */}
+        {activeTab === 'invoices' && (<div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-black uppercase text-white font-display">My Invoices &amp; Official Receipts</h3>
+                <p className="text-xs text-slate-400">
+                  Preview, print, or download A4 PDF invoices for your turf bookings, Pro Shop gear orders, tournament entries, and arena bills.
+                </p>
+              </div>
+            </div>
+
+            {customerAllInvoices.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/40 rounded-3xl border border-white/5 text-slate-400 space-y-2">
+                <FileText className="w-10 h-10 text-slate-600 mx-auto"/>
+                <div className="text-sm font-bold text-white">No invoices available yet</div>
+                <p className="text-xs">Once you book a turf slot, reserve gear, or enter a tournament, your downloadable PDF invoice appears here automatically.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {customerAllInvoices.map(({ key, inv }) => (
+                  <div key={key} className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/35 transition-all flex flex-col justify-between gap-4 text-xs">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[10.5px] font-mono uppercase tracking-wider text-slate-400">{inv.docTypeLabel}</div>
+                        <div className="font-mono font-black text-emerald-400 text-sm mt-0.5 truncate">{inv.invoiceNumber}</div>
+                        <div className="text-sm font-bold text-white mt-1 truncate">
+                          {inv.items?.[0]?.description || inv.recipient?.subtitle || inv.referenceCode}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          Issued {inv.issueDate} · {inv.statusBadge}
+                        </div>
+                      </div>
+                      <div className="text-right font-mono shrink-0">
+                        <div className="text-base font-black text-white">{money(inv.totalAmount)}</div>
+                        <div className="text-[11px] text-emerald-400">Paid {money(inv.paidAmount)}</div>
+                        {Number(inv.dueAmount) > 0 && (
+                          <div className="text-[11px] text-amber-300 font-bold">Due {money(inv.dueAmount)}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openInvoice(inv)}
+                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-400"/>
+                        <span>Preview &amp; Print</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoice(inv)}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5"/>
+                        <span>Download PDF</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>)}
 
         {/* 3. TEAMS & SQUAD */}
