@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validate } from '@/lib/validate';
-import { INVESTOR_SCHEMA, BULK_BOOKING_SCHEMA, validateSlotPrices, validateBookingAddOns } from '@/lib/schemas';
+import { INVESTOR_SCHEMA, BULK_BOOKING_SCHEMA, BOOKING_ADDON_SCHEMA, validateSlotPrices, validateBookingAddOns } from '@/lib/schemas';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 
 describe('validate() & schemas', () => {
@@ -103,5 +103,27 @@ describe('validate() & schemas', () => {
 
         const badPrice = validateBookingAddOns([{ name: 'Bad Item', price: -50 }]);
         expect(badPrice.error).toMatch(/price/i);
+    });
+
+    it('validates BOOKING_ADDON_SCHEMA payloads for /api/booking-addons create and partial update', () => {
+        const created = validate({
+            name: '  Certified Match Referee  ',
+            description: '  Official referee for 90 minutes match  ',
+            price: 500,
+            enabled: true
+        }, BOOKING_ADDON_SCHEMA);
+        expect(created.error).toBeUndefined();
+        expect(created.data).toEqual({
+            name: 'Certified Match Referee',
+            description: 'Official referee for 90 minutes match',
+            price: 500,
+            iconName: '',
+            enabled: true,
+            sortOrder: 0
+        });
+
+        const patch = validate({ enabled: false }, BOOKING_ADDON_SCHEMA, { partial: true });
+        expect(patch.error).toBeUndefined();
+        expect(patch.data).toEqual({ enabled: false });
     });
 });

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Setting } from '@/models/setting-model';
 import { Booking } from '@/models/booking-model';
+import { BookingAddOn } from '@/models/booking-addon-model';
 import { SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '@/data/initialData';
 
 export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -35,9 +36,13 @@ export function kickoffDate(dateIso, startTime = '00:00') {
 }
 
 export async function loadPricing() {
-    const settings = await Setting.getOrCreateSettings();
+    await BookingAddOn.ensureSeeded();
+    const [settings, addOnDocs] = await Promise.all([
+        Setting.getOrCreateSettings(),
+        BookingAddOn.find({ enabled: { $ne: false } }).sort({ sortOrder: 1, createdAt: 1 })
+    ]);
     const slotPrices = settings.slotPrices && settings.slotPrices.length === 12 ? settings.slotPrices : SCHEDULE_SLOTS_DEFINITION;
-    const bookingAddOns = Array.isArray(settings.bookingAddOns) ? settings.bookingAddOns : BOOKING_ADDONS;
+    const bookingAddOns = addOnDocs.map(doc => doc.toJSON());
     return {
         settings,
         slotPrices,
@@ -62,12 +67,27 @@ export function slotPrice(pricing, dateIso, slotNumber) {
     return isWeekend(dateIso, pricing.weekendDays) ? Number(def.weekendPrice) : Number(def.weekdayPrice);
 }
 
-/** Resolve add-on ids (or objects with ids) to the active configured catalogue entries and their total. */
+/** Resolve add-on ids (MongoDB ObjectId or slug) to active BookingAddOn model entries and their total. */
 export function resolveAddOns(input, catalogue = BOOKING_ADDONS) {
     const activeList = (Array.isArray(catalogue) ? catalogue : BOOKING_ADDONS).filter(a => a && a.enabled !== false);
-    const ids = (Array.isArray(input) ? input : []).map(a => (typeof a === 'string' ? a : a?.id)).filter(Boolean);
-    const addOns = [...new Set(ids)].map(id => activeList.find(a => a.id === id)).filter(Boolean)
-        .map(a => ({ id: a.id, name: a.name, description: a.description || '', price: Number(a.price) || 0, iconName: a.iconName || '' }));
+    const ids = (Array.isArray(input) ? input : []).map(a => (typeof a === 'string' ? a : (a?.id || a?.slug))).filter(Boolean);
+    const seen = new Set();
+    const addOns = [];
+    for (const rawId of ids) {
+        const key = String(rawId);
+        const match = activeList.find(a => String(a.id || a._id || '') === key || (a.slug && a.slug === key));
+        if (!match) continue;
+        const resolvedId = String(match.id || match._id || match.slug);
+        if (seen.has(resolvedId)) continue;
+        seen.add(resolvedId);
+        addOns.push({
+            id: resolvedId,
+            name: match.name,
+            description: match.description || '',
+            price: Number(match.price) || 0,
+            iconName: match.iconName || ''
+        });
+    }
     return { addOns, addOnsPrice: addOns.reduce((s, a) => s + a.price, 0) };
 }
 

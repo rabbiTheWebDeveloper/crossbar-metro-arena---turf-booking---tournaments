@@ -98,6 +98,7 @@ export const ArenaProvider = ({ children }) => {
     const [bookings, setBookings] = useState([]);
     const [slotHolds, setSlotHolds] = useState([]);
     const [pricing, setPricing] = useState(DEFAULT_PRICING);
+    const [bookingAddOns, setBookingAddOns] = useState(BOOKING_ADDONS);
     const [expenses, setExpenses] = useState([]);
     const [investors, setInvestors] = useState([]);
     const [myInvestorId, setMyInvestorId] = useState(null);
@@ -170,7 +171,6 @@ export const ArenaProvider = ({ children }) => {
                 ...prev,
                 ...p,
                 slotPrices: Array.isArray(p.slotPrices) && p.slotPrices.length === 12 ? p.slotPrices : (prev.slotPrices || SCHEDULE_SLOTS_DEFINITION),
-                bookingAddOns: Array.isArray(p.bookingAddOns) ? p.bookingAddOns : (prev.bookingAddOns || BOOKING_ADDONS),
                 weekendDays: Array.isArray(p.weekendDays) && p.weekendDays.length ? p.weekendDays : (prev.weekendDays || ['Friday', 'Saturday'])
             }));
         }
@@ -199,6 +199,7 @@ export const ArenaProvider = ({ children }) => {
 
             const publicCalls = {
                 settings: get('/api/settings'),
+                bookingAddOns: get('/api/booking-addons'),
                 bookings: get('/api/bookings'),
                 events: get('/api/events'),
                 products: get('/api/products'),
@@ -266,6 +267,7 @@ export const ArenaProvider = ({ children }) => {
             if (failed.length === keys.length) setLoadError('Could not reach the arena server. Showing limited data.');
 
             if (r.settings.ok) applySettings(r.settings.data);
+            if (r.bookingAddOns && r.bookingAddOns.ok) setBookingAddOns(unwrap(r.bookingAddOns.data, 'addOns') || []);
             const pub = unwrap(r.bookings.data, 'bookings') || [];
             const mine = r.myBookings && r.myBookings.ok ? (unwrap(r.myBookings.data, 'bookings') || []) : [];
             if (r.bookings.ok || mine.length) {
@@ -507,8 +509,8 @@ export const ArenaProvider = ({ children }) => {
 
     const currentMonthFinance = useMemo(() => calculateMonthlyFinance(todayDhaka().slice(0, 7)), [calculateMonthlyFinance]);
     const activeBookingAddOns = useMemo(
-        () => (Array.isArray(pricing?.bookingAddOns) ? pricing.bookingAddOns : BOOKING_ADDONS).filter(a => a && a.enabled !== false),
-        [pricing?.bookingAddOns]
+        () => (Array.isArray(bookingAddOns) ? bookingAddOns : []).filter(a => a && a.enabled !== false),
+        [bookingAddOns]
     );
     const grossRevenue = currentMonthFinance.totalRevenue;
     const totalExpenses = currentMonthFinance.totalExpenses;
@@ -831,6 +833,51 @@ export const ArenaProvider = ({ children }) => {
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [applySettings, showNotice]);
 
+    // ---- Optional Turf Equipment Add-Ons (dedicated BookingAddOn model) ----
+    const handleCreateBookingAddOn = useCallback(async (payload) => {
+        const r = await api('/api/booking-addons', { method: 'POST', body: payload });
+        if (r.ok && r.data.addOn) {
+            setBookingAddOns(prev => [...prev, r.data.addOn]);
+            showNotice('success', r.data.message || 'Add-on added');
+            return { ok: true, addOn: r.data.addOn };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleUpdateBookingAddOn = useCallback(async (id, patch) => {
+        const r = await api(`/api/booking-addons/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch });
+        if (r.ok && r.data.addOn) {
+            setBookingAddOns(prev => prev.map(a => (a.id === id || a.slug === id ? r.data.addOn : a)));
+            showNotice('success', r.data.message || 'Add-on updated');
+            return { ok: true, addOn: r.data.addOn };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleDeleteBookingAddOn = useCallback(async (id) => {
+        const r = await api(`/api/booking-addons/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (r.ok) {
+            setBookingAddOns(prev => prev.filter(a => a.id !== id && a.slug !== id));
+            showNotice('success', r.data.message || 'Add-on deleted');
+            return { ok: true };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
+    const handleRestoreDefaultBookingAddOns = useCallback(async () => {
+        const r = await api('/api/booking-addons', { method: 'POST', body: { action: 'restore_defaults' } });
+        if (r.ok && Array.isArray(r.data.addOns)) {
+            setBookingAddOns(r.data.addOns);
+            showNotice('success', r.data.message || 'Default add-ons restored');
+            return { ok: true, addOns: r.data.addOns };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
     const handleSaveInvestors = useCallback(async (invs) => {
         const payload = (Array.isArray(invs) ? invs : [invs]).map(i => (isObjectId(i.id) ? i : { ...i, id: undefined, _id: undefined }));
         const r = await api('/api/investors', { method: 'POST', body: payload });
@@ -1074,20 +1121,20 @@ export const ArenaProvider = ({ children }) => {
 
     // ---- Backup ----
     const exportDatabaseBackup = useCallback(() => {
-        const fullBackup = { venue: 'Crossbar Metro Arena (bookcrossbar.com)', backupGeneratedAt: new Date().toISOString(), bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings };
+        const fullBackup = { venue: 'Crossbar Metro Arena (bookcrossbar.com)', backupGeneratedAt: new Date().toISOString(), bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings };
         const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
         const a = document.createElement('a');
         a.setAttribute('href', jsonStr);
         a.setAttribute('download', `crossbar_metro_backup_${todayDhaka()}.json`);
         document.body.appendChild(a); a.click(); a.remove();
-    }, [bookings, pricing, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings]);
+    }, [bookings, pricing, bookingAddOns, expenses, investors, payouts, refunds, otherIncome, teams, matchResults, shopProducts, shopReservations, tournaments, registrations, challenges, galleryPhotos, users, siteSettings]);
     const handleRestoreDatabase = useCallback(() => {
         showNotice('info', 'Restore from a JSON file is not supported. Backups are read-only exports; data lives in the MongoDB database.');
         return false;
     }, [showNotice]);
 
     const value = useMemo(() => ({
-        bookings, myBookings, slotHolds, pricing, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
@@ -1102,7 +1149,9 @@ export const ArenaProvider = ({ children }) => {
         refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
-        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
+        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
+        handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
+        handleAddExpense, handleDeleteExpense,
         handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,
@@ -1112,7 +1161,7 @@ export const ArenaProvider = ({ children }) => {
         handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
         sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
     }), [
-        bookings, myBookings, slotHolds, pricing, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, bookingAddOns, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,
@@ -1125,7 +1174,9 @@ export const ArenaProvider = ({ children }) => {
         refreshRoles, handleSaveRole, handleDeleteRole,
         handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
         handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
-        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings, handleAddExpense, handleDeleteExpense,
+        handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
+        handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
+        handleAddExpense, handleDeleteExpense,
         handleSaveInvestors, handleCreateInvestor, handleUpdateInvestor, handleDeleteInvestor, handleInvestorMailAction, handleSaveInvestorSettings,
         handleSaveTeam, handleUpdateTeam, handleAddPlayerToTeam, handleRemovePlayerFromTeam, handleDeleteTeam,
         handleSaveMatchResult, handleDeleteMatchResult,

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { SCHEDULE_SLOTS_DEFINITION, SLOT_SCHEDULE_VERSION, VENUE_INFO, BOOKING_ADDONS } from '../data/initialData.js';
+import { SCHEDULE_SLOTS_DEFINITION, SLOT_SCHEDULE_VERSION, VENUE_INFO } from '../data/initialData.js';
 const SlotPriceSchema = new Schema({
     slotNumber: { type: Number, required: true },
     startTime: { type: String, required: true },
@@ -12,14 +12,6 @@ const SlotPriceSchema = new Schema({
     // Regular ("actual") price, shown struck through while it is higher than the price above. 0 = no offer.
     weekdayActualPrice: { type: Number, default: 0 },
     weekendActualPrice: { type: Number, default: 0 }
-}, { _id: false });
-
-const BookingAddOnSchema = new Schema({
-    id: { type: String, required: true, trim: true },
-    name: { type: String, required: true, trim: true, maxlength: 100 },
-    description: { type: String, trim: true, default: '', maxlength: 200 },
-    price: { type: Number, required: true, min: 0, max: 100000 },
-    enabled: { type: Boolean, default: true }
 }, { _id: false });
 const SettingSchema = new Schema({
     businessName: { type: String, default: VENUE_INFO.businessName },
@@ -42,10 +34,7 @@ const SettingSchema = new Schema({
         type: [SlotPriceSchema],
         default: SCHEDULE_SLOTS_DEFINITION
     },
-    bookingAddOns: {
-        type: [BookingAddOnSchema],
-        default: () => BOOKING_ADDONS.map(a => ({ ...a }))
-    },
+    // Tracks one-time initial seed of the BookingAddOn collection (models/booking-addon-model.js)
     bookingAddOnsSeeded: { type: Boolean, default: false },
     // Which built-in slot schedule this document was last brought in line with (see getOrCreateSettings)
     slotScheduleVersion: { type: Number, default: 1 },
@@ -94,14 +83,11 @@ SettingSchema.statics.getOrCreateSettings = async function () {
     if (!doc) {
         doc = await this.create({
             slotPrices: SCHEDULE_SLOTS_DEFINITION,
-            slotScheduleVersion: SLOT_SCHEDULE_VERSION,
-            bookingAddOns: BOOKING_ADDONS,
-            bookingAddOnsSeeded: true
+            slotScheduleVersion: SLOT_SCHEDULE_VERSION
         });
         console.log('✅ Initialized default Crossbar Metro Arena Setting document in MongoDB');
         return doc;
     }
-    let needsSave = false;
     // One-time upgrade: when the built-in schedule changes (new kick-off times / price list), the stored
     // slots are replaced with it once. Prices edited by the admin afterwards are kept as usual.
     if ((Number(doc.slotScheduleVersion) || 1) < SLOT_SCHEDULE_VERSION) {
@@ -110,19 +96,8 @@ SettingSchema.statics.getOrCreateSettings = async function () {
         // Only replace the opening hours when they still read as the previous default
         if (!doc.openingHours || /^6:00 AM\s*[–-]\s*12:00 AM/i.test(doc.openingHours)) doc.openingHours = VENUE_INFO.openingHours;
         doc.slotScheduleVersion = SLOT_SCHEDULE_VERSION;
-        needsSave = true;
-        console.log(`✅ Slot schedule upgraded from v${previousVersion} to v${SLOT_SCHEDULE_VERSION} (new kick-off times and launch-offer prices)`);
-    }
-    // One-time seed for existing DB documents created before dynamic bookingAddOns existed
-    if (!doc.bookingAddOnsSeeded) {
-        if (!Array.isArray(doc.bookingAddOns) || doc.bookingAddOns.length === 0) {
-            doc.bookingAddOns = BOOKING_ADDONS;
-        }
-        doc.bookingAddOnsSeeded = true;
-        needsSave = true;
-    }
-    if (needsSave) {
         await doc.save();
+        console.log(`✅ Slot schedule upgraded from v${previousVersion} to v${SLOT_SCHEDULE_VERSION} (new kick-off times and launch-offer prices)`);
     }
     return doc;
 };

@@ -66,14 +66,13 @@ export const BOOKING_ADDONS = [
     { id: 'ball', name: 'Extra FIFA Match Ball', price: 150, description: 'Official tournament spec match ball', enabled: true },
     { id: 'water', name: 'Chilled Water & Electrolyte Pack', price: 400, description: 'Cold mineral water bottles for both squads', enabled: true }
 ];
-// All 24 pricing matrix + configurable rules + equipment add-ons
+// All 12-slot pricing matrix + configurable rules
 export const DEFAULT_PRICING = {
     morningSlotPrice: 4000,
     afternoonSlotPrice: 5500,
     eveningSlotPrice: 5500,
     weekendSurcharge: 1000,
     slotPrices: SCHEDULE_SLOTS_DEFINITION,
-    bookingAddOns: BOOKING_ADDONS,
     advanceAmount: 500,
     holdMinutes: 10,
     bookingWindowDays: 60,

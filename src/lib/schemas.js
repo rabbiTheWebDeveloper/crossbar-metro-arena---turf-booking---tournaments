@@ -194,8 +194,17 @@ export function validateSlotPrices(slots) {
 
 export const isDayName = (d) => DAY_NAMES.includes(d);
 
+export const BOOKING_ADDON_SCHEMA = {
+    name: { type: 'string', required: true, min: 2, max: 100, label: 'Add-on name' },
+    description: { type: 'text', max: 200, default: '', label: 'Description' },
+    price: { type: 'money', required: true, label: 'Price' },
+    iconName: { type: 'string', max: 40, default: '' },
+    enabled: { type: 'bool', default: true },
+    sortOrder: { type: 'int', min: 0, max: 1000, default: 0 }
+};
+
 /**
- * Validate configurable Optional Turf Equipment Add-Ons (`Setting.bookingAddOns`).
+ * Validate a list of Optional Turf Equipment Add-Ons.
  * Returns `{ value }` (cleaned array) or `{ error }`.
  */
 export function validateBookingAddOns(items) {

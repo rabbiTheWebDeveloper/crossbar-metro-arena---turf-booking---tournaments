@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useArena } from '@/context/ArenaContext';
-import { SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '@/data/initialData';
+import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { Clock, Save, CheckCircle2, ShieldCheck, Award, Plus, Pencil, Trash2, Sparkles, Eye, EyeOff, X, RotateCcw, Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
@@ -18,9 +18,18 @@ const to12 = (hhmm) => {
 const displayRange = (start, end) => `${to12(start)} – ${to12(end)}`;
 
 export default function AdminSlotPricingPage() {
-    const { pricing, handleSavePricing, isLoadingData, isAdmin } = useArena();
+    const {
+        pricing,
+        bookingAddOns = [],
+        handleSavePricing,
+        handleCreateBookingAddOn,
+        handleUpdateBookingAddOn,
+        handleDeleteBookingAddOn,
+        handleRestoreDefaultBookingAddOns,
+        isLoadingData,
+        isAdmin
+    } = useArena();
     const [slotPrices, setSlotPrices] = useState(SCHEDULE_SLOTS_DEFINITION);
-    const [bookingAddOns, setBookingAddOns] = useState(BOOKING_ADDONS);
     const [advanceAmount, setAdvanceAmount] = useState(500);
     const [holdMinutes, setHoldMinutes] = useState(10);
     const [bookingWindowDays, setBookingWindowDays] = useState(60);
@@ -43,7 +52,6 @@ export default function AdminSlotPricingPage() {
     useEffect(() => {
         if (!pricing) return;
         setSlotPrices(Array.isArray(pricing.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices.map(s => ({ ...s })) : SCHEDULE_SLOTS_DEFINITION);
-        setBookingAddOns(Array.isArray(pricing.bookingAddOns) ? pricing.bookingAddOns.map(a => ({ ...a, enabled: a.enabled !== false })) : BOOKING_ADDONS);
         setAdvanceAmount(nonNeg(pricing.advanceAmount ?? 500));
         setHoldMinutes(nonNeg(pricing.holdMinutes ?? 10));
         setBookingWindowDays(nonNeg(pricing.bookingWindowDays ?? 60));
@@ -74,7 +82,7 @@ export default function AdminSlotPricingPage() {
         setWeekendDays(prev => (prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]));
     };
 
-    // ---- Optional Turf Equipment Add-Ons CRUD (saves straight to MongoDB so public website updates immediately) ----
+    // ---- Optional Turf Equipment Add-Ons CRUD (dedicated BookingAddOn model via /api/booking-addons) ----
     const openCreateAddon = () => {
         setAddonFormError('');
         setAddonModal({ mode: 'create', id: '', name: '', price: 200, description: '', enabled: true });
@@ -103,59 +111,44 @@ export default function AdminSlotPricingPage() {
         if (name.length < 2) { setAddonFormError('Enter an add-on title (at least 2 characters).'); return; }
         if (!Number.isFinite(price) || price < 0 || price > 100000) { setAddonFormError('Price must be between ৳0 and ৳100,000.'); return; }
 
-        let id = addonModal.id;
-        if (addonModal.mode === 'create' || !id) {
-            const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28) || 'addon';
-            const used = new Set(bookingAddOns.map(a => a.id));
-            id = used.has(base) ? `${base}-${Date.now().toString(36).slice(-4)}` : base;
-        }
-
-        const item = { id, name, description, price: Math.round(price), enabled: Boolean(addonModal.enabled) };
-        const nextList = addonModal.mode === 'edit'
-            ? bookingAddOns.map(a => (a.id === addonModal.id ? item : a))
-            : [...bookingAddOns, item];
+        const payload = { name, description, price: Math.round(price), enabled: Boolean(addonModal.enabled) };
 
         setAddonBusy(true);
-        const res = await handleSavePricing({ bookingAddOns: nextList });
+        const res = addonModal.mode === 'edit' && addonModal.id
+            ? await handleUpdateBookingAddOn(addonModal.id, payload)
+            : await handleCreateBookingAddOn(payload);
         setAddonBusy(false);
         if (!res?.ok) {
             setAddonFormError(res?.error || 'Could not save equipment add-on.');
             return;
         }
-        setBookingAddOns(nextList);
         setAddonModal(null);
     };
 
     const handleToggleAddonEnabled = async (addon) => {
         if (addonBusy) return;
-        const nextList = bookingAddOns.map(a => (a.id === addon.id ? { ...a, enabled: a.enabled === false } : a));
         setAddonBusy(true);
-        const res = await handleSavePricing({ bookingAddOns: nextList });
+        await handleUpdateBookingAddOn(addon.id, { enabled: addon.enabled === false });
         setAddonBusy(false);
-        if (res?.ok) setBookingAddOns(nextList);
     };
 
     const handleRestoreDefaultAddOns = async () => {
         if (addonBusy) return;
-        const defaults = BOOKING_ADDONS.map(a => ({ ...a, enabled: true }));
         setAddonBusy(true);
-        const res = await handleSavePricing({ bookingAddOns: defaults });
+        await handleRestoreDefaultBookingAddOns();
         setAddonBusy(false);
-        if (res?.ok) setBookingAddOns(defaults);
     };
 
     const handleConfirmDeleteAddon = async () => {
         if (!deleteAddonTarget || addonBusy) return;
         setDeleteAddonError('');
-        const nextList = bookingAddOns.filter(a => a.id !== deleteAddonTarget.id);
         setAddonBusy(true);
-        const res = await handleSavePricing({ bookingAddOns: nextList });
+        const res = await handleDeleteBookingAddOn(deleteAddonTarget.id);
         setAddonBusy(false);
         if (!res?.ok) {
             setDeleteAddonError(res?.error || 'Could not delete equipment add-on.');
             return;
         }
-        setBookingAddOns(nextList);
         setDeleteAddonTarget(null);
     };
 
@@ -184,7 +177,6 @@ export default function AdminSlotPricingPage() {
                 weekdayActualPrice: nonNeg(s.weekdayActualPrice),
                 weekendActualPrice: nonNeg(s.weekendActualPrice)
             })),
-            bookingAddOns,
             advanceAmount: nonNeg(advanceAmount),
             holdMinutes: nonNeg(holdMinutes),
             bookingWindowDays: nonNeg(bookingWindowDays),

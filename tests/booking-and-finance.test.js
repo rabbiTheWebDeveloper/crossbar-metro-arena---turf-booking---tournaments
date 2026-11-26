@@ -83,16 +83,17 @@ describe('booking helpers', () => {
         expect(view.advanceAmount).toBeUndefined();
     });
 
-    it('resolves dynamic admin-configured add-ons while ignoring hidden/deleted items', () => {
-        const customCatalogue = [
-            { id: 'referee', name: 'Certified Match Referee', price: 650, description: 'Updated rate', enabled: true },
-            { id: 'drone', name: 'Drone Footage', price: 1200, description: 'Aerial highlights', enabled: true },
-            { id: 'water', name: 'Water Pack', price: 400, description: 'Out of stock', enabled: false }
+    it('resolves BookingAddOn model documents by ObjectId or slug while deduplicating and ignoring hidden/deleted items', () => {
+        const modelCatalogue = [
+            { id: '6745aa000000000000000001', slug: 'referee', name: 'Certified Match Referee', price: 650, description: 'Updated rate', enabled: true },
+            { id: '6745aa000000000000000002', slug: 'drone-footage', name: 'Drone Footage', price: 1200, description: 'Aerial highlights', enabled: true },
+            { id: '6745aa000000000000000003', slug: 'water', name: 'Water Pack', price: 400, description: 'Out of stock', enabled: false }
         ];
-        const resolved = resolveAddOns(['referee', 'drone', 'water', 'deleted-id', 'referee'], customCatalogue);
+        // Requesting both slug 'referee' and its ObjectId should only charge once
+        const resolved = resolveAddOns(['referee', '6745aa000000000000000002', 'water', 'deleted-id', '6745aa000000000000000001'], modelCatalogue);
         expect(resolved.addOns).toHaveLength(2);
         expect(resolved.addOnsPrice).toBe(1850);
-        expect(resolved.addOns.map(a => a.id)).toEqual(['referee', 'drone']);
+        expect(resolved.addOns.map(a => a.id)).toEqual(['6745aa000000000000000001', '6745aa000000000000000002']);
     });
 });
 
