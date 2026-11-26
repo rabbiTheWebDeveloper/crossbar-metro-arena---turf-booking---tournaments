@@ -96,6 +96,10 @@ export const MATCH_TYPES = ['friendly', 'competitive', 'practice', 'corporate'];
 
 /** Admin edits to an existing booking (money fields are clamped against the booking total in the route). */
 export const BOOKING_UPDATE_SCHEMA = {
+    date: { type: 'date', label: 'Match date' },
+    slotNumber: { type: 'int', min: 1, max: 12, label: 'Time slot' },
+    courtPrice: { type: 'money', label: 'Slot price' },
+    keepPrice: { type: 'bool' },
     collectedCash: { type: 'money', label: 'Collected cash' },
     advanceAmount: { type: 'money', label: 'Paid amount' },
     paymentStatus: { type: 'enum', values: ['paid_full', 'needs_refund', 'confirmed_unpaid', 'paid_advance'], label: 'Payment status' },
@@ -114,8 +118,8 @@ export const BULK_BOOKING_SCHEMA = {
     captainName: { type: 'string', required: true, min: 2, max: 80, label: 'Captain name' },
     captainPhone: { type: 'phone', required: true, label: 'Captain mobile number' },
     teamName: { type: 'string', required: true, min: 2, max: 80, label: 'Team name' },
-    startDate: { type: 'date', required: true, label: 'Start date' },
-    endDate: { type: 'date', required: true, label: 'End date' },
+    startDate: { type: 'date', label: 'Start date' },
+    endDate: { type: 'date', label: 'End date' },
     paidPerSlot: { type: 'money', default: 0, label: 'Paid per slot' },
     paymentMethod: { type: 'enum', values: [...PAYMENT_METHODS, 'bank'], default: 'cash', label: 'Payment method' },
     pricePerSlot: { type: 'money', label: 'Price per slot' },

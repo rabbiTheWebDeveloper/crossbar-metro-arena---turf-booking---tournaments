@@ -756,6 +756,18 @@ export const ArenaProvider = ({ children }) => {
         showNotice('error', r.error); return { ok: false, error: r.error };
     }, [showNotice]);
 
+    /** Reschedule a booking's Date and/or Time Slot (and optional price/captain/team details). */
+    const handleRescheduleBooking = useCallback(async (id, patch) => {
+        const r = await api(`/api/bookings/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch });
+        if (r.ok && r.data.booking) {
+            setBookings(prev => upsert(prev, r.data.booking));
+            showNotice('success', `Updated ${r.data.booking.bookingCode} → ${r.data.booking.date} (${r.data.booking.displayTime})`);
+            return { ok: true, booking: r.data.booking };
+        }
+        showNotice('error', r.error);
+        return { ok: false, error: r.error };
+    }, [showNotice]);
+
     const handleMarkPlayed = useCallback(async (id, played = true) => {
         const r = await api(`/api/bookings/${id}`, { method: 'PATCH', body: { played } });
         if (r.ok && r.data.booking) { setBookings(prev => upsert(prev, r.data.booking)); return { ok: true }; }
@@ -791,6 +803,17 @@ export const ArenaProvider = ({ children }) => {
         if (!r.ok) throw new Error(r.error);
         await refreshBookings();
         showNotice('success', r.data.message || 'Series cancelled');
+        return r.data;
+    }, [refreshBookings, showNotice]);
+
+    const handleUpdateSeriesSchedule = useCallback(async (payload) => {
+        const r = await api('/api/bookings/bulk', { method: 'PATCH', body: payload });
+        if (!r.ok) { const err = new Error(r.error); err.data = r.data; throw err; }
+        if (!payload.dryRun) {
+            await refreshBookings();
+            if (r.data.refund) setRefunds(prev => upsert(prev, r.data.refund));
+            showNotice('success', r.data.message || 'Series schedule updated');
+        }
         return r.data;
     }, [refreshBookings, showNotice]);
 
@@ -1203,8 +1226,8 @@ export const ArenaProvider = ({ children }) => {
         myCustomer, customerSettings, handleSaveCustomerSettings,
         handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
         refreshRoles, handleSaveRole, handleDeleteRole,
-        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
-        handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
+        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleRescheduleBooking, handleMarkPlayed, handleCancelBooking,
+        handleCreateRecurringBookings, handleUpdateSeriesSchedule, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
         handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
         handleCreateInvoice, handleUpdateInvoice, handleDeleteInvoice,
@@ -1229,8 +1252,8 @@ export const ArenaProvider = ({ children }) => {
         myCustomer, customerSettings, handleSaveCustomerSettings,
         handleUpdateUserRole, handleToggleUserDisabled, refreshUsers, handleAdminUpdateUser, handleCreateUser, handleDeleteUser,
         refreshRoles, handleSaveRole, handleDeleteRole,
-        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking,
-        handleCreateRecurringBookings, handleCancelSeries, refreshBookings,
+        handleBookingSuccess, startOnlinePayment, lookupBooking, handlePlaceSlotHold, handleReleaseSlotHold, handleUpdateBookingStatus, handleRescheduleBooking, handleMarkPlayed, handleCancelBooking,
+        handleCreateRecurringBookings, handleUpdateSeriesSchedule, handleCancelSeries, refreshBookings,
         handleRecordRefund, handleRecordPayout, handleAddOtherIncome, handleSavePricing, handleSaveSiteSettings,
         handleCreateBookingAddOn, handleUpdateBookingAddOn, handleDeleteBookingAddOn, handleRestoreDefaultBookingAddOns,
         handleCreateInvoice, handleUpdateInvoice, handleDeleteInvoice,

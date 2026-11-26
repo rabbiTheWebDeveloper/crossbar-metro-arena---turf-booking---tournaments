@@ -659,3 +659,74 @@ export function buildCustomInvoice(doc, siteSettings) {
         authorizedBy: d.createdBy || 'Crossbar Admin Desk'
     };
 }
+
+/** 9. Bulk / Fixed-Slot Series Consolidated Schedule Invoice (every Date, Day & Time Slot itemized) */
+export function buildBulkSeriesInvoice(series, siteSettings) {
+    const s = series || {};
+    const venue = normalizeVenue(siteSettings);
+    const activeRows = (Array.isArray(s.bookings) ? s.bookings : []).filter(b => b.paymentStatus !== 'cancelled');
+    const items = activeRows.length > 0
+        ? activeRows.map(b => ({
+            description: `Turf Slot — ${b.date} (${b.dayName || ''}) · ${b.displayTime || `Slot #${b.slotNumber}`}`,
+            meta: `Ref: ${b.bookingCode}${b.played ? ' · Played' : ''}`,
+            quantity: 1,
+            unitPrice: Number(b.totalPrice) || 0,
+            amount: Number(b.totalPrice) || 0
+        }))
+        : [{
+            description: `Fixed-Slot Series (${s.firstDate || '—'} → ${s.lastDate || '—'})`,
+            meta: `${s.active || 0} active slot(s)`,
+            quantity: Math.max(1, Number(s.active) || 1),
+            unitPrice: Math.round((Number(s.totalValue) || 0) / Math.max(1, Number(s.active) || 1)),
+            amount: Number(s.totalValue) || 0
+        }];
+
+    const total = Number(s.totalValue) || items.reduce((acc, i) => acc + i.amount, 0);
+    const paid = Number(s.collected) || 0;
+    const due = Math.max(0, total - paid);
+    const daySummary = Array.isArray(s.weekdayNames) && s.weekdayNames.length
+        ? s.weekdayNames.map(d => d.slice(0, 3)).join(', ')
+        : 'Custom Dates';
+    const timeSummary = Array.isArray(s.slotDetails) && s.slotDetails.length
+        ? s.slotDetails.map(sd => sd.displayTime).join(', ')
+        : `Slot(s) ${(s.slots || []).join(', ')}`;
+
+    return {
+        kind: 'booking',
+        docTypeLabel: 'BULK SERIES SCHEDULE INVOICE',
+        invoiceNumber: `INV-${s.seriesId || 'SERIES'}`,
+        referenceCode: s.seriesId || 'SERIES',
+        issueDate: fmtDateShort(s.createdAt || s.firstDate),
+        dueDate: s.lastDate || '',
+        statusBadge: due <= 0 && total > 0 ? 'PAID IN FULL' : paid > 0 ? 'PARTIAL / ADVANCE' : 'PAY AT ARENA',
+        statusTone: due <= 0 && total > 0 ? 'emerald' : 'amber',
+        venue,
+        partyLabel: 'BILLED TO (CLUB / SQUAD)',
+        recipient: {
+            name: s.captainName || 'Team Captain',
+            subtitle: `Team: ${s.teamName || '—'} · ${activeRows.length || s.active || 0} Scheduled Sessions`,
+            phone: s.captainPhone || '',
+            email: ''
+        },
+        highlights: [
+            { label: 'Date Range', value: `${s.firstDate || '—'} to ${s.lastDate || '—'}` },
+            { label: 'Match Days', value: daySummary },
+            { label: 'Kickoff Time', value: timeSummary },
+            { label: 'Active Slots', value: `${activeRows.length || s.active || 0} Sessions` }
+        ],
+        items,
+        subtotal: total,
+        discount: 0,
+        tax: 0,
+        totalAmount: total,
+        paidLabel: 'Total Collected',
+        paidAmount: paid,
+        dueLabel: 'Series Balance Due',
+        dueAmount: due,
+        paymentMethod: 'Counter / Package Account',
+        transactionRef: s.seriesId || '',
+        notes: s.notes || 'Official bulk fixed-slot schedule & billing statement from Crossbar Metro Arena.',
+        authorizedBy: 'Crossbar Arena Bookings Desk'
+    };
+}
+

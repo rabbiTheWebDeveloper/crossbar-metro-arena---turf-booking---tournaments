@@ -9,6 +9,8 @@ import {
     publicBookingView,
     resolveAddOns
 } from '@/lib/booking';
+import { expandDates, resolveRequestedSessions } from '@/app/api/bookings/bulk/route';
+import { buildBulkSeriesInvoice } from '@/lib/invoice';
 import {
     formatMoney,
     shiftMonth,
@@ -94,6 +96,47 @@ describe('booking helpers', () => {
         expect(resolved.addOns).toHaveLength(2);
         expect(resolved.addOnsPrice).toBe(1850);
         expect(resolved.addOns.map(a => a.id)).toEqual(['6745aa000000000000000001', '6745aa000000000000000002']);
+    });
+
+    it('expands bulk booking Date, Day, and Time schedules across range, specific dates, and custom per-row sessions', () => {
+        // Fridays (5) and Saturdays (6) between 2026-11-27 and 2026-12-05 -> Nov 27, Nov 28, Dec 04, Dec 05
+        const dates = expandDates({ startDate: '2026-11-27', endDate: '2026-12-05', weekdays: [5, 6] });
+        expect(dates).toEqual(['2026-11-27', '2026-11-28', '2026-12-04', '2026-12-05']);
+
+        // Custom per-row Date & Time Slot sessions (deduplicated + sorted)
+        const custom = resolveRequestedSessions({
+            sessions: [
+                { date: '2026-12-10', slotNumber: 9 },
+                { date: '2026-12-03', slotNumber: 10 },
+                { date: '2026-12-10', slotNumber: 9 }
+            ]
+        });
+        expect(custom.error).toBeUndefined();
+        expect(custom.sessions).toEqual([
+            { date: '2026-12-03', slotNumber: 10 },
+            { date: '2026-12-10', slotNumber: 9 }
+        ]);
+        expect(custom.weekdays).toEqual([4]); // Thursday
+
+        const seriesInv = buildBulkSeriesInvoice({
+            seriesId: 'SER-TEST01',
+            teamName: 'Uttara Veterans',
+            captainName: 'Karim',
+            captainPhone: '01711223344',
+            firstDate: '2026-12-03',
+            lastDate: '2026-12-10',
+            weekdayNames: ['Thursday'],
+            slotDetails: [{ slotNumber: 10, displayTime: '08:00 PM – 09:30 PM' }],
+            totalValue: 11000,
+            collected: 5000,
+            bookings: [
+                { bookingCode: 'CMA-R-000001', date: '2026-12-03', dayName: 'Thursday', slotNumber: 10, displayTime: '08:00 PM – 09:30 PM', totalPrice: 5500, paymentStatus: 'paid_advance' },
+                { bookingCode: 'CMA-R-000002', date: '2026-12-10', dayName: 'Thursday', slotNumber: 9, displayTime: '06:30 PM – 08:00 PM', totalPrice: 5500, paymentStatus: 'confirmed_unpaid' }
+            ]
+        });
+        expect(seriesInv.invoiceNumber).toBe('INV-SER-TEST01');
+        expect(seriesInv.items).toHaveLength(2);
+        expect(seriesInv.dueAmount).toBe(6000);
     });
 });
 

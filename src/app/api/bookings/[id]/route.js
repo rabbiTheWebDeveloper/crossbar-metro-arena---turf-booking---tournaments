@@ -3,7 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
 import { Refund } from '@/models/refund-model';
 import { can, requirePermission, optionalAuth, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
-import { loadPricing, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
+import { ACTIVE_STATUSES, loadPricing, slotDefinition, slotPrice, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
 import { readJson, validate, badRequest } from '@/lib/validate';
 import { BOOKING_UPDATE_SCHEMA } from '@/lib/schemas';
 import { createPaymentRecord } from '@/queries/payment-queries';
@@ -64,6 +64,46 @@ export async function PATCH(request, { params }) {
         const booking = await findBooking(id);
         if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         if (booking.paymentStatus === 'cancelled') return NextResponse.json({ error: 'This booking is cancelled.' }, { status: 400 });
+
+        // ---- Optional Date & Time Slot reschedule (with strict conflict check) ----
+        const wantsReschedule = body.date !== undefined || body.slotNumber !== undefined || body.courtPrice !== undefined;
+        if (wantsReschedule) {
+            const pricing = await loadPricing();
+            const nextDate = body.date || booking.date;
+            const nextSlot = body.slotNumber !== undefined ? Number(body.slotNumber) : Number(booking.slotNumber);
+            const def = slotDefinition(pricing.slotPrices, nextSlot);
+            if (!def) {
+                return badRequest('Invalid time slot number.');
+            }
+            if (nextDate !== booking.date || nextSlot !== Number(booking.slotNumber)) {
+                const clash = await Booking.findOne({
+                    _id: { $ne: booking._id },
+                    date: nextDate,
+                    slotNumber: nextSlot,
+                    paymentStatus: { $in: ACTIVE_STATUSES }
+                }).select('teamName bookingCode').lean();
+                if (clash) {
+                    return NextResponse.json({
+                        error: `Slot #${nextSlot} (${def.displayTime}) on ${nextDate} is already booked by ${clash.teamName} (${clash.bookingCode}).`
+                    }, { status: 409 });
+                }
+                booking.date = nextDate;
+                booking.slotNumber = nextSlot;
+                booking.startTime = def.startTime;
+                booking.endTime = def.endTime;
+                booking.displayTime = def.displayTime;
+            }
+            if (body.courtPrice !== undefined && !Number.isNaN(Number(body.courtPrice))) {
+                booking.courtPrice = Math.max(0, Number(body.courtPrice));
+            } else if (body.keepPrice === false || (!booking.isRecurring && body.keepPrice !== true && (body.date !== undefined || body.slotNumber !== undefined))) {
+                const computed = slotPrice(pricing, nextDate, nextSlot);
+                if (computed !== null) booking.courtPrice = computed;
+            }
+            booking.totalPrice = Math.max(0, (Number(booking.courtPrice) || 0) + (Number(booking.addOnsPrice) || 0));
+            if ((Number(booking.advanceAmount) || 0) > booking.totalPrice) {
+                booking.advanceAmount = booking.totalPrice;
+            }
+        }
 
         const previousAdvance = Number(booking.advanceAmount) || 0;
         const cash = Number(body.collectedCash || 0);

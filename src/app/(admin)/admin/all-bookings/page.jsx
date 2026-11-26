@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
+import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { buildBookingInvoice } from '@/lib/invoice';
-import { Search, XCircle, FileText, Download } from 'lucide-react';
+import { Search, XCircle, FileText, Download, Pencil } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 50;
@@ -43,15 +44,22 @@ const statusPill = (b) => {
 };
 
 export default function AdminAllBookingsPage() {
-    const { bookings, siteSettings, openInvoice, downloadInvoice, handleUpdateBookingStatus, handleMarkPlayed, handleCancelBooking, showNotice, isLoadingData } = useArena();
+    const { bookings, pricing, siteSettings, openInvoice, downloadInvoice, handleUpdateBookingStatus, handleRescheduleBooking, handleMarkPlayed, handleCancelBooking, showNotice, isLoadingData } = useArena();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const [collectingBooking, setCollectingBooking] = useState(null);
     const [collectAmount, setCollectAmount] = useState(0);
     const [collectError, setCollectError] = useState('');
+    const [reschedulingBooking, setReschedulingBooking] = useState(null);
+    const [rescheduleError, setRescheduleError] = useState('');
     const [busyId, setBusyId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const slotDefs = useMemo(
+        () => (pricing?.slotPrices?.length === 12 ? pricing.slotPrices : SCHEDULE_SLOTS_DEFINITION),
+        [pricing]
+    );
 
     // Filtered and sorted (newest play date first, then slot)
     const filteredBookings = useMemo(() => {
@@ -195,7 +203,7 @@ export default function AdminAllBookingsPage() {
                     </div>
 
                     <div className="text-[12px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
-                      <span>{b.displayTime || `${b.startTime} - ${b.endTime}`}</span>
+                      <span>{b.date} ({d.toLocaleDateString('en-US', { weekday: 'short' })}) · {b.displayTime || `${b.startTime} - ${b.endTime}`}</span>
                       <span>·</span>
                       <span className="text-slate-300">{b.captainPhone}</span>
                       <span>·</span>
@@ -244,6 +252,30 @@ export default function AdminAllBookingsPage() {
                       </button>
                     )}
 
+                    {!isCancelled && !isHold && (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => {
+                          setRescheduleError('');
+                          setReschedulingBooking({
+                            id: b.id,
+                            bookingCode: b.bookingCode,
+                            teamName: b.teamName,
+                            captainName: b.captainName,
+                            date: b.date,
+                            slotNumber: Number(b.slotNumber),
+                            keepPrice: Boolean(b.isRecurring)
+                          });
+                        }}
+                        className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[12px] font-bold border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1 disabled:opacity-50"
+                        title="Edit booking Date & Time Slot"
+                      >
+                        <Pencil className="w-3 h-3 text-emerald-400"/>
+                        <span>Date/Time</span>
+                      </button>
+                    )}
+
                     {due > 0 && !isCancelled && !isHold && (<button type="button" disabled={isBusy} onClick={() => openCollect(b)} className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-amber-400/10 hover:bg-amber-400 text-amber-300 hover:text-slate-950 text-[12px] font-bold border border-amber-400/20 transition-colors cursor-pointer disabled:opacity-50" title="Record a partial or full cash payment">
                         Collect
                       </button>)}
@@ -275,6 +307,75 @@ export default function AdminAllBookingsPage() {
             </button>
           </div>)}
       </div>
+
+      {/* RESCHEDULE DATE & TIME MODAL */}
+      {reschedulingBooking && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-sm w-full space-y-4 text-xs">
+            <h3 className="text-base font-bold text-white">Edit Booking Date &amp; Time</h3>
+            <p className="text-slate-400">
+              {reschedulingBooking.captainName} ({reschedulingBooking.teamName}) · <span className="font-mono text-white">{reschedulingBooking.bookingCode}</span>
+            </p>
+            <div>
+              <label className="text-slate-300 font-semibold block mb-1">
+                Match Date ({parseLocalDate(reschedulingBooking.date).toLocaleDateString('en-US', { weekday: 'long' })})
+              </label>
+              <input
+                type="date"
+                value={reschedulingBooking.date}
+                onChange={e => setReschedulingBooking(r => ({ ...r, date: e.target.value }))}
+                className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label className="text-slate-300 font-semibold block mb-1">Kickoff Time Slot</label>
+              <select
+                value={reschedulingBooking.slotNumber}
+                onChange={e => setReschedulingBooking(r => ({ ...r, slotNumber: Number(e.target.value) }))}
+                className="w-full bg-[#080d12] border border-white/10 rounded-xl px-3 py-2 text-white font-mono"
+              >
+                {slotDefs.map(s => (
+                  <option key={s.slotNumber} value={s.slotNumber}>
+                    Slot #{s.slotNumber} · {s.displayTime}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={reschedulingBooking.keepPrice}
+                onChange={e => setReschedulingBooking(r => ({ ...r, keepPrice: e.target.checked }))}
+                className="accent-lime-400 w-4 h-4"
+              />
+              <span>Keep existing court price</span>
+            </label>
+            {rescheduleError && (<div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px]">{rescheduleError}</div>)}
+            <div className="flex gap-2">
+              <button type="button" disabled={isSubmitting} onClick={() => setReschedulingBooking(null)} className="flex-1 py-2 bg-white/5 text-slate-300 font-bold rounded-xl disabled:opacity-50 cursor-pointer">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={async () => {
+                  setIsSubmitting(true);
+                  setRescheduleError('');
+                  const r = await handleRescheduleBooking(reschedulingBooking.id, {
+                    date: reschedulingBooking.date,
+                    slotNumber: Number(reschedulingBooking.slotNumber),
+                    keepPrice: reschedulingBooking.keepPrice
+                  });
+                  setIsSubmitting(false);
+                  if (r?.ok) setReschedulingBooking(null);
+                  else setRescheduleError(r?.error || 'Could not reschedule booking.');
+                }}
+                className="flex-1 py-2 bg-lime-400 text-slate-950 font-black rounded-xl disabled:opacity-60 cursor-pointer"
+              >
+                {isSubmitting ? 'Saving…' : 'Save Date & Time'}
+              </button>
+            </div>
+          </div>
+        </div>)}
 
       {/* COLLECT BALANCE MODAL */}
       {collectingBooking && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true">
