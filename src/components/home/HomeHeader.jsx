@@ -74,8 +74,8 @@ export function HomeHeader() {
 
     return (
         <header className={`sticky top-0 z-40 transition-colors duration-200 ${scrolled || menuOpen ? 'bg-ink/95 backdrop-blur-md border-b border-hairline' : 'bg-transparent border-b border-transparent'}`}>
-            <Container className="flex h-[76px] lg:h-[108px] items-center justify-between gap-4">
-                <Link href="/" className="flex items-center shrink-0" aria-label="Crossbar Metro Arena home">
+            <Container className="flex h-[76px] lg:h-[108px] items-center justify-between gap-2 sm:gap-4">
+                <Link href="/" className="flex items-center min-w-0 shrink" aria-label="Crossbar Metro Arena home">
                     <CrossbarLogo size="header" />
                 </Link>
 
@@ -88,7 +88,7 @@ export function HomeHeader() {
                     ))}
                 </nav>
 
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     {/* the hotline shows once the bar has room for it; a signed-in name takes more of that room */}
                     {telHref ? <a href={telHref} className={`hidden ${isVisitor ? 'min-[1400px]:inline' : 'min-[1520px]:inline'} whitespace-nowrap font-code text-[15px] text-paper hover:text-neon transition-colors mr-2`}>{phoneLabel}</a> : null}
 

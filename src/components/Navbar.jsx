@@ -82,9 +82,9 @@ export const Navbar = () => {
             ? 'bg-[#070b0f]/95 backdrop-blur-md shadow-xl shadow-black/50 border-b border-emerald-500/20'
             : 'bg-[#080d12]/95 backdrop-blur-sm border-b border-white/10'}`}>
       {/* 1. TOP MICRO-BAR */}
-      <div className="bg-gradient-to-r from-emerald-950/90 via-slate-950 to-emerald-950/80 border-b border-emerald-500/20 px-3 sm:px-6 h-8 flex items-center text-xs text-slate-300">
+      <div className="bg-gradient-to-r from-emerald-950/90 via-slate-950 to-emerald-950/80 border-b border-emerald-500/20 px-3 sm:px-6 h-9 flex items-center text-xs text-slate-300">
         <div className="max-w-7xl w-full mx-auto flex items-center justify-between gap-2 sm:gap-3">
-          <Link href="/venue" className="inline-flex items-center gap-2 truncate hover:opacity-90 transition-opacity">
+          <Link href="/venue" className="inline-flex items-center gap-2 min-w-0 truncate py-2 hover:opacity-90 transition-opacity">
             <MapPin className="w-3 h-3 text-emerald-400 shrink-0"/>
             <span className="text-emerald-300 font-bold text-[12px] sm:text-xs truncate">
               {siteSettings.metroStation || 'Uttara Center Metro Station'}
@@ -96,7 +96,7 @@ export const Navbar = () => {
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-[12px] sm:text-xs">
             {showInstall && (<>
-                <button type="button" onClick={() => setShowInstallModal(true)} className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold transition-colors cursor-pointer">
+                <button type="button" onClick={() => setShowInstallModal(true)} aria-label="Install app" className="inline-flex items-center justify-center gap-1 min-w-8 min-h-8 text-emerald-400 hover:text-emerald-300 font-bold transition-colors cursor-pointer">
                   <Smartphone className="w-3 h-3 text-emerald-400 shrink-0"/>
                   <span className="hidden sm:inline">Install App</span>
                 </button>
@@ -104,7 +104,7 @@ export const Navbar = () => {
               </>)}
 
             {isAdmin && (<>
-                <button type="button" onClick={() => setShowHandoverGuide(true)} className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 font-bold transition-colors cursor-pointer">
+                <button type="button" onClick={() => setShowHandoverGuide(true)} aria-label="Handover guide" className="inline-flex items-center justify-center gap-1 min-w-8 min-h-8 text-amber-300 hover:text-amber-200 font-bold transition-colors cursor-pointer">
                   <BookOpen className="w-3 h-3 text-amber-400 shrink-0"/>
                   <span className="hidden sm:inline">Handover Guide</span>
                 </button>
@@ -116,7 +116,7 @@ export const Navbar = () => {
                 const active = pathname.startsWith(d.href);
                 return (<React.Fragment key={d.href}>
                   {i > 0 && <span className="text-white/20 leading-none">·</span>}
-                  <Link href={d.href} className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'}`}>
+                  <Link href={d.href} aria-label={d.label} className={`inline-flex items-center justify-center gap-1 min-w-8 min-h-8 transition-colors ${active ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'}`}>
                     <Icon className="w-3 h-3 shrink-0"/>
                     <span className="hidden sm:inline">{d.label}</span>
                   </Link>
@@ -148,7 +148,7 @@ export const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button type="button" onClick={() => setShowCartDrawer(true)} className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer" title="Shop reservation bag" aria-label={`Shop bag, ${totalCartCount} items`}>
+            <button type="button" onClick={() => setShowCartDrawer(true)} className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer" title="Shop reservation bag" aria-label={`Shop bag, ${totalCartCount} items`}>
               <ShoppingBag className="w-4 h-4"/>
               {totalCartCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center">
                   {totalCartCount}
@@ -163,10 +163,10 @@ export const Navbar = () => {
                 <span className="hidden sm:inline text-[10px] uppercase font-mono font-bold text-emerald-300 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 max-w-[90px] truncate">
                   {roleBadgeLabel}
                 </span>
-                <button type="button" onClick={() => logout()} className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Log out" aria-label="Log out">
+                <button type="button" onClick={() => logout()} className="p-2 -m-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer" title="Log out" aria-label="Log out">
                   <LogOut className="w-3.5 h-3.5"/>
                 </button>
-              </div>) : (<Link href="/login" className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap" aria-label="Log in">
+              </div>) : (<Link href="/login" className="px-3 py-2.5 sm:py-2 rounded-xl bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap" aria-label="Log in">
                 <User className="w-3.5 h-3.5 text-emerald-400"/>
                 <span className="max-[399px]:hidden">Log In</span>
               </Link>)}
@@ -176,7 +176,7 @@ export const Navbar = () => {
               <span>Book Slot</span>
             </Link>
 
-            <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer" aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}>
+            <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2.5 rounded-xl bg-white/5 text-slate-300 hover:text-white border border-white/10 transition-colors cursor-pointer" aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}>
               {mobileMenuOpen ? <X className="w-5 h-5"/> : <Menu className="w-5 h-5"/>}
             </button>
           </div>

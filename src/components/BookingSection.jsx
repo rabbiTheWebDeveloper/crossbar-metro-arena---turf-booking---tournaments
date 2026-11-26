@@ -218,7 +218,7 @@ export const BookingSection = ({ hideHeading = false }) => {
               <span>Refreshes in:</span>
               <span className="font-mono font-bold text-emerald-400">{refreshCountdown}s</span>
             </div>
-            <button type="button" onClick={doRefresh} disabled={isRefreshing} className="text-[12px] font-bold text-slate-400 hover:text-white underline cursor-pointer disabled:opacity-50">
+            <button type="button" onClick={doRefresh} disabled={isRefreshing} className="py-2 -my-2 text-[12px] font-bold text-slate-400 hover:text-white underline cursor-pointer disabled:opacity-50">
               Refresh Now
             </button>
           </div>
@@ -270,15 +270,15 @@ export const BookingSection = ({ hideHeading = false }) => {
 
           {/* Month Calendar */}
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => shiftMonth(-1)} disabled={!canGoPrev} aria-label="Previous month" className="p-1 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                <button type="button" onClick={() => shiftMonth(-1)} disabled={!canGoPrev} aria-label="Previous month" className="p-2 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
                   <ChevronLeft className="w-4 h-4"/>
                 </button>
                 <span className="text-xs font-bold uppercase tracking-wider text-white min-w-[110px] text-center">
                   {new Date(calendarMonth.year, calendarMonth.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
-                <button type="button" onClick={() => shiftMonth(1)} disabled={!canGoNext} aria-label="Next month" className="p-1 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                <button type="button" onClick={() => shiftMonth(1)} disabled={!canGoNext} aria-label="Next month" className="p-2 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
                   <ChevronRight className="w-4 h-4"/>
                 </button>
               </div>
@@ -300,11 +300,11 @@ export const BookingSection = ({ hideHeading = false }) => {
             </div>
 
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {Array.from({ length: daysInMonthGrid.firstDayIndex }).map((_, idx) => (<div key={`empty-${idx}`} className="h-7"></div>))}
+              {Array.from({ length: daysInMonthGrid.firstDayIndex }).map((_, idx) => (<div key={`empty-${idx}`} className="h-10 sm:h-8"></div>))}
               {daysInMonthGrid.days.map(d => {
                   const isSelected = selectedDate === d.iso;
                   const dotColor = d.statusColor === 'many' ? 'bg-emerald-400' : d.statusColor === 'few' ? 'bg-amber-400' : 'bg-rose-500';
-                  return (<button key={d.iso} type="button" disabled={d.disabled} onClick={() => selectDate(d.iso)} className={`h-7 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed ${isSelected
+                  return (<button key={d.iso} type="button" disabled={d.disabled} onClick={() => selectDate(d.iso)} className={`h-10 sm:h-8 rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed ${isSelected
                       ? 'bg-emerald-500 text-slate-950 font-black'
                       : 'text-slate-300 hover:bg-white/10'}`}>
                     <span className="text-[12px] leading-none">{d.dayNum}</span>

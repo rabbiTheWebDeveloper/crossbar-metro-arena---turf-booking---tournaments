@@ -98,8 +98,8 @@ export function FaqSection() {
                             Can&apos;t find your answer? Call or WhatsApp the front desk any time we&apos;re open.
                         </p>
                         <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
-                            {telHref ? <a href={telHref} className="font-code text-paper hover:text-neon">{phoneLabel}</a> : null}
-                            {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-neon hover:underline underline-offset-4">WhatsApp the desk</a> : null}
+                            {telHref ? <a href={telHref} className="inline-block py-1.5 font-code text-paper hover:text-neon">{phoneLabel}</a> : null}
+                            {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 text-neon hover:underline underline-offset-4">WhatsApp the desk</a> : null}
                         </div>
                     </div>
                     <ul className="border-b border-hairline">
@@ -203,12 +203,12 @@ export function HomeFooter() {
                         {columns.filter(c => c.links.length > 0).map(col => (
                             <div key={col.title}>
                                 <div className="font-code text-[12px] uppercase tracking-[0.18em] text-paper/50">{col.title}</div>
-                                <ul className="mt-5 space-y-4">
+                                <ul className="mt-5 space-y-2 lg:space-y-4">
                                     {col.links.map(link => (
                                         <li key={link.label}>
                                             {link.href.startsWith('/')
-                                                ? <Link href={link.href} className="text-[16px] text-paper hover:text-neon transition-colors">{link.label}</Link>
-                                                : <a href={link.href} onClick={link.onClick} {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="text-[16px] text-paper hover:text-neon transition-colors break-all lg:break-normal">{link.label}</a>}
+                                                ? <Link href={link.href} className="inline-block py-1.5 lg:py-0 text-[16px] text-paper hover:text-neon transition-colors">{link.label}</Link>
+                                                : <a href={link.href} onClick={link.onClick} {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="inline-block py-1.5 lg:py-0 text-[16px] text-paper hover:text-neon transition-colors break-all lg:break-normal">{link.label}</a>}
                                         </li>
                                     ))}
                                 </ul>

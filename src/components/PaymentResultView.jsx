@@ -401,7 +401,7 @@ function PaymentResultContent({ variant }) {
                         )}
                     </div>
                     <div className="pt-1">
-                        <Link href="/booking" className="text-xs text-emerald-400 hover:underline font-semibold">
+                        <Link href="/booking" className="inline-block py-2 text-xs text-emerald-400 hover:underline font-semibold">
                             Go to Booking Page &amp; Find My Booking →
                         </Link>
                     </div>

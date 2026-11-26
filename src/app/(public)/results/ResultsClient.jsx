@@ -87,19 +87,19 @@ export default function ResultsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         
         {/* Main Tabs Navigation */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
-            <button type="button" onClick={() => setActiveMainTab('matches')} className={`px-4 py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'matches'
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-1 sm:gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold min-w-0 max-w-full overflow-x-auto no-scrollbar">
+            <button type="button" onClick={() => setActiveMainTab('matches')} className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'matches'
             ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
             : 'text-slate-400 hover:text-white'}`}>
               Match Scores ({filteredMatches.length})
             </button>
-            <button type="button" onClick={() => setActiveMainTab('leaderboard')} className={`px-4 py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'leaderboard'
+            <button type="button" onClick={() => setActiveMainTab('leaderboard')} className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'leaderboard'
             ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
             : 'text-slate-400 hover:text-white'}`}>
               Leaderboard &amp; Tables
             </button>
-            <button type="button" onClick={() => setActiveMainTab('find_opponent')} className={`px-4 py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'find_opponent'
+            <button type="button" onClick={() => setActiveMainTab('find_opponent')} className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl transition-colors cursor-pointer ${activeMainTab === 'find_opponent'
             ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
             : 'text-slate-400 hover:text-white'}`}>
               Find an Opponent ({challenges.length})
@@ -117,14 +117,14 @@ export default function ResultsPage() {
             
             {/* Date Filters Row */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3.5 rounded-2xl border border-white/10">
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="text-slate-400 uppercase tracking-wider text-[12px] mr-1">Filter by:</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                <span className="w-full sm:w-auto text-slate-400 uppercase tracking-wider text-[12px] mr-1">Filter by:</span>
                 {[
                 { id: 'all', label: 'All Results' },
                 { id: 'today', label: 'Today' },
                 { id: 'yesterday', label: 'Yesterday' },
                 { id: 'custom', label: 'Pick Date' },
-            ].map(tab => (<button key={tab.id} type="button" onClick={() => setDateFilter(tab.id)} className={`px-3 py-1.5 rounded-xl transition-colors cursor-pointer ${dateFilter === tab.id
+            ].map(tab => (<button key={tab.id} type="button" onClick={() => setDateFilter(tab.id)} className={`px-3 py-2 sm:py-1.5 rounded-xl transition-colors cursor-pointer ${dateFilter === tab.id
                     ? 'bg-emerald-500 text-slate-950'
                     : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>
                     {tab.label}

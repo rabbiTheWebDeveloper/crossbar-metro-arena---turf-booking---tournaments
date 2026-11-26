@@ -40,7 +40,7 @@ export const TournamentSection = ({ tournaments, onRegistrationSuccess, hideHead
         return result;
     };
 
-    return (<section id="tournaments" className="py-14 md:py-24 bg-[#070b0e] border-t border-white/5 relative">
+    return (<section id="tournaments" className="py-14 md:py-24 bg-[#070b0e] border-t border-white/5 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-amber-500/5 rounded-full blur-[140px] pointer-events-none"></div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

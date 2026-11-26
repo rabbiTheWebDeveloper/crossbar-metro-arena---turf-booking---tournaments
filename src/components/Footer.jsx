@@ -58,28 +58,28 @@ export const Footer = () => {
 
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">Arena Pages</div>
-            <ul className="space-y-2">
-              <li><Link href="/" className="hover:text-emerald-400 transition-colors">Home</Link></li>
-              <li><Link href="/booking" className="hover:text-emerald-400 transition-colors text-emerald-400 font-medium">Book a Slot (12 slots · 90 min)</Link></li>
-              <li><Link href="/results" className="hover:text-emerald-400 transition-colors">Match Results &amp; Standings</Link></li>
-              <li><Link href="/matches" className="hover:text-emerald-400 transition-colors">Fixtures &amp; Squad Challenges</Link></li>
-              <li><Link href="/events" className="hover:text-emerald-400 transition-colors">Events &amp; Tournaments</Link></li>
-              <li><Link href="/shop" className="hover:text-emerald-400 transition-colors">Shop (reserve &amp; pick up)</Link></li>
-              <li><Link href="/gallery" className="hover:text-emerald-400 transition-colors">Gallery</Link></li>
-              <li><Link href="/about" className="hover:text-emerald-400 transition-colors">About &amp; Price Table</Link></li>
-              <li><Link href="/venue" className="hover:text-emerald-400 transition-colors">Venue &amp; Metro Guide</Link></li>
+            <ul className="space-y-0.5 md:space-y-2">
+              <li><Link href="/" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Home</Link></li>
+              <li><Link href="/booking" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors text-emerald-400 font-medium">Book a Slot (12 slots · 90 min)</Link></li>
+              <li><Link href="/results" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Match Results &amp; Standings</Link></li>
+              <li><Link href="/matches" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Fixtures &amp; Squad Challenges</Link></li>
+              <li><Link href="/events" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Events &amp; Tournaments</Link></li>
+              <li><Link href="/shop" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Shop (reserve &amp; pick up)</Link></li>
+              <li><Link href="/gallery" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Gallery</Link></li>
+              <li><Link href="/about" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">About &amp; Price Table</Link></li>
+              <li><Link href="/venue" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Venue &amp; Metro Guide</Link></li>
             </ul>
           </div>
 
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">{dashboards.length ? 'Your Dashboards' : 'Your Account'}</div>
-            <ul className="space-y-2">
+            <ul className="space-y-0.5 md:space-y-2">
               {dashboards.length === 0 ? (<>
-                  <li><Link href="/login" className="hover:text-emerald-400 transition-colors">Log in</Link></li>
-                  <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Create a player account</Link></li>
-                  <li><Link href="/booking" className="hover:text-emerald-400 transition-colors">Find my booking</Link></li>
+                  <li><Link href="/login" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Log in</Link></li>
+                  <li><Link href="/register" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Create a player account</Link></li>
+                  <li><Link href="/booking" className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">Find my booking</Link></li>
                 </>) : dashboards.map(d => (<li key={d.href}>
-                  <Link href={d.href} className="hover:text-emerald-400 transition-colors">{d.label}</Link>
+                  <Link href={d.href} className="inline-block py-1.5 md:py-0 hover:text-emerald-400 transition-colors">{d.label}</Link>
                 </li>))}
               <li className="pt-2">
                 <span className="text-[12px] text-slate-500 flex items-center gap-1.5">
@@ -92,27 +92,27 @@ export const Footer = () => {
 
           <div className="space-y-3">
             <div className="text-white font-bold uppercase tracking-wider font-mono text-xs">Turf Hotline</div>
-            <ul className="space-y-2.5">
+            <ul className="space-y-1 md:space-y-2.5">
               {telHref && (<li>
-                  <a href={telHref} className="flex items-center gap-2 hover:text-emerald-400 transition-colors text-white font-mono font-bold">
+                  <a href={telHref} className="flex items-center gap-2 py-1.5 md:py-0 hover:text-emerald-400 transition-colors text-white font-mono font-bold">
                     <Phone className="w-3.5 h-3.5 text-emerald-400"/>
                     <span>{siteSettings.phoneFormatted || siteSettings.phone}</span>
                   </a>
                 </li>)}
               {siteSettings.whatsappUrl && (<li>
-                  <a href={siteSettings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#25D366] hover:underline font-semibold">
+                  <a href={siteSettings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-1.5 md:py-0 text-[#25D366] hover:underline font-semibold">
                     <MessageSquare className="w-3.5 h-3.5"/>
                     <span>WhatsApp booking chat</span>
                   </a>
                 </li>)}
               {siteSettings.email && (<li>
-                  <a href={`mailto:${siteSettings.email}`} className="flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                  <a href={`mailto:${siteSettings.email}`} className="flex items-center gap-2 py-1.5 md:py-0 hover:text-emerald-400 transition-colors">
                     <Mail className="w-3.5 h-3.5 text-emerald-400"/>
                     <span>{siteSettings.email}</span>
                   </a>
                 </li>)}
               {siteSettings.address && (<li>
-                  <a href={siteSettings.googleMapsUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-[12px] text-slate-400 leading-relaxed pt-1 hover:text-emerald-400">
+                  <a href={siteSettings.googleMapsUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-[12px] text-slate-400 leading-relaxed py-1.5 hover:text-emerald-400">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"/>
                     <span>{siteSettings.address}</span>
                   </a>
@@ -125,7 +125,7 @@ export const Footer = () => {
           <span>© {year} {siteSettings.businessName || 'Crossbar Metro Arena'} ({siteSettings.website || 'bookcrossbar.com'}). All rights reserved.</span>
           <div className="flex items-center gap-4">
             <span className="text-emerald-400/80">Payments via bKash, Nagad &amp; card (EPS)</span>
-            <button type="button" onClick={scrollToTop} className="flex items-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors p-1 cursor-pointer" title="Back to top">
+            <button type="button" onClick={scrollToTop} className="flex items-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors px-2 py-2 -mx-2 cursor-pointer" title="Back to top">
               <span>Back to Top</span>
               <ArrowUp className="w-3 h-3"/>
             </button>

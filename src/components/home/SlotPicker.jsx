@@ -122,7 +122,7 @@ export function SlotPicker({ availability, ready, date, onDateChange, period, on
                     </div>
                 </div>
 
-                <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
+                <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
                     {/* ---- dates + slots ---- */}
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">

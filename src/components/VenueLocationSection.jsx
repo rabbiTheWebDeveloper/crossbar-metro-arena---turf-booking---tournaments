@@ -123,7 +123,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                   <Phone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                   <div>
                     <div className="text-slate-400 text-[12px] uppercase font-semibold">Hotline &amp; Bookings</div>
-                    <a href={telHref} className="text-white font-bold text-base hover:text-emerald-400 transition-colors">{siteSettings.phoneFormatted || siteSettings.phone}</a>
+                    <a href={telHref} className="inline-block py-1 text-white font-bold text-base hover:text-emerald-400 transition-colors">{siteSettings.phoneFormatted || siteSettings.phone}</a>
                     <div className="text-slate-400 text-xs mt-0.5">Call or WhatsApp during opening hours</div>
                   </div>
                 </div>)}
@@ -131,7 +131,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                   <Mail className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                   <div>
                     <div className="text-slate-400 text-[12px] uppercase font-semibold">Email Enquiries</div>
-                    <a href={`mailto:${siteSettings.email}`} className="text-white font-medium hover:text-emerald-400 transition-colors">{siteSettings.email}</a>
+                    <a href={`mailto:${siteSettings.email}`} className="inline-block py-1.5 -my-1.5 break-all text-white font-medium hover:text-emerald-400 transition-colors">{siteSettings.email}</a>
                   </div>
                 </div>)}
               <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/[0.03] border border-white/5">
@@ -140,8 +140,8 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                   <div className="text-slate-400 text-[12px] uppercase font-semibold">Web &amp; Social</div>
                   <div className="text-white font-medium flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                     <span className="text-emerald-300 font-mono">{siteSettings.website || 'bookcrossbar.com'}</span>
-                    {siteSettings.facebookUrl && (<a href={siteSettings.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">Facebook</a>)}
-                    {siteSettings.instagramUrl && (<a href={siteSettings.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:underline">Instagram</a>)}
+                    {siteSettings.facebookUrl && (<a href={siteSettings.facebookUrl} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 -my-1.5 text-sky-400 hover:underline">Facebook</a>)}
+                    {siteSettings.instagramUrl && (<a href={siteSettings.instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 -my-1.5 text-pink-400 hover:underline">Instagram</a>)}
                   </div>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
 
             <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between text-[12px] text-slate-400">
               <span>Opening hours: {siteSettings.openingHours || 'see booking calendar'}</span>
-              <button type="button" onClick={onBookSlotClick} className="text-emerald-400 font-medium hover:underline cursor-pointer">Book a slot →</button>
+              <button type="button" onClick={onBookSlotClick} className="py-2 -my-2 text-emerald-400 font-medium hover:underline cursor-pointer">Book a slot →</button>
             </div>
           </div>
         </div>

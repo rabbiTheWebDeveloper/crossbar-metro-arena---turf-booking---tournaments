@@ -130,7 +130,7 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
             <div className="text-[11px] text-slate-400">{w.observedAt ? `Observed ${w.observedAt} (Dhaka time)` : 'Current conditions'} · Open-Meteo</div>
           </div>
         </div>
-        <button type="button" onClick={handleManualRefresh} disabled={refreshing} className="self-start sm:self-auto p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50" title="Refresh weather">
+        <button type="button" onClick={handleManualRefresh} disabled={refreshing} className="self-start sm:self-auto p-2.5 sm:p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50" title="Refresh weather">
           <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${refreshing ? 'animate-spin' : ''}`}/>
           <span className="text-[12px] font-medium hidden sm:inline">Refresh</span>
         </button>
@@ -170,7 +170,7 @@ export const TurfWeatherWidget = ({ onBookSlotClick }) => {
       {w.hourly.length > 0 && (<div className="pt-2 border-t border-white/10">
           <div className="flex items-center justify-between mb-2 text-xs">
             <span className="text-slate-400 font-semibold uppercase text-[11px] tracking-wider">Next hours (Dhaka time)</span>
-            {onBookSlotClick && <button type="button" onClick={onBookSlotClick} className="text-[11px] text-emerald-400 font-medium hover:underline cursor-pointer">Book a slot →</button>}
+            {onBookSlotClick && <button type="button" onClick={onBookSlotClick} className="py-2 -my-2 text-[12px] text-emerald-400 font-medium hover:underline cursor-pointer">Book a slot →</button>}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {w.hourly.map((h) => (<div key={h.time} className="p-2 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">

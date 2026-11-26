@@ -27,7 +27,7 @@ export const PageHero = ({ eyebrow, eyebrowIcon: EyebrowIcon, title, highlight, 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-10 sm:pt-12 sm:pb-14">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="page-enter flex items-center gap-1.5 text-xs text-slate-500 mb-5">
-          <Link href="/" className="flex items-center gap-1 hover:text-emerald-400 transition-colors">
+          <Link href="/" className="flex items-center gap-1 py-2 -my-2 hover:text-emerald-400 transition-colors">
             <Home className="w-3.5 h-3.5"/>
             <span>Arena</span>
           </Link>

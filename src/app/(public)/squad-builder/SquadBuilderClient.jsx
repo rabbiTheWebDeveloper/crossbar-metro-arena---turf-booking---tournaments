@@ -204,8 +204,8 @@ export default function SquadBuilderPage() {
 
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Kit Color</label>
-                  <div className="flex gap-2">
-                    {Object.keys(kitStyles).map((k) => (<button key={k} type="button" onClick={() => setKitColor(k)} className={`w-7 h-7 rounded-full border-2 transition-transform ${kitStyles[k].bg} ${kitColor === k ? 'scale-125 border-white ring-2 ring-emerald-500' : 'border-transparent'}`} title={kitStyles[k].label}/>))}
+                  <div className="flex flex-wrap gap-2.5 p-1">
+                    {Object.keys(kitStyles).map((k) => (<button key={k} type="button" onClick={() => setKitColor(k)} aria-label={kitStyles[k].label} aria-pressed={kitColor === k} className={`shrink-0 w-9 h-9 sm:w-7 sm:h-7 rounded-full border-2 transition-transform cursor-pointer ${kitStyles[k].bg} ${kitColor === k ? 'scale-125 border-white ring-2 ring-emerald-500' : 'border-transparent'}`} title={kitStyles[k].label}/>))}
                   </div>
                 </div>
               </div>

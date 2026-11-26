@@ -43,7 +43,7 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
         <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_right,rgba(76,191,2,0.32)_0%,rgba(76,191,2,0.10)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
       </div>
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[850px] h-[350px] sm:h-[450px] bg-gradient-to-b from-emerald-500/20 via-emerald-400/10 to-transparent rounded-full blur-[100px] sm:blur-[140px] pointer-events-none z-0"/>
-      <div className="absolute -bottom-28 left-1/2 -translate-x-1/2 w-[600px] sm:w-[950px] h-[250px] bg-emerald-500/15 rounded-full blur-[90px] sm:blur-[120px] pointer-events-none z-0"/>
+      <div className="absolute -bottom-28 left-1/2 -translate-x-1/2 w-[min(600px,100vw)] sm:w-[950px] h-[250px] bg-emerald-500/15 rounded-full blur-[90px] sm:blur-[120px] pointer-events-none z-0"/>
       <div className="absolute inset-0 pitch-grid pointer-events-none z-0"/>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
