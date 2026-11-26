@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { useArena } from '../context/ArenaContext';
 import { CrossbarLogo } from './CrossbarLogo';
-import { buildBookingInvoice } from '../lib/invoice';
-import { X, CheckCircle2, Share2, MapPin, Calendar, Clock, Users, Shield, Copy, Check, AlertCircle, Download, FileText } from 'lucide-react';
+import { buildBookingInvoice, buildTokenInvoice } from '../lib/invoice';
+import { X, CheckCircle2, Share2, MapPin, Calendar, Clock, Users, Shield, Copy, Check, AlertCircle, Download, FileText, Receipt } from 'lucide-react';
 
 const HEADER = {
     paid_full: { label: 'Slot Booking Confirmed', cls: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300', Icon: CheckCircle2 },
@@ -152,22 +152,30 @@ export const TicketPassModal = ({ booking, onClose }) => {
           {copyError && <div className="text-[11px] text-rose-300">{copyError}</div>}
 
           <div className="pt-2 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
-                className="py-2.5 px-3 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                onClick={() => openInvoice(buildBookingInvoice(b, siteSettings), 'a4')}
+                className="py-2.5 px-2.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-emerald-400"/>
-                <span>View Invoice</span>
+                <FileText className="w-3.5 h-3.5 text-emerald-400 shrink-0"/>
+                <span>A4 Invoice</span>
               </button>
               <button
                 type="button"
-                onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
-                className="py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-lime-400/15"
+                onClick={() => openInvoice(buildTokenInvoice(b, siteSettings), 'token')}
+                className="py-2.5 px-2.5 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] border border-white/10 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Download className="w-4 h-4"/>
-                <span>Download PDF</span>
+                <Receipt className="w-3.5 h-3.5 shrink-0"/>
+                <span>Token Slip</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings), 'a4')}
+                className="py-2.5 px-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-lime-400/15"
+              >
+                <Download className="w-3.5 h-3.5 shrink-0"/>
+                <span>PDF</span>
               </button>
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5">

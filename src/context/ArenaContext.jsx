@@ -855,13 +855,14 @@ export const ArenaProvider = ({ children }) => {
     }, [showNotice]);
 
     // ---- Invoices & Vouchers (preview, PDF download, and custom MongoDB invoices) ----
-    const openInvoice = useCallback((normalizedInvoice) => {
-        if (normalizedInvoice) setActiveInvoice(normalizedInvoice);
+    const openInvoice = useCallback((normalizedInvoice, format) => {
+        if (!normalizedInvoice) return;
+        setActiveInvoice(format ? { ...normalizedInvoice, defaultFormat: format } : normalizedInvoice);
     }, []);
 
-    const downloadInvoice = useCallback((normalizedInvoice) => {
+    const downloadInvoice = useCallback((normalizedInvoice, format) => {
         if (!normalizedInvoice) return false;
-        downloadInvoicePdf(normalizedInvoice);
+        downloadInvoicePdf(normalizedInvoice, format ? { format } : {});
         showNotice('success', `Downloaded ${normalizedInvoice.invoiceNumber || 'Invoice'}.pdf`);
         return true;
     }, [showNotice]);

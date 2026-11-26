@@ -6,7 +6,7 @@ import { PageHero } from '@/components/PageHero';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { buildBookingInvoice, buildTokenInvoice, buildShopOrderInvoice, buildRegistrationInvoice, buildCustomInvoice } from '@/lib/invoice';
-import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal, FileText, Download } from 'lucide-react';
+import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal, FileText, Receipt, Download } from 'lucide-react';
 import { DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, CHANNEL_LABELS, REMINDER_HOURS } from '@/lib/customerMeta';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
@@ -496,7 +496,12 @@ export default function CustomerDashboard() {
         const list = [];
         (myBookings || []).forEach(b => {
             if (b.paymentStatus === 'pending_payment') return;
-            list.push({ key: `bk-${b.id}`, sortDate: b.date || '', inv: buildBookingInvoice(b, siteSettings) });
+            list.push({
+                key: `bk-${b.id}`,
+                sortDate: b.date || '',
+                inv: buildBookingInvoice(b, siteSettings),
+                tokenInv: buildTokenInvoice(b, siteSettings)
+            });
         });
         (shopReservations || []).forEach(o => {
             const inv = buildShopOrderInvoice(o, siteSettings);
@@ -553,26 +558,24 @@ export default function CustomerDashboard() {
                 <>
                   <button
                     type="button"
-                    onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
+                    onClick={() => openInvoice(buildBookingInvoice(b, siteSettings), 'a4')}
                     className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-300 font-bold text-xs border border-emerald-500/25 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5"/>
                     <span>Invoice</span>
                   </button>
-                  {Number(b?.advanceAmount) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => openInvoice(buildTokenInvoice(b, siteSettings))}
-                      className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 font-bold text-xs border border-amber-400/25 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                      title="Booking token (advance) receipt"
-                    >
-                      <FileText className="w-3.5 h-3.5"/>
-                      <span>Token</span>
-                    </button>
-                  )}
                   <button
                     type="button"
-                    onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}
+                    onClick={() => openInvoice(buildTokenInvoice(b, siteSettings), 'token')}
+                    className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 font-bold text-xs border border-amber-400/25 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="2nd Invoice · Token / Payment Slip"
+                  >
+                    <Receipt className="w-3.5 h-3.5"/>
+                    <span>Token</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings), 'a4')}
                     className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
                     title="Download Booking Invoice PDF"
                   >
@@ -741,7 +744,7 @@ export default function CustomerDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {customerAllInvoices.map(({ key, inv }) => (
+                {customerAllInvoices.map(({ key, inv, tokenInv }) => (
                   <div key={key} className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-white/10 hover:border-emerald-500/35 transition-all flex flex-col justify-between gap-4 text-xs">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -763,22 +766,30 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
+                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => openInvoice(inv)}
-                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => openInvoice(inv, 'a4')}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold inline-flex items-center gap-1.5 cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5 text-emerald-400"/>
-                        <span>Preview &amp; Print</span>
+                        <span>1st · A4</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => downloadInvoice(inv)}
+                        onClick={() => openInvoice(tokenInv || inv, 'token')}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-amber-300 font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Receipt className="w-3.5 h-3.5"/>
+                        <span>2nd · Token</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadInvoice(inv, 'a4')}
                         className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5"/>
-                        <span>Download PDF</span>
+                        <span>PDF</span>
                       </button>
                     </div>
                   </div>

@@ -6,11 +6,11 @@ import confetti from 'canvas-confetti';
 import { useArena } from '@/context/ArenaContext';
 import { formatIsoDate } from '@/lib/dateUtils';
 import { formatMoney, paymentMethodLabel } from '@/data/finance';
-import { buildBookingInvoice } from '@/lib/invoice';
+import { buildBookingInvoice, buildTokenInvoice } from '@/lib/invoice';
 import {
     CheckCircle2, XCircle, Ban, AlertTriangle, Loader2, Ticket, Copy, Check,
     Calendar, Clock, MapPin, Users, Shield, MessageCircle, Phone, ArrowRight,
-    RotateCcw, Home, Printer, Share2, Sparkles, Download, FileText
+    RotateCcw, Home, Printer, Share2, Sparkles, Download, FileText, Receipt
 } from 'lucide-react';
 
 const PAID_STATUSES = ['paid_advance', 'paid_full'];
@@ -309,7 +309,7 @@ function PaymentResultContent({ variant }) {
                                     {!booking.isPublicView && (
                                         <button
                                             type="button"
-                                            onClick={() => downloadInvoice(buildBookingInvoice(booking, siteSettings))}
+                                            onClick={() => downloadInvoice(buildBookingInvoice(booking, siteSettings), 'a4')}
                                             className="py-3 px-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-lg shadow-lime-400/20"
                                         >
                                             <Download className="w-4 h-4"/>
@@ -319,11 +319,21 @@ function PaymentResultContent({ variant }) {
                                     {!booking.isPublicView && (
                                         <button
                                             type="button"
-                                            onClick={() => openInvoice(buildBookingInvoice(booking, siteSettings))}
+                                            onClick={() => openInvoice(buildBookingInvoice(booking, siteSettings), 'a4')}
                                             className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                                         >
                                             <FileText className="w-4 h-4 text-emerald-400"/>
-                                            <span>View Full Invoice</span>
+                                            <span>1st Invoice · Full A4</span>
+                                        </button>
+                                    )}
+                                    {!booking.isPublicView && (
+                                        <button
+                                            type="button"
+                                            onClick={() => openInvoice(buildTokenInvoice(booking, siteSettings), 'token')}
+                                            className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                                        >
+                                            <Receipt className="w-4 h-4"/>
+                                            <span>2nd Invoice · Token Slip</span>
                                         </button>
                                     )}
                                     <button

@@ -1,15 +1,19 @@
 'use client';
 import React, { useState, useMemo } from 'react';
-import { useArena } from '@/context/ArenaContext';
+import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { buildBookingInvoice, buildTokenInvoice } from '@/lib/invoice';
-import { Search, XCircle, FileText, Download, Pencil } from 'lucide-react';
+import { Search, XCircle, FileText, Receipt, Download, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZE = 25;
-const currentMonth = () => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 'all'];
+const currentMonth = () => todayDhaka().slice(0, 7);
+const shiftMonth = (ym, delta) => {
+    const base = ym || currentMonth();
+    const [y, m] = base.split('-').map(Number);
+    const d = new Date(y || 2026, (m || 1) - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 const monthLabel = (ym) => {
     const [y, m] = ym.split('-').map(Number);
@@ -57,6 +61,7 @@ export default function AdminAllBookingsPage() {
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [month, setMonth] = useState(currentMonth); // '' = all time
     const [customer, setCustomer] = useState('');
     const [collectingBooking, setCollectingBooking] = useState(null);
@@ -110,9 +115,12 @@ export default function AdminAllBookingsPage() {
         return list.sort((a, b) => (a.date === b.date ? Number(b.slotNumber) - Number(a.slotNumber) : (a.date < b.date ? 1 : -1)));
     }, [bookings, search, filterStatus, month, customer]);
 
-    const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
+    const effectivePageSize = pageSize === 'all' ? Math.max(1, filteredBookings.length) : Number(pageSize) || DEFAULT_PAGE_SIZE;
+    const totalPages = Math.max(1, Math.ceil(filteredBookings.length / effectivePageSize));
     const safePage = Math.min(page, totalPages);
-    const visibleBookings = filteredBookings.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const visibleBookings = pageSize === 'all'
+        ? filteredBookings
+        : filteredBookings.slice((safePage - 1) * effectivePageSize, safePage * effectivePageSize);
     const pageNumbers = useMemo(() => {
         const set = new Set([1, totalPages, safePage - 1, safePage, safePage + 1]);
         const nums = [...set].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
@@ -122,8 +130,15 @@ export default function AdminAllBookingsPage() {
     }, [totalPages, safePage]);
 
     const changeFilter = (key) => { setFilterStatus(key); setPage(1); };
-    const isDefaultView = month === currentMonth() && !customer && !search && filterStatus === 'all';
-    const resetAll = () => { setSearch(''); setCustomer(''); setFilterStatus('all'); setMonth(currentMonth()); setPage(1); };
+    const isDefaultView = month === currentMonth() && !customer && !search && filterStatus === 'all' && pageSize === DEFAULT_PAGE_SIZE;
+    const resetAll = () => {
+        setSearch('');
+        setCustomer('');
+        setFilterStatus('all');
+        setMonth(currentMonth());
+        setPageSize(DEFAULT_PAGE_SIZE);
+        setPage(1);
+    };
 
     const openCollect = (b) => {
         setCollectingBooking(b);
@@ -182,10 +197,30 @@ export default function AdminAllBookingsPage() {
           <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by code, name, phone, team or date..." className="w-full bg-[#0c131a] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-slate-500 outline-none transition-colors"/>
         </div>
 
-        <input type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }} title="Filter by month" className="bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 px-3 text-xs text-white font-mono outline-none [color-scheme:dark]"/>
+        <div className="inline-flex items-center gap-1 bg-[#0c131a] border border-white/10 rounded-xl px-1.5 py-1">
+          <button
+            type="button"
+            onClick={() => { setMonth(m => shiftMonth(m, -1)); setPage(1); }}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+            title="Previous month"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-3.5 h-3.5"/>
+          </button>
+          <input type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }} title="Filter by month" className="bg-transparent py-1 px-1.5 text-xs text-white font-mono outline-none [color-scheme:dark]"/>
+          <button
+            type="button"
+            onClick={() => { setMonth(m => shiftMonth(m, 1)); setPage(1); }}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+            title="Next month"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-3.5 h-3.5"/>
+          </button>
+        </div>
 
-        <select value={customer} onChange={e => { setCustomer(e.target.value); setPage(1); }} title="Filter by customer" className="bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 px-3 text-xs text-white outline-none max-w-full sm:max-w-[220px]">
-          <option value="">All customers</option>
+        <select value={customer} onChange={e => { setCustomer(e.target.value); setPage(1); }} title="Filter by customer" className="bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 px-3 text-xs text-white outline-none max-w-full sm:max-w-[230px]">
+          <option value="">All customers ({customers.length})</option>
           {customers.map(c => (<option key={c.key} value={c.key}>{c.name}{c.phone ? ` · ${c.phone}` : ''} ({c.count})</option>))}
         </select>
 
@@ -276,23 +311,23 @@ export default function AdminAllBookingsPage() {
                     {!isHold && (
                       <button
                         type="button"
-                        onClick={() => openInvoice(buildBookingInvoice(b, siteSettings))}
+                        onClick={() => openInvoice(buildBookingInvoice(b, siteSettings), 'a4')}
                         className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[12px] font-bold border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1"
-                        title="Preview & print booking invoice"
+                        title="Preview & print 1st A4 booking invoice"
                       >
                         <FileText className="w-3.5 h-3.5 text-lime-400"/>
                         <span>Invoice</span>
                       </button>
                     )}
 
-                    {!isHold && paid > 0 && (
+                    {!isHold && (
                       <button
                         type="button"
-                        onClick={() => openInvoice(buildTokenInvoice(b, siteSettings))}
+                        onClick={() => openInvoice(buildTokenInvoice(b, siteSettings), 'token')}
                         className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[12px] font-bold border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1"
-                        title="Preview & print booking token (advance) receipt"
+                        title="Preview & print 2nd Token / Payment Invoice"
                       >
-                        <FileText className="w-3.5 h-3.5 text-amber-400"/>
+                        <Receipt className="w-3.5 h-3.5 text-amber-400"/>
                         <span>Token</span>
                       </button>
                     )}
@@ -358,17 +393,37 @@ export default function AdminAllBookingsPage() {
               </div>);
         }))}
 
-        {totalPages > 1 && (<div className="pt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="font-mono text-slate-500">
-              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filteredBookings.length)} of {filteredBookings.length}
-            </span>
-            <div className="flex items-center gap-1">
+        {filteredBookings.length > 0 && (<div className="pt-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-mono text-slate-500">
+                {pageSize === 'all'
+                  ? `Showing all ${filteredBookings.length}`
+                  : `${(safePage - 1) * effectivePageSize + 1}–${Math.min(safePage * effectivePageSize, filteredBookings.length)} of ${filteredBookings.length}`}
+              </span>
+              <label className="inline-flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
+                <span>Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setPageSize(v === 'all' ? 'all' : Number(v));
+                    setPage(1);
+                  }}
+                  className="bg-[#0c131a] border border-white/10 rounded-lg px-2 py-1 text-white outline-none"
+                >
+                  {PAGE_SIZE_OPTIONS.map(opt => (
+                    <option key={opt} value={opt}>{opt === 'all' ? 'All' : opt}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {totalPages > 1 && (<div className="flex items-center gap-1">
               <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
               {pageNumbers.map((n, i) => n === '…'
                 ? <span key={`e${i}`} className="px-1 text-slate-500">…</span>
                 : <button key={n} type="button" onClick={() => setPage(n)} className={`min-w-8 px-2 py-1.5 rounded-lg font-bold cursor-pointer border ${n === safePage ? 'bg-lime-400 text-slate-950 border-lime-400' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'}`}>{n}</button>)}
               <button type="button" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
-            </div>
+            </div>)}
           </div>)}
       </div>
 

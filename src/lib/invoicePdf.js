@@ -1,6 +1,8 @@
+import { extractTokenSlipFields } from './invoice';
+
 /**
- * Pure, zero-dependency A4 Vector PDF 1.4 Generator & Clean Print Utility for Crossbar Metro Arena.
- * Generates genuine, crisp `application/pdf` files directly in the browser or Node/Vitest without external packages.
+ * Pure, zero-dependency A4 & 80mm POS Token Slip Vector PDF 1.4 Generator & Clean Print Utility
+ * for Crossbar Metro Arena.
  */
 
 const PAGE_W = 595.28; // A4 width in pt
@@ -8,10 +10,6 @@ const PAGE_H = 841.89; // A4 height in pt
 const MARGIN = 38;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
-/**
- * Standard PDF Type1 fonts (Helvetica) use WinAnsiEncoding (Latin-1).
- * Replace ৳ with "BDT " and normalize smart quotes/dashes so every glyph renders sharply in all PDF viewers.
- */
 export function pdfSafeText(input) {
     return String(input ?? '')
         .replace(/৳/g, 'BDT ')
@@ -68,8 +66,7 @@ function wrapText(text, maxChars) {
     return lines;
 }
 
-// Real Helvetica / Helvetica-Bold AFM advance widths (1/1000 em) for ASCII 32..126, so right/center alignment
-// and pill sizing match what the PDF viewer actually renders (bold capitals are much wider than an average guess).
+// Real Helvetica / Helvetica-Bold AFM advance widths (1/1000 em) for ASCII 32..126
 const HELV_W = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
 const HELV_BOLD_W = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
 
@@ -86,30 +83,29 @@ function approxTextWidth(str, fontSize, isMono = false, isBold = false) {
 }
 
 const TONE_RGB = {
-    emerald: [0.06, 0.58, 0.41],
-    amber: [0.82, 0.52, 0.05],
-    rose: [0.82, 0.18, 0.28],
-    sky: [0.08, 0.52, 0.78],
-    violet: [0.48, 0.28, 0.82],
-    slate: [0.35, 0.41, 0.49]
+    emerald: [0.08, 0.44, 0.22],
+    amber: [0.71, 0.33, 0.04],
+    rose: [0.76, 0.15, 0.17],
+    sky: [0.08, 0.46, 0.72],
+    violet: [0.45, 0.24, 0.76],
+    slate: [0.32, 0.38, 0.45]
 };
 
 function assemblePdf(pages, pageW, pageH) {
     const f = (n) => Number(n).toFixed(2);
-    // ---- Assemble PDF 1.4 Object Graph ----
-    // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Helvetica, Obj 4: Font Helvetica-Bold, Obj 5: Font Helvetica-Bold (numbers)
-    // Obj 6..: Page + Content stream pairs
+    // Obj 1: Catalog, Obj 2: Pages, Obj 3: F1 Helvetica, Obj 4: F2 Helvetica-Bold, Obj 5: F3 Helvetica-Bold, Obj 6: F4 Helvetica-Oblique
     const objects = [];
     const addObj = (body) => {
         objects.push(body);
-        return objects.length; // 1-based object number
+        return objects.length;
     };
 
-    const catalogId = addObj(''); // placeholder 1
-    const pagesId = addObj('');   // placeholder 2
+    const catalogId = addObj('');
+    const pagesId = addObj('');
     const f1Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     const f2Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
     const f3Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    const f4Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>');
 
     const utf8Len = (s) => new TextEncoder().encode(s).length;
     const pageIds = [];
@@ -118,7 +114,7 @@ function assemblePdf(pages, pageW, pageH) {
         const contentId = addObj(`<< /Length ${streamBytesLen} >>\nstream\n${streamContent}\nendstream`);
         const pageId = addObj(
             `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${f(pageW)} ${f(pageH)}] ` +
-            `/Resources << /Font << /F1 ${f1Id} 0 R /F2 ${f2Id} 0 R /F3 ${f3Id} 0 R >> >> ` +
+            `/Resources << /Font << /F1 ${f1Id} 0 R /F2 ${f2Id} 0 R /F3 ${f3Id} 0 R /F4 ${f4Id} 0 R >> >> ` +
             `/Contents ${contentId} 0 R >>`
         );
         pageIds.push(pageId);
@@ -145,11 +141,17 @@ function assemblePdf(pages, pageW, pageH) {
     return new TextEncoder().encode(pdf);
 }
 
+function shouldUseTokenFormat(invoice, options = {}) {
+    if (options?.format === 'token' || options?.format === 'pos') return true;
+    if (options?.format === 'a4') return false;
+    return invoice?.defaultFormat === 'token' || invoice?.kind === 'token';
+}
+
 /**
- * Generates a complete, valid multi-page A4 PDF 1.4 binary (`Uint8Array`) for a NormalizedInvoice.
+ * Generates a complete, valid multi-page A4 PDF 1.4 binary (`Uint8Array`) OR 80mm POS Token Slip PDF.
  */
-export function generateInvoicePdfBytes(invoice) {
-    if (invoice?.kind === 'token') return generateReceiptPdfBytes(invoice);
+export function generateInvoicePdfBytes(invoice, options = {}) {
+    if (shouldUseTokenFormat(invoice, options)) return generateReceiptPdfBytes(invoice);
     const inv = invoice || {};
     const venue = inv.venue || {};
     const recipient = inv.recipient || {};
@@ -181,15 +183,15 @@ export function generateInvoicePdfBytes(invoice) {
         push(`${f(x1)} ${f(y1)} m ${f(x2)} ${f(y2)} l S`);
     };
 
-    // Font aliases: /F1 = Helvetica, /F2 = Helvetica-Bold, /F3 = Helvetica-Bold (numbers)
     const drawText = (str, x, baselineY, { font = 'F1', size = 9.5, color = [0.1, 0.14, 0.18], align = 'left' } = {}) => {
         const clean = escapePdfString(str);
         if (!clean) return;
         let drawX = x;
+        const isBold = font === 'F2' || font === 'F3';
         if (align === 'right') {
-            drawX = x - approxTextWidth(str, size, false, font === 'F2' || font === 'F3');
+            drawX = x - approxTextWidth(str, size, false, isBold);
         } else if (align === 'center') {
-            drawX = x - approxTextWidth(str, size, false, font === 'F2' || font === 'F3') / 2;
+            drawX = x - approxTextWidth(str, size, false, isBold) / 2;
         }
         push('BT');
         push(`/${font} ${f(size)} Tf`);
@@ -200,10 +202,8 @@ export function generateInvoicePdfBytes(invoice) {
     };
 
     const drawPageHeader = (isContinuation = false) => {
-        // Dark arena banner at top
         const bannerH = isContinuation ? 54 : 88;
         fillRect(0, PAGE_H, PAGE_W, bannerH, [0.05, 0.08, 0.11]);
-        // Lime/emerald accent stripe
         fillRect(0, PAGE_H - bannerH, PAGE_W, 3.5, [0.52, 0.80, 0.09]);
 
         drawText(venue.name || 'CROSSBAR METRO ARENA', MARGIN, PAGE_H - 28, {
@@ -231,7 +231,6 @@ export function generateInvoicePdfBytes(invoice) {
             });
         }
 
-        // Right-aligned Document Type + Invoice Number
         drawText(inv.docTypeLabel || 'OFFICIAL INVOICE', PAGE_W - MARGIN, PAGE_H - 27, {
             font: 'F2',
             size: isContinuation ? 10.5 : 12,
@@ -278,10 +277,8 @@ export function generateInvoicePdfBytes(invoice) {
         if (withTableHeader) drawTableHeader();
     };
 
-    // Page 1
     startNewPage(false);
 
-    // ---- Billed To Box + Invoice Meta Box ----
     const boxH = 78;
     const leftW = CONTENT_W * 0.56;
     const rightW = CONTENT_W * 0.41;
@@ -322,7 +319,6 @@ export function generateInvoicePdfBytes(invoice) {
 
     y -= boxH + 14;
 
-    // ---- Highlights Strip ----
     if (highlights.length > 0) {
         const stripH = 38;
         fillRect(MARGIN, y, CONTENT_W, stripH, [0.94, 0.98, 0.95]);
@@ -339,7 +335,6 @@ export function generateInvoicePdfBytes(invoice) {
         y -= stripH + 16;
     }
 
-    // ---- Line Items Table ----
     drawTableHeader();
 
     items.forEach((it, index) => {
@@ -375,7 +370,6 @@ export function generateInvoicePdfBytes(invoice) {
         y -= rowH;
     });
 
-    // ---- Totals & Notes Summary Block ----
     if (y < 210) {
         startNewPage(false);
     }
@@ -415,7 +409,6 @@ export function generateInvoicePdfBytes(invoice) {
         { bold: true, color: Number(inv.dueAmount) > 0 ? [0.78, 0.45, 0.04] : [0.35, 0.42, 0.48] }
     );
 
-    // Left-side Notes & Transaction Reference
     let ny = y - 10;
     if (inv.transactionRef) {
         drawText('TRANSACTION / REFERENCE', MARGIN, ny, { font: 'F2', size: 7.5, color: [0.38, 0.44, 0.51] });
@@ -433,7 +426,6 @@ export function generateInvoicePdfBytes(invoice) {
         }
     }
 
-    // ---- Footer & Authorized Signature ----
     const footerY = 58;
     drawLine(MARGIN + 360, footerY + 26, PAGE_W - MARGIN, footerY + 26, [0.72, 0.78, 0.84], 0.7);
     drawText(inv.authorizedBy || 'Authorized Arena Signatory', PAGE_W - MARGIN, footerY + 14, {
@@ -475,120 +467,345 @@ function wrapByWidth(text, size, bold, maxW) {
     return lines;
 }
 
-/** Restaurant-style 80mm thermal receipt (used by Token invoices). One tall page sized to its content. */
+/**
+ * 2nd Invoice — Exact Image-Matched Crossbar Metro Arena Serrated POS / Token Receipt PDF!
+ * Features:
+ *   - Top & bottom serrated zigzag paper edges
+ *   - Vector soccer-ball & forest-green swoosh emblem + bold title + italic tagline + centered address
+ *   - Dark forest-green (#173a22) rounded "TOKEN / PAYMENT INVOICE" banner
+ *   - Centered receipt code + outlined rounded status stamp (FAILED / PAID / ADVANCE PAID / PENDING)
+ *   - Dotted horizontal dividers & colon-aligned Key : Value metadata blocks
+ *   - Forest-green 5-column item bar (#, DESCRIPTION & DETAILS, QTY, RATE, AMOUNT) with BDT formatting
+ *   - Subtotal + Forest-green rounded "Total Amount" pill bar
+ *   - Colon-aligned Amount Verified & Unsettled Amount rows, Transaction/Reference, and italic footer
+ */
 export function generateReceiptPdfBytes(invoice) {
     const inv = invoice || {};
     const venue = inv.venue || {};
-    const recipient = inv.recipient || {};
-    const items = Array.isArray(inv.items) ? inv.items : [];
-    const W = 226.77; // 80mm
-    const M = 14;
-    const CW = W - M * 2;
-    const TOP = 2000;
-    const f = (n) => Number(n).toFixed(2);
-    const ops = [];
-    let y = TOP - 16;
-    const ink = [0.08, 0.1, 0.13];
-    const mute = [0.38, 0.42, 0.48];
+    const tf = extractTokenSlipFields(inv);
+    const items = Array.isArray(inv.items) && inv.items.length
+        ? inv.items
+        : [{ description: 'Turf Booking Payment', quantity: 1, unitPrice: inv.totalAmount || 0, amount: inv.totalAmount || 0 }];
 
-    const text = (str, x, baseY, { font = 'F1', size = 8, color = ink, align = 'left' } = {}) => {
+    const W = 286;          // ~101mm outer frame so 88mm paper sits with crisp serrated edges visible
+    const PAPER_X = 10;
+    const PAPER_W = W - 20; // 266pt paper width
+    const M = PAPER_X + 14; // 24pt content left
+    const RIGHT = PAPER_X + PAPER_W - 14; // 262pt content right
+    const CW = RIGHT - M;   // 238pt content width
+    const TOP = 2200;
+
+    const f = (n) => Number(n).toFixed(2);
+    const bodyOps = [];
+    let y = TOP - 26;
+
+    const forest = [0.09, 0.23, 0.13]; // #173a22
+    const ink = [0.06, 0.09, 0.08];
+    const mute = [0.22, 0.26, 0.24];
+
+    const roundedRectPath = (x, topY, w, h, r) => {
+        const rad = Math.min(r, w / 2, h / 2);
+        const k = 0.55228475 * rad;
+        const yb = topY - h;
+        const xr = x + w;
+        return [
+            `${f(x + rad)} ${f(yb)} m`,
+            `${f(xr - rad)} ${f(yb)} l`,
+            `${f(xr - rad + k)} ${f(yb)} ${f(xr)} ${f(yb + rad - k)} ${f(xr)} ${f(yb + rad)} c`,
+            `${f(xr)} ${f(topY - rad)} l`,
+            `${f(xr)} ${f(topY - rad + k)} ${f(xr - rad + k)} ${f(topY)} ${f(xr - rad)} ${f(topY)} c`,
+            `${f(x + rad)} ${f(topY)} l`,
+            `${f(x + rad - k)} ${f(topY)} ${f(x)} ${f(topY - rad + k)} ${f(x)} ${f(topY - rad)} c`,
+            `${f(x)} ${f(yb + rad)} l`,
+            `${f(x)} ${f(yb + rad - k)} ${f(x + rad - k)} ${f(yb)} ${f(x + rad)} ${f(yb)} c`,
+            'h'
+        ].join(' ');
+    };
+
+    const fillRounded = (x, topY, w, h, r, rgb) => {
+        bodyOps.push(`${f(rgb[0])} ${f(rgb[1])} ${f(rgb[2])} rg`, roundedRectPath(x, topY, w, h, r), 'f');
+    };
+
+    const strokeRounded = (x, topY, w, h, r, strokeRgb, fillRgb = null, lineW = 1.6) => {
+        bodyOps.push(`${f(lineW)} w`, `${f(strokeRgb[0])} ${f(strokeRgb[1])} ${f(strokeRgb[2])} RG`);
+        if (fillRgb) {
+            bodyOps.push(`${f(fillRgb[0])} ${f(fillRgb[1])} ${f(fillRgb[2])} rg`, roundedRectPath(x, topY, w, h, r), 'B');
+        } else {
+            bodyOps.push(roundedRectPath(x, topY, w, h, r), 'S');
+        }
+    };
+
+    const text = (str, x, baseY, { font = 'F1', size = 8.5, color = ink, align = 'left' } = {}) => {
         const clean = escapePdfString(str);
         if (!clean) return;
-        const w = approxTextWidth(str, size, false, font !== 'F1');
+        const isBold = font === 'F2' || font === 'F3';
+        const w = approxTextWidth(str, size, false, isBold);
         const dx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
-        ops.push('BT', `/${font} ${f(size)} Tf`, `${f(color[0])} ${f(color[1])} ${f(color[2])} rg`, `1 0 0 1 ${f(dx)} ${f(baseY)} Tm`, `(${clean}) Tj`, 'ET');
+        bodyOps.push(
+            'BT',
+            `/${font} ${f(size)} Tf`,
+            `${f(color[0])} ${f(color[1])} ${f(color[2])} rg`,
+            `1 0 0 1 ${f(dx)} ${f(baseY)} Tm`,
+            `(${clean}) Tj`,
+            'ET'
+        );
     };
+
     const center = (str, opt = {}) => text(str, W / 2, y, { ...opt, align: 'center' });
-    const dashed = () => {
-        ops.push('0.5 w', '0.55 0.58 0.62 RG', '[3 2] 0 d', `${f(M)} ${f(y)} m ${f(W - M)} ${f(y)} l S`, '[] 0 d');
+
+    const solidGreenRule = () => {
+        bodyOps.push('1.5 w', `${f(forest[0])} ${f(forest[1])} ${f(forest[2])} RG`, `${f(M)} ${f(y)} m ${f(RIGHT)} ${f(y)} l S`);
+        y -= 9;
+    };
+
+    const dotted = () => {
+        bodyOps.push('0.9 w', '0.18 0.21 0.19 RG', '[1.1 2.2] 0 d', `${f(M)} ${f(y)} m ${f(RIGHT)} ${f(y)} l S`, '[] 0 d');
         y -= 11;
     };
-    const row = (label, value, { bold = false, size = 8, big = false } = {}) => {
-        const sz = big ? 10 : size;
-        text(label, M, y, { font: bold ? 'F2' : 'F1', size: sz, color: bold ? ink : mute });
-        const maxV = CW - approxTextWidth(label, sz, false, bold) - 8;
-        const val = wrapByWidth(String(value ?? '-'), sz, true, maxV);
-        val.forEach((ln, i) => { text(ln, W - M, y - i * (sz + 2), { font: 'F2', size: sz, align: 'right' }); });
-        y -= Math.max(1, val.length) * (sz + 2) + 3;
+
+    const drawSoccerCrest = (cx, cy, r) => {
+        const k = 0.55228475 * r;
+        // Left dynamic forest-green swoosh arc + wedge
+        bodyOps.push(
+            `${f(forest[0])} ${f(forest[1])} ${f(forest[2])} rg`,
+            `${f(cx - r * 1.48)} ${f(cy - r * 0.78)} m`,
+            `${f(cx - r * 1.15)} ${f(cy - r * 0.05)} ${f(cx - r * 0.85)} ${f(cy + r * 0.65)} ${f(cx - r * 0.25)} ${f(cy + r * 0.92)} c`,
+            `${f(cx - r * 0.62)} ${f(cy + r * 0.35)} ${f(cx - r * 0.78)} ${f(cy - r * 0.25)} ${f(cx - r * 0.72)} ${f(cy - r * 0.78)} c`,
+            'h f'
+        );
+        // Outer white soccer ball circle + dark border
+        bodyOps.push(
+            '1 1 1 rg',
+            `${f(forest[0])} ${f(forest[1])} ${f(forest[2])} RG`,
+            '1.2 w',
+            `${f(cx + r)} ${f(cy)} m`,
+            `${f(cx + r)} ${f(cy + k)} ${f(cx + k)} ${f(cy + r)} ${f(cx)} ${f(cy + r)} c`,
+            `${f(cx - k)} ${f(cy + r)} ${f(cx - r)} ${f(cy + k)} ${f(cx - r)} ${f(cy)} c`,
+            `${f(cx - r)} ${f(cy - k)} ${f(cx - k)} ${f(cy - r)} ${f(cx)} ${f(cy - r)} c`,
+            `${f(cx + k)} ${f(cy - r)} ${f(cx + r)} ${f(cy - k)} ${f(cx + r)} ${f(cy)} c`,
+            'B'
+        );
+        // Center pentagon + outer patches + seams
+        const pts = [];
+        for (let i = 0; i < 5; i++) {
+            const ang = (Math.PI / 2) + (i * 2 * Math.PI) / 5;
+            pts.push([cx + Math.cos(ang) * (r * 0.38), cy + Math.sin(ang) * (r * 0.38)]);
+        }
+        bodyOps.push('0.08 0.14 0.10 rg', `${f(pts[0][0])} ${f(pts[0][1])} m`);
+        for (let i = 1; i < 5; i++) bodyOps.push(`${f(pts[i][0])} ${f(pts[i][1])} l`);
+        bodyOps.push('h f');
+
+        bodyOps.push('0.75 w', '0.08 0.14 0.10 RG');
+        for (let i = 0; i < 5; i++) {
+            const ang = (Math.PI / 2) + (i * 2 * Math.PI) / 5;
+            const ox = cx + Math.cos(ang) * (r * 0.92);
+            const oy = cy + Math.sin(ang) * (r * 0.92);
+            bodyOps.push(`${f(pts[i][0])} ${f(pts[i][1])} m ${f(ox)} ${f(oy)} l S`);
+            // Small dark edge patch at rim
+            const a1 = ang - 0.22;
+            const a2 = ang + 0.22;
+            bodyOps.push(
+                '0.08 0.14 0.10 rg',
+                `${f(cx + Math.cos(ang) * (r * 0.72))} ${f(cy + Math.sin(ang) * (r * 0.72))} m`,
+                `${f(cx + Math.cos(a1) * (r * 0.97))} ${f(cy + Math.sin(a1) * (r * 0.97))} l`,
+                `${f(cx + Math.cos(a2) * (r * 0.97))} ${f(cy + Math.sin(a2) * (r * 0.97))} l`,
+                'h f'
+            );
+        }
     };
 
-    // Header
-    center(venue.name || 'CROSSBAR METRO ARENA', { font: 'F2', size: 13 }); y -= 12;
-    if (venue.tagline) { for (const l of wrapByWidth(venue.tagline, 7.5, false, CW)) { center(l, { size: 7.5, color: mute }); y -= 9.5; } }
-    for (const l of wrapByWidth(venue.address || '', 7.5, false, CW)) { center(l, { size: 7.5, color: mute }); y -= 9.5; }
-    if (venue.phone) { center(venue.phone, { size: 7.5, color: mute }); y -= 9.5; }
-    y -= 4; dashed();
+    const colonRow = (label, valStr, colonX = M + 74) => {
+        text(label, M, y, { font: 'F2', size: 8.5, color: ink });
+        text(':', colonX, y, { font: 'F2', size: 8.5, color: ink });
+        const valX = colonX + 9;
+        const maxW = RIGHT - valX;
+        const lines = wrapByWidth(String(valStr || '-'), 8.5, false, maxW);
+        (lines.length ? lines : ['-']).forEach((ln, idx) => {
+            text(ln, valX, y - idx * 10.5, { font: 'F1', size: 8.5, color: ink });
+        });
+        y -= Math.max(1, lines.length) * 11 + 2;
+    };
 
-    // Title + token number
-    center(inv.docTypeLabel || 'TOKEN RECEIPT', { font: 'F2', size: 10 }); y -= 6;
-    ops.push('0.07 0.09 0.12 rg', `${f(M)} ${f(y - 26)} ${f(CW)} 24 re f`);
-    text(inv.invoiceNumber || '', W / 2, y - 17.5, { font: 'F2', size: 12.5, color: [0.64, 0.94, 0.25], align: 'center' });
-    y -= 40;
+    // ---- 1. Brand Header (Soccer Crest + Bold Name + Italic Tagline + Centered Address) ----
+    drawSoccerCrest(M + 25, y - 9, 13.5);
+    text(venue.name || 'Crossbar Metro Arena', M + 45, y - 5, { font: 'F2', size: 14, color: ink });
+    text(venue.tagline || "Dhaka's Premier Floodlit Outdoor Turf", M + 45, y - 17.5, { font: 'F4', size: 8, color: mute });
+    y -= 31;
 
-    row('Date', inv.issueDate || '-');
-    row('Booking', inv.referenceCode || '-');
-    row('Name', recipient.name || '-');
-    if (recipient.phone) row('Phone', recipient.phone);
-    for (const h of (inv.highlights || []).filter(x => x.label !== 'Booking Code').slice(0, 3)) row(h.label, h.value);
-    y -= 2; dashed();
-
-    // Items
-    text('ITEM', M, y, { font: 'F2', size: 7.5, color: mute });
-    text('AMOUNT', W - M, y, { font: 'F2', size: 7.5, color: mute, align: 'right' });
-    y -= 12;
-    for (const it of items) {
-        const lines = wrapByWidth(it.description || 'Item', 8.5, true, CW - 62);
-        lines.forEach((ln, i) => text(ln, M, y - i * 10.5, { font: 'F2', size: 8.5 }));
-        text(fmtBdtPdf(it.amount), W - M, y, { font: 'F2', size: 8.5, align: 'right' });
-        y -= lines.length * 10.5;
-        for (const ml of wrapByWidth(it.meta || '', 7, false, CW).slice(0, 3)) { text(ml, M, y, { size: 7, color: mute }); y -= 9; }
-        y -= 4;
+    for (const addrLine of wrapByWidth(venue.address || 'Uttara Metro Center, Sector 17, Dhaka, Bangladesh, 1230', 7.4, false, CW)) {
+        center(addrLine, { font: 'F1', size: 7.4, color: ink });
+        y -= 9.5;
     }
-    dashed();
+    y -= 2;
+    solidGreenRule();
 
-    // Totals
-    row('Token Received', fmtBdtPdf(inv.paidAmount), { bold: true, big: true });
-    row(inv.dueLabel || 'Balance Due', fmtBdtPdf(inv.dueAmount), { bold: true });
-    dashed();
-    row('Paid via', inv.paymentMethod || '-');
-    if (inv.transactionRef) row('Txn', String(inv.transactionRef).slice(0, 28));
+    // ---- 2. Dark Forest-Green Pill Banner ("TOKEN / PAYMENT INVOICE") ----
+    fillRounded(M, y + 2, CW, 21, 4.5, forest);
+    text(tf.bannerTitle, W / 2, y - 12.5, { font: 'F2', size: 9.8, color: [1, 1, 1], align: 'center' });
+    y -= 32;
+
+    // ---- 3. Centered Invoice/Receipt Number + Outlined Status Stamp ----
+    center(inv.invoiceNumber || 'RCPT-CMA', { font: 'F2', size: 11, color: ink });
+    y -= 8;
+
+    const stampLabel = pdfSafeText(inv.statusBadge || 'ISSUED');
+    const stampColor = TONE_RGB[inv.statusTone] || TONE_RGB.emerald;
+    const stampTint = [
+        1 - (1 - stampColor[0]) * 0.06,
+        1 - (1 - stampColor[1]) * 0.06,
+        1 - (1 - stampColor[2]) * 0.06
+    ];
+    const stampW = Math.max(96, approxTextWidth(stampLabel, 13, false, true) + 28);
+    strokeRounded((W - stampW) / 2, y, stampW, 25, 4.5, stampColor, stampTint, 1.5);
+    text(stampLabel, W / 2, y - 17.5, { font: 'F2', size: 13, color: stampColor, align: 'center' });
+    y -= 34;
+
+    dotted();
+
+    // ---- 4. Colon-Aligned Party & Reference Block ----
+    colonRow(tf.partyRowLabel, tf.partyName);
+    colonRow(tf.squadLabel, tf.squadValue);
+    colonRow('Phone', tf.phone);
+    colonRow('Issue Date', tf.issueDate);
+    colonRow('Reference', tf.reference);
+    colonRow('Method', tf.method);
+    y -= 2;
+    dotted();
+
+    // ---- 5. Colon-Aligned Booking Date & Slot Block ----
+    colonRow(tf.dateRowLabel, tf.dateRowValue);
+    colonRow(tf.slotRowLabel, tf.slotRowValue);
+    y -= 3;
+
+    // ---- 6. Forest-Green 5-Column Compact Table ----
+    fillRounded(M, y + 2, CW, 17, 3, forest);
+    text('#', M + 6, y - 9.5, { font: 'F2', size: 6.8, color: [1, 1, 1] });
+    text('DESCRIPTION & DETAILS', M + 18, y - 9.5, { font: 'F2', size: 6.8, color: [1, 1, 1] });
+    text('QTY', M + 131, y - 9.5, { font: 'F2', size: 6.8, color: [1, 1, 1], align: 'center' });
+    text('RATE', M + 178, y - 9.5, { font: 'F2', size: 6.8, color: [1, 1, 1], align: 'right' });
+    text('AMOUNT', RIGHT - 5, y - 9.5, { font: 'F2', size: 6.8, color: [1, 1, 1], align: 'right' });
+    y -= 27;
+
+    items.forEach((it, idx) => {
+        const descLines = wrapByWidth(it.description || 'Item', 8, false, 102);
+        text(String(idx + 1), M + 6, y, { font: 'F1', size: 8, color: ink });
+        descLines.forEach((dl, li) => text(dl, M + 18, y - li * 10, { font: 'F1', size: 8, color: ink }));
+        text(String(it.quantity ?? 1), M + 131, y, { font: 'F1', size: 8, color: ink, align: 'center' });
+        text(fmtBdtPdf(it.unitPrice), M + 178, y, { font: 'F1', size: 7.8, color: ink, align: 'right' });
+        text(fmtBdtPdf(it.amount), RIGHT - 4, y, { font: 'F2', size: 7.8, color: ink, align: 'right' });
+        y -= Math.max(1, descLines.length) * 10 + 4;
+    });
+
+    dotted();
+
+    // ---- 7. Subtotal + Dark Forest-Green "Total Amount" Pill Bar ----
+    text('Subtotal', M + 2, y, { font: 'F1', size: 9, color: ink });
+    text(fmtBdtPdf(inv.subtotal ?? inv.totalAmount), RIGHT - 2, y, { font: 'F2', size: 9.2, color: ink, align: 'right' });
+    y -= 10;
+
+    if (Number(inv.discount) > 0) {
+        text('Discount', M + 2, y - 4, { font: 'F1', size: 8.2, color: forest });
+        text(`-${fmtBdtPdf(inv.discount)}`, RIGHT - 2, y - 4, { font: 'F2', size: 8.2, color: forest, align: 'right' });
+        y -= 13;
+    }
+
+    fillRounded(M, y, CW, 23, 4.5, forest);
+    text('Total Amount', M + 9, y - 15.5, { font: 'F2', size: 10.8, color: [1, 1, 1] });
+    text(fmtBdtPdf(inv.totalAmount), RIGHT - 9, y - 15.5, { font: 'F2', size: 11, color: [1, 1, 1], align: 'right' });
+    y -= 31;
+
+    dotted();
+
+    // ---- 8. Verification / Settlement Rows (Colon-Aligned + Right BDT) ----
+    const verifyColonX = M + 96;
+    text(tf.paidLabel, M + 2, y, { font: 'F1', size: 8.5, color: ink });
+    text(':', verifyColonX, y, { font: 'F2', size: 8.5, color: ink });
+    text(fmtBdtPdf(inv.paidAmount), RIGHT - 2, y, { font: 'F2', size: 8.5, color: ink, align: 'right' });
+    y -= 13;
+
+    text(tf.dueLabel, M + 2, y, { font: 'F1', size: 8.5, color: ink });
+    text(':', verifyColonX, y, { font: 'F2', size: 8.5, color: ink });
+    text(fmtBdtPdf(inv.dueAmount), RIGHT - 2, y, { font: 'F2', size: 8.5, color: ink, align: 'right' });
+    y -= 9;
+
+    dotted();
+
+    // ---- 9. Transaction / Reference ----
+    text('Transaction / Reference :', M + 2, y, { font: 'F1', size: 8.2, color: ink });
+    y -= 11.5;
+    const txnStr = inv.transactionRef || inv.referenceCode || inv.invoiceNumber || '-';
+    for (const tl of wrapByWidth(txnStr, 8.2, false, CW - 4)) {
+        text(tl, M + 2, y, { font: 'F1', size: 8.2, color: ink });
+        y -= 10.5;
+    }
     y -= 2;
 
-    // Status stamp
-    const badge = pdfSafeText(inv.statusBadge || 'TOKEN RECEIVED');
-    const bw = approxTextWidth(badge, 8.5, false, true) + 24;
-    const tone = TONE_RGB[inv.statusTone] || TONE_RGB.emerald;
-    ops.push('1.2 w', `${f(tone[0])} ${f(tone[1])} ${f(tone[2])} RG`, `${f((W - bw) / 2)} ${f(y - 18)} ${f(bw)} 22 re S`);
-    text(badge, W / 2, y - 11, { font: 'F2', size: 8.5, color: tone, align: 'center' });
-    y -= 36;
+    dotted();
 
-    for (const l of wrapByWidth(inv.notes || '', 7.3, false, CW)) { center(l, { size: 7.3, color: mute }); y -= 9.5; }
-    y -= 4; dashed();
-    center('Thank you!', { font: 'F2', size: 10 }); y -= 12;
-    center(venue.website || 'bookcrossbar.com', { size: 7.5, color: mute }); y -= 10;
-    center(`Issued by ${inv.authorizedBy || 'Arena Desk'}`, { size: 7, color: mute }); y -= 14;
+    // ---- 10. Italic Footer + Solid Forest-Green Line ----
+    for (const nl of wrapByWidth(tf.shortNote, 8, false, CW - 8).slice(0, 2)) {
+        center(nl, { font: 'F4', size: 8, color: ink });
+        y -= 10.5;
+    }
+    center('Computer-generated receipt', { font: 'F4', size: 8, color: ink });
+    y -= 9;
 
-    const pageH = TOP - y + 6;
-    const stream = [`q 1 0 0 1 0 ${f(pageH - TOP)} cm`, ...ops, 'Q'].join('\n');
+    bodyOps.push('1.5 w', `${f(forest[0])} ${f(forest[1])} ${f(forest[2])} RG`, `${f(M)} ${f(y)} m ${f(RIGHT)} ${f(y)} l S`);
+    y -= 18;
+
+    // ---- Assemble Paper Background + Serrated Top & Bottom Zigzag Edges ----
+    const paperTop = TOP - 8;
+    const paperBottom = y + 6;
+    const pageH = TOP - paperBottom + 8;
+    const toothW = 6.65;
+    const toothH = 4.8;
+    const teethCount = Math.round(PAPER_W / toothW);
+    const stepW = PAPER_W / teethCount;
+
+    const bgOps = [];
+    // Soft gray outer backdrop so the white serrated slip pops
+    bgOps.push('0.91 0.91 0.90 rg', `0 0 ${f(W)} ${f(TOP + 20)} re f`);
+    // Serrated paper polygon
+    bgOps.push('0.976 0.978 0.973 rg', '0.82 0.84 0.81 RG', '0.4 w');
+    bgOps.push(`${f(PAPER_X)} ${f(paperTop - toothH)} m`);
+    for (let i = 0; i < teethCount; i++) {
+        const xMid = PAPER_X + (i + 0.5) * stepW;
+        const xEnd = PAPER_X + (i + 1) * stepW;
+        bgOps.push(`${f(xMid)} ${f(paperTop)} l`, `${f(xEnd)} ${f(paperTop - toothH)} l`);
+    }
+    bgOps.push(`${f(PAPER_X + PAPER_W)} ${f(paperBottom + toothH)} l`);
+    for (let i = teethCount - 1; i >= 0; i--) {
+        const xMid = PAPER_X + (i + 0.5) * stepW;
+        const xStart = PAPER_X + i * stepW;
+        bgOps.push(`${f(xMid)} ${f(paperBottom)} l`, `${f(xStart)} ${f(paperBottom + toothH)} l`);
+    }
+    bgOps.push('h B');
+
+    const stream = [`q 1 0 0 1 0 ${f(pageH - TOP)} cm`, ...bgOps, ...bodyOps, 'Q'].join('\n');
     return assemblePdf([stream], W, pageH);
 }
 
-export function buildInvoiceFilename(invoice) {
+export function buildInvoiceFilename(invoice, options = {}) {
+    const useToken = shouldUseTokenFormat(invoice, options);
     const raw = String(invoice?.invoiceNumber || invoice?.referenceCode || 'Crossbar_Invoice')
         .replace(/[^a-zA-Z0-9_-]+/g, '_')
         .replace(/^_+|_+$/g, '');
-    return `${raw || 'Crossbar_Invoice'}.pdf`;
+    const base = raw || 'Crossbar_Invoice';
+    if (useToken && !/^(RCPT|TKN)/i.test(base)) {
+        return `${base}_Token.pdf`;
+    }
+    return `${base}.pdf`;
 }
 
-/** Browser 1-click PDF download. */
-export function downloadInvoicePdf(invoice) {
+/** Browser 1-click PDF download (`options.format`: `'a4'` | `'token'`). */
+export function downloadInvoicePdf(invoice, options = {}) {
     if (typeof window === 'undefined') return false;
-    const bytes = generateInvoicePdfBytes(invoice);
+    const bytes = generateInvoicePdfBytes(invoice, options);
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildInvoiceFilename(invoice);
+    a.download = buildInvoiceFilename(invoice, options);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -604,54 +821,132 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+const SOCCER_LOGO_SVG = `<svg width="46" height="38" viewBox="0 0 56 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+  <path d="M2 39C7 23 15 9 31 5C21 14 17 26 17 39H2Z" fill="#173a22"/>
+  <path d="M5 21C9 11 18 5 29 4C20 9 13 15 9 24L5 21Z" fill="#173a22"/>
+  <circle cx="35" cy="23" r="18" fill="#ffffff" stroke="#173a22" stroke-width="2"/>
+  <polygon points="35,14 43,20 40,29 30,29 27,20" fill="#122618"/>
+  <line x1="35" y1="14" x2="35" y2="5" stroke="#122618" stroke-width="1.6"/>
+  <line x1="43" y1="20" x2="52" y2="17" stroke="#122618" stroke-width="1.6"/>
+  <line x1="40" y1="29" x2="46" y2="37" stroke="#122618" stroke-width="1.6"/>
+  <line x1="30" y1="29" x2="24" y2="37" stroke="#122618" stroke-width="1.6"/>
+  <line x1="27" y1="20" x2="18" y2="17" stroke="#122618" stroke-width="1.6"/>
+  <polygon points="31,6 39,6 35,9" fill="#122618"/>
+  <polygon points="50,13 53,21 49,18" fill="#122618"/>
+  <polygon points="48,34 42,40 44,35" fill="#122618"/>
+  <polygon points="22,34 28,40 26,35" fill="#122618"/>
+  <polygon points="20,13 17,21 21,18" fill="#122618"/>
+</svg>`;
+
 function buildReceiptHtml(inv) {
     const venue = inv.venue || {};
-    const recipient = inv.recipient || {};
-    const items = Array.isArray(inv.items) ? inv.items : [];
-    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`;
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(inv.invoiceNumber || 'Token')}</title>
+    const tf = extractTokenSlipFields(inv);
+    const items = Array.isArray(inv.items) && inv.items.length
+        ? inv.items
+        : [{ description: 'Turf Booking Payment', quantity: 1, unitPrice: inv.totalAmount || 0, amount: inv.totalAmount || 0 }];
+
+    const stampColors = {
+        rose: { border: '#c22629', text: '#c22629', bg: 'rgba(194,38,41,0.05)' },
+        emerald: { border: '#166534', text: '#166534', bg: 'rgba(22,101,52,0.05)' },
+        amber: { border: '#b45309', text: '#b45309', bg: 'rgba(180,83,9,0.05)' },
+        violet: { border: '#6d28d9', text: '#6d28d9', bg: 'rgba(109,40,217,0.05)' },
+        sky: { border: '#0369a1', text: '#0369a1', bg: 'rgba(3,105,161,0.05)' }
+    };
+    const sc = stampColors[inv.statusTone] || stampColors.emerald;
+    const colonRow = (k, v) => `<div class="crow"><span class="ck">${escapeHtml(k)}</span><span class="cc">:</span><span class="cv">${escapeHtml(v)}</span></div>`;
+
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(inv.invoiceNumber || 'Token Invoice')}</title>
 <style>
-@page { size: 80mm auto; margin: 4mm; }
+@page { size: 80mm auto; margin: 3mm; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #111827; width: 72mm; margin: 0 auto; padding: 6px 0; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
-.c { text-align: center; } .mute { color: #6b7280; } .b { font-weight: 700; }
-.name { font-size: 16px; font-weight: 800; } .sm { font-size: 10px; }
-hr { border: 0; border-top: 1px dashed #9ca3af; margin: 8px 0; }
-.tkn { background: #0b1117; color: #a3e635; text-align: center; font-weight: 800; font-size: 15px; padding: 6px; margin: 6px 0 8px; border-radius: 4px; }
-.kv { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; } .kv span:first-child { color: #6b7280; } .kv span:last-child { font-weight: 700; text-align: right; }
-.item { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; } .meta { font-size: 9.5px; color: #6b7280; margin-bottom: 4px; }
-.big { font-size: 14px; font-weight: 800; }
-.stamp { border: 2px solid #059669; color: #059669; font-weight: 800; text-align: center; padding: 4px; margin: 8px auto; width: fit-content; min-width: 60%; letter-spacing: .05em; }
-@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8eae7; color: #0f1712; padding: 12px 0; font-size: 12px; line-height: 1.42; font-variant-numeric: tabular-nums; }
+.slip { width: 340px; max-width: 100%; margin: 0 auto; background: #f9faf8; box-shadow: 0 8px 24px rgba(0,0,0,0.14); overflow: hidden; }
+.zigzag-top, .zigzag-bot { display: block; width: 100%; height: 8px; }
+.inner { padding: 10px 18px 12px; }
+.hdr { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.bname { font-size: 20px; font-weight: 900; letter-spacing: -0.01em; color: #0b140e; line-height: 1.1; }
+.tag { font-style: italic; font-size: 11.5px; color: #1c2620; margin-top: 2px; }
+.addr { text-align: center; font-size: 10.5px; color: #111827; margin-top: 6px; }
+.gline { border: 0; border-top: 2px solid #173a22; margin: 8px 0; }
+.gbanner { background: #173a22; color: #fff; text-align: center; font-weight: 800; font-size: 13.5px; letter-spacing: 0.04em; padding: 6px 10px; border-radius: 6px; text-transform: uppercase; }
+.code { text-align: center; font-weight: 800; font-size: 15px; color: #0b140e; margin-top: 7px; letter-spacing: 0.02em; }
+.stamp { margin: 6px auto 10px; width: fit-content; min-width: 132px; padding: 3px 18px; border: 2px solid ${sc.border}; color: ${sc.text}; background: ${sc.bg}; border-radius: 6px; text-align: center; font-size: 19px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.dots { border: 0; border-top: 1.5px dotted #262626; margin: 8px 0; }
+.crow { display: grid; grid-template-columns: 104px 12px 1fr; align-items: baseline; padding: 1.5px 0; font-size: 12px; }
+.ck { font-weight: 700; color: #0f1712; }
+.cc { font-weight: 700; text-align: center; }
+.cv { font-weight: 600; color: #111827; word-break: break-word; }
+.tbl-hd { background: #173a22; color: #fff; border-radius: 4px; padding: 5px 7px; display: grid; grid-template-columns: 18px 1fr 28px 66px 68px; gap: 4px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; margin-top: 6px; }
+.tbl-row { padding: 6px 7px 2px; display: grid; grid-template-columns: 18px 1fr 28px 66px 68px; gap: 4px; font-size: 11px; align-items: baseline; }
+.r { text-align: right; } .c { text-align: center; }
+.subrow { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 2px 6px; font-size: 12.5px; }
+.totbar { background: #173a22; color: #fff; border-radius: 6px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 900; }
+.vrow { display: grid; grid-template-columns: 130px 12px 1fr; align-items: baseline; padding: 2px 2px; font-size: 12px; }
+.vrow .val { text-align: right; font-weight: 700; }
+.txn-lbl { font-size: 11.5px; font-weight: 600; color: #111827; }
+.txn-val { font-size: 11.5px; font-weight: 600; color: #0f1712; word-break: break-all; margin-top: 2px; }
+.ft { text-align: center; font-style: italic; font-size: 11.5px; color: #111827; line-height: 1.45; }
+@media print { body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .slip { box-shadow: none; width: 74mm; background: #fff; } }
 </style></head><body>
-<div class="c"><div class="name">${escapeHtml(venue.name || 'Crossbar Metro Arena')}</div>
-<div class="mute sm">${escapeHtml(venue.tagline || '')}</div><div class="mute sm">${escapeHtml(venue.address || '')}</div><div class="mute sm">${escapeHtml(venue.phone || '')}</div></div>
-<hr/><div class="c b">${escapeHtml(inv.docTypeLabel || 'TOKEN RECEIPT')}</div>
-<div class="tkn">${escapeHtml(inv.invoiceNumber || '')}</div>
-${kv('Date', inv.issueDate || '-')}${kv('Booking', inv.referenceCode || '-')}${kv('Name', recipient.name || '-')}${recipient.phone ? kv('Phone', recipient.phone) : ''}
-${(inv.highlights || []).filter(h => h.label !== 'Booking Code').slice(0, 3).map(h => kv(h.label, h.value)).join('')}
-<hr/><div class="kv"><span class="b">ITEM</span><span>AMOUNT</span></div>
-${items.map(it => `<div class="item"><span>${escapeHtml(it.description)}</span><span>${escapeHtml(fmtBdtHtml(it.amount))}</span></div><div class="meta">${escapeHtml(it.meta || '')}</div>`).join('')}
-<hr/><div class="kv big"><span style="color:#111827">Token Received</span><span>${escapeHtml(fmtBdtHtml(inv.paidAmount))}</span></div>
-${kv(inv.dueLabel || 'Balance Due', fmtBdtHtml(inv.dueAmount))}
-<hr/>${kv('Paid via', inv.paymentMethod || '-')}${inv.transactionRef ? kv('Txn', inv.transactionRef) : ''}
-<div class="stamp">${escapeHtml(inv.statusBadge || 'TOKEN RECEIVED')}</div>
-<div class="c mute sm">${escapeHtml(inv.notes || '')}</div><hr/>
-<div class="c b" style="font-size:13px">Thank you!</div><div class="c mute sm">${escapeHtml(venue.website || '')}</div>
-<div class="c mute sm">Issued by ${escapeHtml(inv.authorizedBy || 'Arena Desk')}</div>
+<div class="slip">
+  <svg class="zigzag-top" viewBox="0 0 340 10" preserveAspectRatio="none"><polygon fill="#e8eae7" points="0,0 340,0 340,10 330,2 320,10 310,2 300,10 290,2 280,10 270,2 260,10 250,2 240,10 230,2 220,10 210,2 200,10 190,2 180,10 170,2 160,10 150,2 140,10 130,2 120,10 110,2 100,10 90,2 80,10 70,2 60,10 50,2 40,10 30,2 20,10 10,2 0,10"/></svg>
+  <div class="inner">
+    <div class="hdr">
+      ${SOCCER_LOGO_SVG}
+      <div>
+        <div class="bname">${escapeHtml(venue.name || 'Crossbar Metro Arena')}</div>
+        <div class="tag">${escapeHtml(venue.tagline || "Dhaka's Premier Floodlit Outdoor Turf")}</div>
+      </div>
+    </div>
+    <div class="addr">${escapeHtml(venue.address || 'Uttara Metro Center, Sector 17, Dhaka, Bangladesh, 1230')}</div>
+    <hr class="gline"/>
+    <div class="gbanner">${escapeHtml(tf.bannerTitle)}</div>
+    <div class="code">${escapeHtml(inv.invoiceNumber || '')}</div>
+    <div class="stamp">${escapeHtml(inv.statusBadge || 'ISSUED')}</div>
+    <hr class="dots"/>
+    ${colonRow(tf.partyRowLabel, tf.partyName)}
+    ${colonRow(tf.squadLabel, tf.squadValue)}
+    ${colonRow('Phone', tf.phone)}
+    ${colonRow('Issue Date', tf.issueDate)}
+    ${colonRow('Reference', tf.reference)}
+    ${colonRow('Method', tf.method)}
+    <hr class="dots"/>
+    ${colonRow(tf.dateRowLabel, tf.dateRowValue)}
+    ${colonRow(tf.slotRowLabel, tf.slotRowValue)}
+    <div class="tbl-hd"><span>#</span><span>DESCRIPTION &amp; DETAILS</span><span class="c">QTY</span><span class="r">RATE</span><span class="r">AMOUNT</span></div>
+    ${items.map((it, i) => `<div class="tbl-row"><span>${i + 1}</span><span>${escapeHtml(it.description)}</span><span class="c">${escapeHtml(it.quantity ?? 1)}</span><span class="r">${escapeHtml(fmtBdtPdf(it.unitPrice))}</span><span class="r"><strong>${escapeHtml(fmtBdtPdf(it.amount))}</strong></span></div>`).join('')}
+    <hr class="dots"/>
+    <div class="subrow"><span>Subtotal</span><strong>${escapeHtml(fmtBdtPdf(inv.subtotal ?? inv.totalAmount))}</strong></div>
+    <div class="totbar"><span>Total Amount</span><span>${escapeHtml(fmtBdtPdf(inv.totalAmount))}</span></div>
+    <hr class="dots"/>
+    <div class="vrow"><span>${escapeHtml(tf.paidLabel)}</span><span class="cc">:</span><span class="val">${escapeHtml(fmtBdtPdf(inv.paidAmount))}</span></div>
+    <div class="vrow"><span>${escapeHtml(tf.dueLabel)}</span><span class="cc">:</span><span class="val">${escapeHtml(fmtBdtPdf(inv.dueAmount))}</span></div>
+    <hr class="dots"/>
+    <div class="txn-lbl">Transaction / Reference :</div>
+    <div class="txn-val">${escapeHtml(inv.transactionRef || inv.referenceCode || inv.invoiceNumber || '—')}</div>
+    <hr class="dots"/>
+    <div class="ft">
+      <div>${escapeHtml(tf.shortNote)}</div>
+      <div>Computer-generated receipt</div>
+    </div>
+    <hr class="gline" style="margin-bottom:2px"/>
+  </div>
+  <svg class="zigzag-bot" viewBox="0 0 340 10" preserveAspectRatio="none"><polygon fill="#e8eae7" points="0,10 340,10 340,0 330,8 320,0 310,8 300,0 290,8 280,0 270,8 260,0 250,8 240,0 230,8 220,0 210,8 200,0 190,8 180,0 170,8 160,0 150,8 140,0 130,8 120,0 110,8 100,0 90,8 80,0 70,8 60,0 50,8 40,0 30,8 20,0 10,8 0,0"/></svg>
+</div>
 <script>window.onload=function(){setTimeout(function(){window.print();},150);};</script></body></html>`;
 }
 
-/** Opens a crisp print-ready A4 invoice sheet in the browser print dialog. */
-export function printInvoiceDocument(invoice) {
+/** Opens a crisp print-ready A4 invoice sheet OR 80mm POS Token Slip in the browser print dialog. */
+export function printInvoiceDocument(invoice, options = {}) {
     if (typeof window === 'undefined') return;
     const inv = invoice || {};
+    const useToken = shouldUseTokenFormat(inv, options);
     const venue = inv.venue || {};
     const recipient = inv.recipient || {};
     const items = Array.isArray(inv.items) ? inv.items : [];
     const highlights = Array.isArray(inv.highlights) ? inv.highlights : [];
 
-    const html = inv.kind === 'token' ? buildReceiptHtml(inv) : `<!doctype html>
+    const html = useToken ? buildReceiptHtml(inv) : `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -780,13 +1075,12 @@ export function printInvoiceDocument(invoice) {
 </body>
 </html>`;
 
-    const win = window.open('', '_blank', inv.kind === 'token' ? 'width=420,height=760' : 'width=860,height=920');
+    const win = window.open('', '_blank', useToken ? 'width=430,height=820' : 'width=860,height=920');
     if (win) {
         win.document.open();
         win.document.write(html);
         win.document.close();
     } else {
-        // Fallback if popup is blocked: download the PDF directly
-        downloadInvoicePdf(invoice);
+        downloadInvoicePdf(invoice, options);
     }
 }

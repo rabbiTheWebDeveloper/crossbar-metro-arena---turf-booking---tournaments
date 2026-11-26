@@ -4,6 +4,7 @@ import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import {
     buildBookingInvoice,
+    buildTokenInvoice,
     buildPayoutInvoice,
     buildShopOrderInvoice,
     buildRegistrationInvoice,
@@ -12,7 +13,7 @@ import {
 } from '@/lib/invoice';
 import { printInvoiceDocument } from '@/lib/invoicePdf';
 import {
-    FileText, Plus, Search, Download, Eye, Printer, CheckCircle2,
+    FileText, Receipt, Plus, Search, Download, Eye, Printer, CheckCircle2,
     Pencil, Trash2, X, Loader2, Users
 } from 'lucide-react';
 
@@ -159,7 +160,8 @@ export default function AdminInvoicesPage() {
                     key: `booking-${b.id}`,
                     sourceGroup: 'booking',
                     sortDate: b.date || inv.issueDate,
-                    invoice: inv
+                    invoice: inv,
+                    tokenInvoice: buildTokenInvoice(b, siteSettings)
                 });
             });
         }
@@ -599,15 +601,23 @@ export default function AdminInvoicesPage() {
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={() => openInvoice(inv)}
+                                                onClick={() => openInvoice(inv, 'a4')}
                                                 className="px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold inline-flex items-center gap-1 cursor-pointer"
                                             >
                                                 <Eye className="w-3.5 h-3.5 text-emerald-400"/>
-                                                <span>Preview</span>
+                                                <span>A4</span>
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => downloadInvoice(inv)}
+                                                onClick={() => openInvoice(row.tokenInvoice || inv, 'token')}
+                                                className="px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold inline-flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <Receipt className="w-3.5 h-3.5 text-amber-400"/>
+                                                <span>Token</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => downloadInvoice(inv, 'a4')}
                                                 className="px-2.5 py-1.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black inline-flex items-center gap-1 cursor-pointer"
                                             >
                                                 <Download className="w-3.5 h-3.5"/>
@@ -705,16 +715,25 @@ export default function AdminInvoicesPage() {
                                                         )}
                                                         <button
                                                             type="button"
-                                                            onClick={() => openInvoice(inv)}
+                                                            onClick={() => openInvoice(inv, 'a4')}
                                                             className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-slate-200 hover:text-white font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
-                                                            title="Preview invoice"
+                                                            title="Preview 1st A4 invoice"
                                                         >
                                                             <Eye className="w-3.5 h-3.5 text-emerald-400"/>
                                                             <span>View</span>
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => printInvoiceDocument(inv)}
+                                                            onClick={() => openInvoice(row.tokenInvoice || inv, 'token')}
+                                                            className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-slate-200 hover:text-white font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                                                            title="Preview 2nd Token / Payment Invoice"
+                                                        >
+                                                            <Receipt className="w-3.5 h-3.5 text-amber-400"/>
+                                                            <span>Token</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => printInvoiceDocument(inv, { format: 'a4' })}
                                                             className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-slate-300 hover:text-white cursor-pointer"
                                                             title="Print A4 invoice"
                                                             aria-label="Print invoice"
@@ -723,7 +742,7 @@ export default function AdminInvoicesPage() {
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => downloadInvoice(inv)}
+                                                            onClick={() => downloadInvoice(inv, 'a4')}
                                                             className="px-2.5 py-1.5 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-[11px] inline-flex items-center gap-1 cursor-pointer"
                                                             title="Download PDF"
                                                         >

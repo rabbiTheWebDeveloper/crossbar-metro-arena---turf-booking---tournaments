@@ -4,7 +4,7 @@ import { useArena } from '@/context/ArenaContext';
 import { useInvestor } from '@/context/InvestorContext';
 import { formatMoney, formatDate, formatMonth, paymentMethodLabel } from '@/data/finance';
 import { buildPayoutInvoice, buildInvestorStatementInvoice, buildCustomInvoice } from '@/lib/invoice';
-import { CreditCard, CheckCircle2, Download, FileText } from 'lucide-react';
+import { CreditCard, CheckCircle2, Download, FileText, Receipt } from 'lucide-react';
 
 export default function InvestorPayoutsPage() {
     const { payouts, invoices, siteSettings, openInvoice, downloadInvoice, calculateMonthlyFinance, isLoadingData } = useArena();
@@ -140,16 +140,25 @@ export default function InvestorPayoutsPage() {
                                         <div className="flex items-center gap-1.5">
                                             <button
                                                 type="button"
-                                                onClick={() => openInvoice(voucher)}
+                                                onClick={() => openInvoice(voucher, 'a4')}
                                                 className="px-2.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-200 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
-                                                title="Preview Payout Voucher"
+                                                title="Preview A4 Payout Voucher"
                                             >
                                                 <FileText className="w-3.5 h-3.5 text-emerald-400"/>
                                                 <span>Invoice</span>
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => downloadInvoice(voucher)}
+                                                onClick={() => openInvoice(voucher, 'token')}
+                                                className="px-2.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-amber-300 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                                                title="Preview 2nd Token Slip"
+                                            >
+                                                <Receipt className="w-3.5 h-3.5"/>
+                                                <span>Token</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => downloadInvoice(voucher, 'a4')}
                                                 className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border border-emerald-500/30 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer transition-colors"
                                                 title="Download Payout Invoice PDF"
                                             >

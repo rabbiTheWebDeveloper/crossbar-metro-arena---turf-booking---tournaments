@@ -5,7 +5,7 @@ import { useArena } from '@/context/ArenaContext';
 import { buildPaymentInvoice } from '@/lib/invoice';
 import {
     Search, RefreshCw, CreditCard, CheckCircle2, AlertTriangle, Clock, XCircle,
-    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check, Download, FileText
+    ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check, Download, FileText, Receipt
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -348,19 +348,28 @@ export default function AdminPaymentsPage() {
 
                                     <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2 text-[10.5px] font-mono text-slate-400">
                                         <span className="truncate">{p.merchantTransactionId || fmtDateTime(p.createdAt)}</span>
-                                        {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' ? (
+                                        <div className="inline-flex items-center gap-1.5 shrink-0 font-sans">
                                             <button
                                                 type="button"
-                                                disabled={verifyingId === p.id}
-                                                onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
-                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] font-sans shrink-0"
+                                                onClick={(e) => { e.stopPropagation(); openInvoice(buildPaymentInvoice(p, null, siteSettings), 'token'); }}
+                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-bold text-[11px]"
+                                                title="Open 2nd Token / Payment Invoice"
                                             >
-                                                {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
-                                                <span>Verify EPS</span>
+                                                <Receipt className="w-3 h-3 text-amber-400"/>
+                                                <span>Token</span>
                                             </button>
-                                        ) : (
-                                            <span className="shrink-0 text-slate-500">{fmtDateTime(p.verifiedAt || p.createdAt)}</span>
-                                        )}
+                                            {p.gateway === 'eps' && p.status !== 'success' && p.status !== 'refunded' && (
+                                                <button
+                                                    type="button"
+                                                    disabled={verifyingId === p.id}
+                                                    onClick={(e) => { e.stopPropagation(); handleVerifyEps(p); }}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold text-[11px]"
+                                                >
+                                                    {verifyingId === p.id ? <Loader2 className="w-3 h-3 animate-spin"/> : <ShieldCheck className="w-3 h-3"/>}
+                                                    <span>Verify EPS</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -451,19 +460,28 @@ export default function AdminPaymentsPage() {
                                                     )}
                                                     <button
                                                         type="button"
-                                                        onClick={(e) => { e.stopPropagation(); openInvoice(buildPaymentInvoice(p, null, siteSettings)); }}
+                                                        onClick={(e) => { e.stopPropagation(); openInvoice(buildPaymentInvoice(p, null, siteSettings), 'token'); }}
                                                         className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
-                                                        title="Preview Payment Receipt"
+                                                        title="Preview 2nd Token / Payment Invoice"
                                                     >
-                                                        <FileText className="w-3 h-3 text-lime-400"/>
-                                                        <span>Receipt</span>
+                                                        <Receipt className="w-3 h-3 text-amber-400"/>
+                                                        <span>Token</span>
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={(e) => { e.stopPropagation(); downloadInvoice(buildPaymentInvoice(p, null, siteSettings)); }}
+                                                        onClick={(e) => { e.stopPropagation(); openInvoice(buildPaymentInvoice(p, null, siteSettings), 'a4'); }}
+                                                        className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                                                        title="Preview 1st A4 Payment Invoice"
+                                                    >
+                                                        <FileText className="w-3 h-3 text-lime-400"/>
+                                                        <span>A4</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); downloadInvoice(buildPaymentInvoice(p, null, siteSettings), 'token'); }}
                                                         className="p-1.5 rounded-lg bg-lime-400/15 hover:bg-lime-400 text-lime-300 hover:text-slate-950 border border-lime-400/25 cursor-pointer"
-                                                        title="Download Receipt PDF"
-                                                        aria-label="Download Receipt PDF"
+                                                        title="Download Token / Payment Invoice PDF"
+                                                        aria-label="Download Token / Payment Invoice PDF"
                                                     >
                                                         <Download className="w-3.5 h-3.5"/>
                                                     </button>
@@ -626,22 +644,32 @@ function PaymentDetailDrawer({ payment: p, onClose, onVerify, verifying }) {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => openInvoice(buildPaymentInvoice(p, booking, siteSettings), 'token')}
+                                className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                                <Receipt className="w-4 h-4 text-amber-400"/>
+                                <span>Token Invoice</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => openInvoice(buildPaymentInvoice(p, booking, siteSettings), 'a4')}
+                                className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                                <FileText className="w-4 h-4 text-emerald-400"/>
+                                <span>A4 Invoice</span>
+                            </button>
+                        </div>
                         <button
                             type="button"
-                            onClick={() => openInvoice(buildPaymentInvoice(p, booking, siteSettings))}
-                            className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                            <FileText className="w-4 h-4 text-emerald-400"/>
-                            <span>Preview Invoice</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => downloadInvoice(buildPaymentInvoice(p, booking, siteSettings))}
-                            className="py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            onClick={() => downloadInvoice(buildPaymentInvoice(p, booking, siteSettings), 'token')}
+                            className="w-full py-2.5 px-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                             <Download className="w-4 h-4"/>
-                            <span>Download PDF</span>
+                            <span>Download Token / Payment PDF</span>
                         </button>
                     </div>
 

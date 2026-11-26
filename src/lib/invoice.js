@@ -128,30 +128,74 @@ export function buildBookingInvoice(booking, siteSettings) {
     };
 }
 
-/** 1b. Booking Token (advance money) Receipt — proof of the token paid to hold a slot */
+/** 1b. Booking Token / Payment Invoice (2nd POS Slip format — matches the Crossbar thermal token slip) */
 export function buildTokenInvoice(booking, siteSettings) {
     const b = booking || {};
     const venue = normalizeVenue(siteSettings);
     const code = b.bookingCode || `BK-${String(b.id || '').slice(-6).toUpperCase() || '0001'}`;
     const total = Number(b.totalPrice ?? 0) || 0;
-    const token = Number(b.advanceAmount ?? 0) || 0;
+    const paid = Number(b.advanceAmount ?? 0) || 0;
     const cancelled = b.paymentStatus === 'cancelled';
     const refundDue = b.paymentStatus === 'needs_refund';
-    const balance = cancelled ? 0 : Math.max(0, Number(b.dueAmount ?? (total - token)) || 0);
-    const slot = b.displayTime || `${b.startTime || ''} - ${b.endTime || ''}`;
-    const txn = b.epsTransactionId || b.transactionId || b.gatewayTranId || '';
+    const isFull = b.paymentStatus === 'paid_full' || (total > 0 && paid >= total);
+    const balance = cancelled ? 0 : Math.max(0, Number(b.dueAmount ?? (total - paid)) || 0);
+    const slot = (b.displayTime || `${b.startTime || ''} - ${b.endTime || ''}`).trim();
+    const txn = b.epsTransactionId || b.transactionId || b.gatewayTranId || code;
+
+    const statusBadge = cancelled
+        ? 'CANCELLED'
+        : refundDue
+            ? 'REFUND PENDING'
+            : isFull
+                ? 'PAID IN FULL'
+                : paid > 0
+                    ? 'ADVANCE PAID'
+                    : 'PAY AT ARENA';
+    const statusTone = cancelled
+        ? 'rose'
+        : refundDue
+            ? 'violet'
+            : paid > 0
+                ? 'emerald'
+                : 'amber';
+
+    const addOns = Array.isArray(b.addOns) ? b.addOns : [];
+    const addOnsSum = addOns.reduce((s, a) => s + (Number(a?.price) || 0), 0);
+    const courtPrice = Number(b.courtPrice ?? Math.max(0, total - addOnsSum)) || 0;
+
+    const items = [
+        {
+            description: 'Turf Slot Booking',
+            meta: `Slot #${b.slotNumber || '-'} (${slot || '-'})`,
+            quantity: 1,
+            unitPrice: courtPrice || total,
+            amount: courtPrice || total
+        },
+        ...addOns.map(a => ({
+            description: typeof a === 'string' ? a : (a?.name || 'Equipment Add-On'),
+            meta: '',
+            quantity: 1,
+            unitPrice: Number(a?.price) || 0,
+            amount: Number(a?.price) || 0
+        }))
+    ];
 
     return {
         kind: 'token',
-        docTypeLabel: 'BOOKING TOKEN RECEIPT',
-        invoiceNumber: `TKN-${code}`,
+        defaultFormat: 'token',
+        tokenBannerLabel: 'TOKEN / PAYMENT INVOICE',
+        docTypeLabel: 'TOKEN / PAYMENT INVOICE',
+        invoiceNumber: `RCPT-${code}`,
         referenceCode: code,
         issueDate: fmtDateShort(b.paidAt || b.createdAt || b.date),
         dueDate: b.date || '',
-        statusBadge: cancelled ? 'TOKEN CANCELLED' : refundDue ? 'REFUND PENDING' : token > 0 ? 'TOKEN RECEIVED' : 'NO TOKEN PAID',
-        statusTone: cancelled ? 'rose' : refundDue ? 'violet' : token > 0 ? 'emerald' : 'amber',
+        slotDate: b.date || '',
+        slotTime: slot || (b.slotNumber ? `Slot #${b.slotNumber}` : '—'),
+        squadName: b.teamName || '—',
+        statusBadge,
+        statusTone,
         venue,
-        partyLabel: 'TOKEN RECEIVED FROM',
+        partyLabel: 'RECEIVED FROM',
         recipient: {
             name: b.captainName || 'Squad Captain',
             subtitle: b.teamName ? `Squad: ${b.teamName}` : '',
@@ -160,86 +204,110 @@ export function buildTokenInvoice(booking, siteSettings) {
         },
         highlights: [
             { label: 'Booking Code', value: code },
-            { label: 'Match Date', value: b.date || '-' },
-            { label: 'Kickoff Slot', value: slot.trim() || `Slot #${b.slotNumber || '-'}` },
-            { label: 'Booking Total', value: `৳${Math.round(total).toLocaleString()}` }
+            { label: 'Booking Date', value: b.date || '-' },
+            { label: 'Slot', value: slot || `Slot #${b.slotNumber || '-'}` },
+            { label: 'Method', value: b.gatewayCardType || methodPretty(b.paymentMethod) }
         ],
-        items: [
-            {
-                description: `Slot Booking Token (Advance) — ${b.courtName || venue.name}`,
-                meta: `Holds Slot #${b.slotNumber || '-'} on ${b.date || '-'} · Booking total ৳${Math.round(total).toLocaleString()}`,
-                quantity: 1,
-                unitPrice: token,
-                amount: token
-            }
-        ],
-        subtotal: token,
+        items,
+        subtotal: total || courtPrice + addOnsSum,
         discount: 0,
         tax: 0,
-        totalAmount: token,
-        paidLabel: 'Token Received',
-        paidAmount: token,
-        dueLabel: 'Remaining Balance (Pay at Arena)',
+        totalAmount: total || courtPrice + addOnsSum,
+        paidLabel: 'Amount Verified',
+        paidAmount: paid,
+        dueLabel: 'Unsettled Amount',
         dueAmount: balance,
         paymentMethod: b.gatewayCardType || methodPretty(b.paymentMethod),
         transactionRef: txn,
+        shortNote: cancelled
+            ? 'Booking cancelled · subject to refund policy'
+            : isFull
+                ? 'Slot settled in full · arrive 15 mins early'
+                : paid > 0
+                    ? `Advance verified · BDT ${Math.round(balance).toLocaleString()} due at desk`
+                    : 'Confirmed · full amount payable at arena desk',
         notes: cancelled
             ? 'This booking was cancelled. Any token paid follows the arena refund policy.'
-            : `Token money confirms your slot. The remaining ৳${Math.round(balance).toLocaleString()} is payable at the arena desk before kickoff.`,
+            : `Token receipt for ${code}. Remaining BDT ${Math.round(balance).toLocaleString()} is payable at the arena desk before kickoff.`,
         authorizedBy: b.isWalkIn ? 'Arena Front Desk' : 'Crossbar Automated Booking System'
     };
 }
 
 /** 2. Payment Ledger Receipt / Invoice (Admin Payments & Customer) */
 export function buildPaymentInvoice(payment, linkedBooking, siteSettings) {
-    if (linkedBooking && !linkedBooking.isPublicView) {
-        const base = buildBookingInvoice(linkedBooking, siteSettings);
-        const txn = payment?.gatewayTransactionId || payment?.merchantTransactionId || base.transactionRef;
-        return {
-            ...base,
-            kind: 'payment',
-            docTypeLabel: 'OFFICIAL PAYMENT RECEIPT',
-            invoiceNumber: `RCPT-${payment?.bookingCode || base.referenceCode}-${String(payment?.id || '').slice(-4).toUpperCase() || '01'}`,
-            issueDate: fmtDateShort(payment?.verifiedAt || payment?.createdAt),
-            transactionRef: txn,
-            paymentMethod: payment?.financialEntity || methodPretty(payment?.paymentMethod || payment?.gateway)
-        };
-    }
-
     const p = payment || {};
+    const b = linkedBooking && !linkedBooking.isPublicView ? linkedBooking : null;
     const venue = normalizeVenue(siteSettings);
-    const amt = Number(p.amount) || 0;
-    const code = p.bookingCode || p.merchantTransactionId || `PAY-${String(p.id || '').slice(-6).toUpperCase()}`;
-    const isPaid = p.status === 'success';
-    const isRefunded = p.status === 'refunded';
+    const amt = Number(p.amount ?? b?.advanceAmount ?? b?.totalPrice) || 0;
+    const bookingCode = p.bookingCode || b?.bookingCode || '';
+    const code = bookingCode || p.merchantTransactionId || `PAY-${String(p.id || '').slice(-6).toUpperCase()}`;
+    const rawStatus = String(p.status || '').toLowerCase();
+
+    const isPaid = rawStatus === 'success';
+    const isFailed = rawStatus === 'failed';
+    const isCancelled = rawStatus === 'cancelled';
+    const isRefunded = rawStatus === 'refunded';
+
+    const statusBadge = isPaid
+        ? 'PAID'
+        : isFailed
+            ? 'FAILED'
+            : isCancelled
+                ? 'CANCELLED'
+                : isRefunded
+                    ? 'REFUNDED'
+                    : String(p.status || 'PENDING').toUpperCase();
+
+    const statusTone = isPaid
+        ? 'emerald'
+        : (isFailed || isCancelled)
+            ? 'rose'
+            : isRefunded
+                ? 'violet'
+                : 'amber';
+
+    const slotDate = p.slotDate || b?.date || '';
+    const slotTime = p.slotDisplay || b?.displayTime || (p.slotNumber ? `Slot #${p.slotNumber}` : '');
+    const squadName = p.teamName || b?.teamName || '—';
+    const methodStr = p.financialEntity || methodPretty(p.paymentMethod || p.gateway);
+    const txn = p.gatewayTransactionId || p.merchantTransactionId || b?.epsTransactionId || b?.transactionId || '';
+
+    const shortNote = p.notes
+        || p.errorMessage
+        || (p.gateway === 'eps' ? `EPS checkout ${rawStatus || 'processed'}${p.sandbox ? ' (sandbox)' : ' (live)'}` : 'Counter payment record');
 
     return {
         kind: 'payment',
-        docTypeLabel: 'OFFICIAL PAYMENT RECEIPT',
-        invoiceNumber: `RCPT-${String(code).slice(0, 18)}`,
-        referenceCode: p.bookingCode || code,
+        defaultFormat: 'token',
+        tokenBannerLabel: 'TOKEN / PAYMENT INVOICE',
+        docTypeLabel: 'TOKEN / PAYMENT INVOICE',
+        invoiceNumber: `RCPT-${String(code).slice(0, 20)}`,
+        referenceCode: bookingCode || code,
         issueDate: fmtDateShort(p.verifiedAt || p.createdAt),
-        dueDate: p.slotDate || '',
-        statusBadge: isPaid ? 'PAYMENT VERIFIED' : isRefunded ? 'REFUNDED' : String(p.status || 'INITIATED').toUpperCase(),
-        statusTone: isPaid ? 'emerald' : isRefunded ? 'violet' : 'amber',
+        dueDate: slotDate,
+        slotDate,
+        slotTime: slotTime || '—',
+        squadName,
+        statusBadge,
+        statusTone,
         venue,
         partyLabel: 'RECEIVED FROM',
         recipient: {
-            name: p.customerName || 'Arena Customer',
-            subtitle: p.teamName ? `Squad: ${p.teamName}` : '',
-            phone: p.customerPhone || '',
-            email: p.customerEmail || ''
+            name: p.customerName || b?.captainName || 'Arena Customer',
+            subtitle: squadName && squadName !== '—' ? `Squad: ${squadName}` : '',
+            phone: p.customerPhone || b?.captainPhone || '',
+            email: p.customerEmail || b?.captainEmail || ''
         },
         highlights: [
-            { label: 'Booking Ref', value: p.bookingCode || '—' },
-            { label: 'Slot Date', value: p.slotDate || '—' },
-            { label: 'Slot Time', value: p.slotDisplay || (p.slotNumber ? `Slot #${p.slotNumber}` : '—') },
-            { label: 'Gateway', value: p.financialEntity || String(p.gateway || 'counter').toUpperCase() }
+            { label: 'Booking Ref', value: bookingCode || '—' },
+            { label: 'Booking Date', value: slotDate || '—' },
+            { label: 'Slot', value: slotTime || '—' },
+            { label: 'Method', value: methodStr }
         ],
         items: [
             {
-                description: `Turf Booking Payment${p.bookingCode ? ` (${p.bookingCode})` : ''}`,
-                meta: p.slotDate ? `Match Date: ${p.slotDate} · ${p.slotDisplay || `Slot #${p.slotNumber || ''}`}` : 'Online / Counter Booking Settlement',
+                description: 'Turf Booking Payment',
+                meta: slotDate ? `Booking Date: ${slotDate}${slotTime ? ` · ${slotTime}` : ''}` : 'Online / Counter Booking Settlement',
                 quantity: 1,
                 unitPrice: amt,
                 amount: amt
@@ -252,10 +320,11 @@ export function buildPaymentInvoice(payment, linkedBooking, siteSettings) {
         paidLabel: 'Amount Verified',
         paidAmount: isPaid ? amt : 0,
         dueLabel: 'Unsettled Amount',
-        dueAmount: isPaid ? 0 : amt,
-        paymentMethod: p.financialEntity || methodPretty(p.paymentMethod || p.gateway),
-        transactionRef: p.gatewayTransactionId || p.merchantTransactionId || '',
-        notes: p.notes || 'Official payment receipt issued by Crossbar Metro Arena.',
+        dueAmount: isPaid || isRefunded ? 0 : amt,
+        paymentMethod: methodStr,
+        transactionRef: txn,
+        shortNote,
+        notes: shortNote,
         authorizedBy: p.recordedBy || 'EPS / Arena Payment Desk'
     };
 }
@@ -791,4 +860,101 @@ export function buildBulkSeriesInvoice(series, siteSettings) {
         authorizedBy: 'Crossbar Arena Bookings Desk'
     };
 }
+
+/**
+ * Extracts normalized colon-aligned metadata rows for the 2nd Invoice ("TOKEN / PAYMENT INVOICE" POS slip)
+ * so ANY invoice (Booking, Payment, Token, Investor Payout, Shop Order, Tournament, Refund, Custom)
+ * renders cleanly in the exact Crossbar Metro Arena thermal slip layout.
+ */
+export function extractTokenSlipFields(inv = {}) {
+    const r = inv.recipient || {};
+    const hl = Array.isArray(inv.highlights) ? inv.highlights : [];
+    const findHl = (re) => hl.find(h => re.test(String(h?.label || '')))?.value || '';
+
+    let squadLabel = 'Squad';
+    let squadValue = inv.squadName || '';
+    if (!squadValue && r.subtitle) {
+        const sub = String(r.subtitle);
+        if (/^squad:\s*/i.test(sub)) {
+            squadValue = sub.replace(/^squad:\s*/i, '').split('·')[0].replace(/\(\d+\s*players?\)/i, '').trim();
+        } else if (/^team:\s*/i.test(sub)) {
+            squadValue = sub.replace(/^team:\s*/i, '').split('·')[0].trim();
+        } else if (inv.kind === 'investor_payout' || inv.kind === 'investor_statement') {
+            squadLabel = 'Equity';
+            squadValue = sub.split('·')[0].trim();
+        } else {
+            squadLabel = 'Details';
+            squadValue = sub.split('·')[0].trim();
+        }
+    }
+    if (!squadValue) squadValue = '—';
+
+    const partyRowLabel = inv.kind === 'investor_payout' || inv.kind === 'investor_statement'
+        ? 'Payee'
+        : 'Received From';
+
+    let dateRowLabel = 'Booking Date';
+    let dateRowValue = inv.slotDate || findHl(/booking date|match date|slot date/i) || inv.dueDate || inv.issueDate || '—';
+    let slotRowLabel = 'Slot';
+    let slotRowValue = inv.slotTime || findHl(/kickoff|slot time|^slot$/i) || '—';
+
+    if (inv.kind === 'investor_payout' || inv.kind === 'investor_statement') {
+        dateRowLabel = 'Profit Period';
+        dateRowValue = findHl(/period|month/i) || inv.referenceCode || inv.issueDate || '—';
+        slotRowLabel = 'Equity Share';
+        slotRowValue = findHl(/equity/i) || squadValue;
+    } else if (inv.kind === 'shop_order') {
+        dateRowLabel = 'Pickup Date';
+        dateRowValue = findHl(/pickup/i) || inv.dueDate || 'At Counter';
+        slotRowLabel = 'Order Status';
+        slotRowValue = findHl(/status/i) || inv.statusBadge || '—';
+    } else if (inv.kind === 'tournament') {
+        dateRowLabel = 'Tournament';
+        dateRowValue = findHl(/tournament/i) || 'Championship';
+        slotRowLabel = 'Entry Status';
+        slotRowValue = findHl(/status/i) || inv.statusBadge || '—';
+    } else if (inv.kind === 'refund') {
+        dateRowLabel = 'Request Date';
+        dateRowValue = findHl(/request date/i) || inv.issueDate || '—';
+        slotRowLabel = 'Refund Status';
+        slotRowValue = inv.statusBadge || '—';
+    }
+
+    const bannerTitle = inv.tokenBannerLabel || (
+        inv.kind === 'investor_payout' || inv.kind === 'investor_statement'
+            ? 'TOKEN / PAYOUT INVOICE'
+            : inv.kind === 'shop_order'
+                ? 'TOKEN / SHOP INVOICE'
+                : inv.kind === 'tournament'
+                    ? 'TOKEN / ENTRY INVOICE'
+                    : inv.kind === 'refund'
+                        ? 'TOKEN / REFUND VOUCHER'
+                        : 'TOKEN / PAYMENT INVOICE'
+    );
+
+    const rawNote = String(inv.shortNote || inv.notes || '').trim();
+    const shortNote = rawNote
+        ? (rawNote.length > 80 ? `${rawNote.slice(0, 77)}...` : rawNote)
+        : 'Official Crossbar Metro Arena receipt';
+
+    return {
+        bannerTitle,
+        partyRowLabel,
+        partyName: r.name || '—',
+        squadLabel,
+        squadValue,
+        phone: r.phone || '—',
+        issueDate: inv.issueDate || '—',
+        reference: inv.referenceCode || inv.invoiceNumber || '—',
+        method: inv.paymentMethod || '—',
+        dateRowLabel,
+        dateRowValue,
+        slotRowLabel,
+        slotRowValue,
+        paidLabel: inv.kind === 'payment' || inv.kind === 'token' ? (inv.paidLabel || 'Amount Verified') : (inv.paidLabel || 'Amount Paid'),
+        dueLabel: inv.kind === 'payment' || inv.kind === 'token' ? (inv.dueLabel || 'Unsettled Amount') : (inv.dueLabel || 'Balance Due'),
+        shortNote
+    };
+}
+
 

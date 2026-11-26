@@ -3,10 +3,13 @@ import { validate } from '@/lib/validate';
 import { INVOICE_SCHEMA, validateInvoiceItems } from '@/lib/schemas';
 import {
     buildBookingInvoice,
+    buildTokenInvoice,
+    buildPaymentInvoice,
     buildPayoutInvoice,
     buildInvestorStatementInvoice,
     buildShopOrderInvoice,
-    buildCustomInvoice
+    buildCustomInvoice,
+    extractTokenSlipFields
 } from '@/lib/invoice';
 import { generateInvoicePdfBytes, buildInvoiceFilename } from '@/lib/invoicePdf';
 
@@ -156,5 +159,71 @@ describe('invoice normalizers, schemas, and vector PDF generator', () => {
         expect(text).toContain('/Count 2'); // 22 items paginate cleanly onto 2 A4 pages
         expect(text).toContain('BDT 88,000');
         expect(buildInvoiceFilename(inv)).toBe('CMA-INV-202611-MULTI.pdf');
+    });
+
+    it('builds and renders the 2nd serrated Token / Payment Invoice (including FAILED EPS slips)', () => {
+        const failedPayment = buildPaymentInvoice({
+            bookingCode: 'CMA-TAH3MD',
+            customerName: 'Rabbi',
+            teamName: '1',
+            customerPhone: '01726278251',
+            createdAt: '2026-11-25T10:00:00Z',
+            slotDate: '2026-11-26',
+            slotDisplay: '08:00 AM – 09:30 AM',
+            financialEntity: 'OKWallet',
+            gateway: 'eps',
+            sandbox: false,
+            status: 'failed',
+            amount: 1000,
+            merchantTransactionId: '66904d9b-f2ad-4b67-a323-a2b16aeb2746',
+            notes: 'EPS checkout initiated (live)'
+        });
+
+        expect(failedPayment.defaultFormat).toBe('token');
+        expect(failedPayment.invoiceNumber).toBe('RCPT-CMA-TAH3MD');
+        expect(failedPayment.statusBadge).toBe('FAILED');
+        expect(failedPayment.statusTone).toBe('rose');
+        expect(failedPayment.totalAmount).toBe(1000);
+        expect(failedPayment.paidAmount).toBe(0);
+        expect(failedPayment.dueAmount).toBe(1000);
+
+        const tf = extractTokenSlipFields(failedPayment);
+        expect(tf.bannerTitle).toBe('TOKEN / PAYMENT INVOICE');
+        expect(tf.partyName).toBe('Rabbi');
+        expect(tf.squadValue).toBe('1');
+        expect(tf.method).toBe('OKWallet');
+        expect(tf.dateRowValue).toBe('2026-11-26');
+        expect(tf.paidLabel).toBe('Amount Verified');
+        expect(tf.dueLabel).toBe('Unsettled Amount');
+
+        const tokenPdf = generateInvoicePdfBytes(failedPayment, { format: 'token' });
+        const pdfText = new TextDecoder('utf-8').decode(tokenPdf);
+        expect(pdfText.startsWith('%PDF-1.4\n')).toBe(true);
+        expect(pdfText).toContain('/F4'); // Helvetica-Oblique italic font
+        expect(pdfText).toContain('TOKEN / PAYMENT INVOICE');
+        expect(pdfText).toContain('RCPT-CMA-TAH3MD');
+        expect(pdfText).toContain('FAILED');
+        expect(pdfText).toContain('BDT 1,000');
+        expect(pdfText).toContain('Computer-generated receipt');
+
+        const bookingToken = buildTokenInvoice({
+            bookingCode: 'CMA-99AA11',
+            date: '2026-12-10',
+            slotNumber: 8,
+            displayTime: '05:00 PM - 06:30 PM',
+            captainName: 'Tanvir',
+            captainPhone: '01700000000',
+            teamName: 'Sector 17 FC',
+            courtPrice: 4000,
+            totalPrice: 4000,
+            advanceAmount: 1000,
+            dueAmount: 3000,
+            paymentMethod: 'bkash',
+            paymentStatus: 'paid_advance'
+        });
+        expect(bookingToken.defaultFormat).toBe('token');
+        expect(bookingToken.invoiceNumber).toBe('RCPT-CMA-99AA11');
+        expect(bookingToken.statusBadge).toBe('ADVANCE PAID');
+        expect(buildInvoiceFilename(bookingToken, { format: 'token' })).toBe('RCPT-CMA-99AA11-TOKEN.pdf');
     });
 });
