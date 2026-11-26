@@ -19,6 +19,60 @@ const money = (n) => {
     return `${sign}৳${Math.abs(val).toLocaleString()}`;
 };
 
+const Row = ({ k, v, strong }) => (
+    <div className={`flex justify-between gap-3 ${strong ? 'font-black text-base' : ''}`}>
+        <span className={strong ? '' : 'text-slate-500'}>{k}</span>
+        <span className="font-bold text-right">{v}</span>
+    </div>
+);
+const Dash = () => <div className="border-t border-dashed border-slate-400 my-3"/>;
+
+function TokenReceipt({ invoice }) {
+    const venue = invoice.venue || {};
+    const r = invoice.recipient || {};
+    const items = Array.isArray(invoice.items) ? invoice.items : [];
+    return (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 bg-black/30">
+            <div className="mx-auto w-full max-w-[340px] bg-white text-slate-900 rounded-md shadow-2xl px-5 py-6 text-xs leading-relaxed tabular-nums">
+                <div className="text-center">
+                    <div className="text-lg font-black">{venue.name}</div>
+                    <div className="text-[11px] text-slate-500">{venue.tagline}</div>
+                    <div className="text-[11px] text-slate-500">{venue.address}</div>
+                    <div className="text-[11px] text-slate-500">{venue.phone}</div>
+                </div>
+                <Dash/>
+                <div className="text-center font-black tracking-wide">{invoice.docTypeLabel}</div>
+                <div className="my-2 rounded bg-[#0b1117] text-lime-400 text-center font-black text-base py-2">{invoice.invoiceNumber}</div>
+                <Row k="Date" v={invoice.issueDate}/>
+                <Row k="Booking" v={invoice.referenceCode}/>
+                <Row k="Name" v={r.name}/>
+                {r.phone && <Row k="Phone" v={r.phone}/>}
+                {(invoice.highlights || []).filter(h => h.label !== 'Booking Code').slice(0, 3).map((h, i) => <Row key={i} k={h.label} v={h.value}/>)}
+                <Dash/>
+                <div className="flex justify-between text-[10px] font-black text-slate-500"><span>ITEM</span><span>AMOUNT</span></div>
+                {items.map((it, i) => (
+                    <div key={i} className="mt-1">
+                        <div className="flex justify-between gap-3 font-bold"><span>{it.description}</span><span className="whitespace-nowrap">{money(it.amount)}</span></div>
+                        {it.meta && <div className="text-[10.5px] text-slate-500">{it.meta}</div>}
+                    </div>
+                ))}
+                <Dash/>
+                <Row k="Token Received" v={money(invoice.paidAmount)} strong/>
+                <Row k={invoice.dueLabel || 'Balance Due'} v={money(invoice.dueAmount)}/>
+                <Dash/>
+                <Row k="Paid via" v={invoice.paymentMethod || '-'}/>
+                {invoice.transactionRef && <Row k="Txn" v={invoice.transactionRef}/>}
+                <div className="mx-auto my-4 w-fit min-w-[60%] border-2 border-emerald-600 text-emerald-700 text-center font-black tracking-wider px-3 py-1">{invoice.statusBadge}</div>
+                <div className="text-center text-[10.5px] text-slate-500">{invoice.notes}</div>
+                <Dash/>
+                <div className="text-center font-black text-sm">Thank you!</div>
+                <div className="text-center text-[10.5px] text-slate-500">{venue.website}</div>
+                <div className="text-center text-[10.5px] text-slate-500">Issued by {invoice.authorizedBy}</div>
+            </div>
+        </div>
+    );
+}
+
 export function InvoiceModal({ invoice, onClose }) {
     const [copied, setCopied] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
@@ -114,7 +168,7 @@ export function InvoiceModal({ invoice, onClose }) {
                     </div>
                 </div>
 
-                {/* Scrollable Branded Invoice Sheet */}
+                {invoice.kind === 'token' ? <TokenReceipt invoice={invoice}/> : (
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6">
                     {/* Brand Banner */}
                     <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-emerald-950/70 via-[#0e1720] to-[#080d12] border border-emerald-500/25 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -272,6 +326,7 @@ export function InvoiceModal({ invoice, onClose }) {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
         </div>
     );

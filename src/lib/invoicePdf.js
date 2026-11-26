@@ -94,10 +94,62 @@ const TONE_RGB = {
     slate: [0.35, 0.41, 0.49]
 };
 
+function assemblePdf(pages, pageW, pageH) {
+    const f = (n) => Number(n).toFixed(2);
+    // ---- Assemble PDF 1.4 Object Graph ----
+    // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Helvetica, Obj 4: Font Helvetica-Bold, Obj 5: Font Helvetica-Bold (numbers)
+    // Obj 6..: Page + Content stream pairs
+    const objects = [];
+    const addObj = (body) => {
+        objects.push(body);
+        return objects.length; // 1-based object number
+    };
+
+    const catalogId = addObj(''); // placeholder 1
+    const pagesId = addObj('');   // placeholder 2
+    const f1Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+    const f2Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    const f3Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+
+    const utf8Len = (s) => new TextEncoder().encode(s).length;
+    const pageIds = [];
+    for (const streamContent of pages) {
+        const streamBytesLen = utf8Len(streamContent);
+        const contentId = addObj(`<< /Length ${streamBytesLen} >>\nstream\n${streamContent}\nendstream`);
+        const pageId = addObj(
+            `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${f(pageW)} ${f(pageH)}] ` +
+            `/Resources << /Font << /F1 ${f1Id} 0 R /F2 ${f2Id} 0 R /F3 ${f3Id} 0 R >> >> ` +
+            `/Contents ${contentId} 0 R >>`
+        );
+        pageIds.push(pageId);
+    }
+
+    objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+    objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    for (let i = 0; i < objects.length; i++) {
+        offsets.push(utf8Len(pdf));
+        pdf += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
+    }
+
+    const xrefOffset = utf8Len(pdf);
+    pdf += `xref\n0 ${objects.length + 1}\n`;
+    pdf += '0000000000 65535 f \n';
+    for (let i = 1; i <= objects.length; i++) {
+        pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+    return new TextEncoder().encode(pdf);
+}
+
 /**
  * Generates a complete, valid multi-page A4 PDF 1.4 binary (`Uint8Array`) for a NormalizedInvoice.
  */
 export function generateInvoicePdfBytes(invoice) {
+    if (invoice?.kind === 'token') return generateReceiptPdfBytes(invoice);
     const inv = invoice || {};
     const venue = inv.venue || {};
     const recipient = inv.recipient || {};
@@ -407,53 +459,118 @@ export function generateInvoicePdfBytes(invoice) {
 
     pages.push(ops.join('\n'));
 
-    // ---- Assemble PDF 1.4 Object Graph ----
-    // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Helvetica, Obj 4: Font Helvetica-Bold, Obj 5: Font Helvetica-Bold (numbers)
-    // Obj 6..: Page + Content stream pairs
-    const objects = [];
-    const addObj = (body) => {
-        objects.push(body);
-        return objects.length; // 1-based object number
+    return assemblePdf(pages, PAGE_W, PAGE_H);
+}
+
+function wrapByWidth(text, size, bold, maxW) {
+    const words = pdfSafeText(text).split(' ').filter(Boolean);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        const cand = cur ? `${cur} ${w}` : w;
+        if (approxTextWidth(cand, size, false, bold) <= maxW || !cur) cur = cand;
+        else { lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+}
+
+/** Restaurant-style 80mm thermal receipt (used by Token invoices). One tall page sized to its content. */
+export function generateReceiptPdfBytes(invoice) {
+    const inv = invoice || {};
+    const venue = inv.venue || {};
+    const recipient = inv.recipient || {};
+    const items = Array.isArray(inv.items) ? inv.items : [];
+    const W = 226.77; // 80mm
+    const M = 14;
+    const CW = W - M * 2;
+    const TOP = 2000;
+    const f = (n) => Number(n).toFixed(2);
+    const ops = [];
+    let y = TOP - 16;
+    const ink = [0.08, 0.1, 0.13];
+    const mute = [0.38, 0.42, 0.48];
+
+    const text = (str, x, baseY, { font = 'F1', size = 8, color = ink, align = 'left' } = {}) => {
+        const clean = escapePdfString(str);
+        if (!clean) return;
+        const w = approxTextWidth(str, size, false, font !== 'F1');
+        const dx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+        ops.push('BT', `/${font} ${f(size)} Tf`, `${f(color[0])} ${f(color[1])} ${f(color[2])} rg`, `1 0 0 1 ${f(dx)} ${f(baseY)} Tm`, `(${clean}) Tj`, 'ET');
+    };
+    const center = (str, opt = {}) => text(str, W / 2, y, { ...opt, align: 'center' });
+    const dashed = () => {
+        ops.push('0.5 w', '0.55 0.58 0.62 RG', '[3 2] 0 d', `${f(M)} ${f(y)} m ${f(W - M)} ${f(y)} l S`, '[] 0 d');
+        y -= 11;
+    };
+    const row = (label, value, { bold = false, size = 8, big = false } = {}) => {
+        const sz = big ? 10 : size;
+        text(label, M, y, { font: bold ? 'F2' : 'F1', size: sz, color: bold ? ink : mute });
+        const maxV = CW - approxTextWidth(label, sz, false, bold) - 8;
+        const val = wrapByWidth(String(value ?? '-'), sz, true, maxV);
+        val.forEach((ln, i) => { text(ln, W - M, y - i * (sz + 2), { font: 'F2', size: sz, align: 'right' }); });
+        y -= Math.max(1, val.length) * (sz + 2) + 3;
     };
 
-    const catalogId = addObj(''); // placeholder 1
-    const pagesId = addObj('');   // placeholder 2
-    const f1Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
-    const f2Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-    const f3Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    // Header
+    center(venue.name || 'CROSSBAR METRO ARENA', { font: 'F2', size: 13 }); y -= 12;
+    if (venue.tagline) { for (const l of wrapByWidth(venue.tagline, 7.5, false, CW)) { center(l, { size: 7.5, color: mute }); y -= 9.5; } }
+    for (const l of wrapByWidth(venue.address || '', 7.5, false, CW)) { center(l, { size: 7.5, color: mute }); y -= 9.5; }
+    if (venue.phone) { center(venue.phone, { size: 7.5, color: mute }); y -= 9.5; }
+    y -= 4; dashed();
 
-    const utf8Len = (s) => new TextEncoder().encode(s).length;
-    const pageIds = [];
-    for (const streamContent of pages) {
-        const streamBytesLen = utf8Len(streamContent);
-        const contentId = addObj(`<< /Length ${streamBytesLen} >>\nstream\n${streamContent}\nendstream`);
-        const pageId = addObj(
-            `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${f(PAGE_W)} ${f(PAGE_H)}] ` +
-            `/Resources << /Font << /F1 ${f1Id} 0 R /F2 ${f2Id} 0 R /F3 ${f3Id} 0 R >> >> ` +
-            `/Contents ${contentId} 0 R >>`
-        );
-        pageIds.push(pageId);
+    // Title + token number
+    center(inv.docTypeLabel || 'TOKEN RECEIPT', { font: 'F2', size: 10 }); y -= 6;
+    ops.push('0.07 0.09 0.12 rg', `${f(M)} ${f(y - 26)} ${f(CW)} 24 re f`);
+    text(inv.invoiceNumber || '', W / 2, y - 17.5, { font: 'F2', size: 12.5, color: [0.64, 0.94, 0.25], align: 'center' });
+    y -= 40;
+
+    row('Date', inv.issueDate || '-');
+    row('Booking', inv.referenceCode || '-');
+    row('Name', recipient.name || '-');
+    if (recipient.phone) row('Phone', recipient.phone);
+    for (const h of (inv.highlights || []).filter(x => x.label !== 'Booking Code').slice(0, 3)) row(h.label, h.value);
+    y -= 2; dashed();
+
+    // Items
+    text('ITEM', M, y, { font: 'F2', size: 7.5, color: mute });
+    text('AMOUNT', W - M, y, { font: 'F2', size: 7.5, color: mute, align: 'right' });
+    y -= 12;
+    for (const it of items) {
+        const lines = wrapByWidth(it.description || 'Item', 8.5, true, CW - 62);
+        lines.forEach((ln, i) => text(ln, M, y - i * 10.5, { font: 'F2', size: 8.5 }));
+        text(fmtBdtPdf(it.amount), W - M, y, { font: 'F2', size: 8.5, align: 'right' });
+        y -= lines.length * 10.5;
+        for (const ml of wrapByWidth(it.meta || '', 7, false, CW).slice(0, 3)) { text(ml, M, y, { size: 7, color: mute }); y -= 9; }
+        y -= 4;
     }
+    dashed();
 
-    objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
-    objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+    // Totals
+    row('Token Received', fmtBdtPdf(inv.paidAmount), { bold: true, big: true });
+    row(inv.dueLabel || 'Balance Due', fmtBdtPdf(inv.dueAmount), { bold: true });
+    dashed();
+    row('Paid via', inv.paymentMethod || '-');
+    if (inv.transactionRef) row('Txn', String(inv.transactionRef).slice(0, 28));
+    y -= 2;
 
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-    for (let i = 0; i < objects.length; i++) {
-        offsets.push(utf8Len(pdf));
-        pdf += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`;
-    }
+    // Status stamp
+    const badge = pdfSafeText(inv.statusBadge || 'TOKEN RECEIVED');
+    const bw = approxTextWidth(badge, 8.5, false, true) + 24;
+    const tone = TONE_RGB[inv.statusTone] || TONE_RGB.emerald;
+    ops.push('1.2 w', `${f(tone[0])} ${f(tone[1])} ${f(tone[2])} RG`, `${f((W - bw) / 2)} ${f(y - 18)} ${f(bw)} 22 re S`);
+    text(badge, W / 2, y - 11, { font: 'F2', size: 8.5, color: tone, align: 'center' });
+    y -= 36;
 
-    const xrefOffset = utf8Len(pdf);
-    pdf += `xref\n0 ${objects.length + 1}\n`;
-    pdf += '0000000000 65535 f \n';
-    for (let i = 1; i <= objects.length; i++) {
-        pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
-    }
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    for (const l of wrapByWidth(inv.notes || '', 7.3, false, CW)) { center(l, { size: 7.3, color: mute }); y -= 9.5; }
+    y -= 4; dashed();
+    center('Thank you!', { font: 'F2', size: 10 }); y -= 12;
+    center(venue.website || 'bookcrossbar.com', { size: 7.5, color: mute }); y -= 10;
+    center(`Issued by ${inv.authorizedBy || 'Arena Desk'}`, { size: 7, color: mute }); y -= 14;
 
-    return new TextEncoder().encode(pdf);
+    const pageH = TOP - y + 6;
+    const stream = [`q 1 0 0 1 0 ${f(pageH - TOP)} cm`, ...ops, 'Q'].join('\n');
+    return assemblePdf([stream], W, pageH);
 }
 
 export function buildInvoiceFilename(invoice) {
@@ -487,6 +604,44 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+function buildReceiptHtml(inv) {
+    const venue = inv.venue || {};
+    const recipient = inv.recipient || {};
+    const items = Array.isArray(inv.items) ? inv.items : [];
+    const kv = (k, v) => `<div class="kv"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(inv.invoiceNumber || 'Token')}</title>
+<style>
+@page { size: 80mm auto; margin: 4mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #111827; width: 72mm; margin: 0 auto; padding: 6px 0; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.c { text-align: center; } .mute { color: #6b7280; } .b { font-weight: 700; }
+.name { font-size: 16px; font-weight: 800; } .sm { font-size: 10px; }
+hr { border: 0; border-top: 1px dashed #9ca3af; margin: 8px 0; }
+.tkn { background: #0b1117; color: #a3e635; text-align: center; font-weight: 800; font-size: 15px; padding: 6px; margin: 6px 0 8px; border-radius: 4px; }
+.kv { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; } .kv span:first-child { color: #6b7280; } .kv span:last-child { font-weight: 700; text-align: right; }
+.item { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; } .meta { font-size: 9.5px; color: #6b7280; margin-bottom: 4px; }
+.big { font-size: 14px; font-weight: 800; }
+.stamp { border: 2px solid #059669; color: #059669; font-weight: 800; text-align: center; padding: 4px; margin: 8px auto; width: fit-content; min-width: 60%; letter-spacing: .05em; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+<div class="c"><div class="name">${escapeHtml(venue.name || 'Crossbar Metro Arena')}</div>
+<div class="mute sm">${escapeHtml(venue.tagline || '')}</div><div class="mute sm">${escapeHtml(venue.address || '')}</div><div class="mute sm">${escapeHtml(venue.phone || '')}</div></div>
+<hr/><div class="c b">${escapeHtml(inv.docTypeLabel || 'TOKEN RECEIPT')}</div>
+<div class="tkn">${escapeHtml(inv.invoiceNumber || '')}</div>
+${kv('Date', inv.issueDate || '-')}${kv('Booking', inv.referenceCode || '-')}${kv('Name', recipient.name || '-')}${recipient.phone ? kv('Phone', recipient.phone) : ''}
+${(inv.highlights || []).filter(h => h.label !== 'Booking Code').slice(0, 3).map(h => kv(h.label, h.value)).join('')}
+<hr/><div class="kv"><span class="b">ITEM</span><span>AMOUNT</span></div>
+${items.map(it => `<div class="item"><span>${escapeHtml(it.description)}</span><span>${escapeHtml(fmtBdtHtml(it.amount))}</span></div><div class="meta">${escapeHtml(it.meta || '')}</div>`).join('')}
+<hr/><div class="kv big"><span style="color:#111827">Token Received</span><span>${escapeHtml(fmtBdtHtml(inv.paidAmount))}</span></div>
+${kv(inv.dueLabel || 'Balance Due', fmtBdtHtml(inv.dueAmount))}
+<hr/>${kv('Paid via', inv.paymentMethod || '-')}${inv.transactionRef ? kv('Txn', inv.transactionRef) : ''}
+<div class="stamp">${escapeHtml(inv.statusBadge || 'TOKEN RECEIVED')}</div>
+<div class="c mute sm">${escapeHtml(inv.notes || '')}</div><hr/>
+<div class="c b" style="font-size:13px">Thank you!</div><div class="c mute sm">${escapeHtml(venue.website || '')}</div>
+<div class="c mute sm">Issued by ${escapeHtml(inv.authorizedBy || 'Arena Desk')}</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},150);};</script></body></html>`;
+}
+
 /** Opens a crisp print-ready A4 invoice sheet in the browser print dialog. */
 export function printInvoiceDocument(invoice) {
     if (typeof window === 'undefined') return;
@@ -496,7 +651,7 @@ export function printInvoiceDocument(invoice) {
     const items = Array.isArray(inv.items) ? inv.items : [];
     const highlights = Array.isArray(inv.highlights) ? inv.highlights : [];
 
-    const html = `<!doctype html>
+    const html = inv.kind === 'token' ? buildReceiptHtml(inv) : `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -625,7 +780,7 @@ export function printInvoiceDocument(invoice) {
 </body>
 </html>`;
 
-    const win = window.open('', '_blank', 'width=860,height=920');
+    const win = window.open('', '_blank', inv.kind === 'token' ? 'width=420,height=760' : 'width=860,height=920');
     if (win) {
         win.document.open();
         win.document.write(html);
