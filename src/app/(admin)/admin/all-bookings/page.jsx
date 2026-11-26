@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
-import { buildBookingInvoice } from '@/lib/invoice';
+import { buildBookingInvoice, buildTokenInvoice } from '@/lib/invoice';
 import { Search, XCircle, FileText, Download, Pencil } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -282,6 +282,18 @@ export default function AdminAllBookingsPage() {
                       >
                         <FileText className="w-3.5 h-3.5 text-lime-400"/>
                         <span>Invoice</span>
+                      </button>
+                    )}
+
+                    {!isHold && paid > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openInvoice(buildTokenInvoice(b, siteSettings))}
+                        className="px-2.5 py-1.5 sm:py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 text-[12px] font-bold border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1"
+                        title="Preview & print booking token (advance) receipt"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-400"/>
+                        <span>Token</span>
                       </button>
                     )}
 

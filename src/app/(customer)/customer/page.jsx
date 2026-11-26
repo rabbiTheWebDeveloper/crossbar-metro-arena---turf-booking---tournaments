@@ -5,7 +5,7 @@ import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { PageHero } from '@/components/PageHero';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
-import { buildBookingInvoice, buildShopOrderInvoice, buildRegistrationInvoice, buildCustomInvoice } from '@/lib/invoice';
+import { buildBookingInvoice, buildTokenInvoice, buildShopOrderInvoice, buildRegistrationInvoice, buildCustomInvoice } from '@/lib/invoice';
 import { User, Users, Trophy, PlusCircle, Calendar, Shield, MessageSquare, Target, Trash2, AlertCircle, Bell, Pencil, Loader2, Phone, Lock, SlidersHorizontal, FileText, Download } from 'lucide-react';
 import { DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, CHANNEL_LABELS, REMINDER_HOURS } from '@/lib/customerMeta';
 import Link from 'next/link';
@@ -559,6 +559,17 @@ export default function CustomerDashboard() {
                     <FileText className="w-3.5 h-3.5"/>
                     <span>Invoice</span>
                   </button>
+                  {Number(b?.advanceAmount) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => openInvoice(buildTokenInvoice(b, siteSettings))}
+                      className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 font-bold text-xs border border-amber-400/25 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Booking token (advance) receipt"
+                    >
+                      <FileText className="w-3.5 h-3.5"/>
+                      <span>Token</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => downloadInvoice(buildBookingInvoice(b, siteSettings))}

@@ -9,7 +9,7 @@ const MARGIN = 38;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
 /**
- * Standard PDF Type1 fonts (Helvetica / Courier) use WinAnsiEncoding (Latin-1).
+ * Standard PDF Type1 fonts (Helvetica) use WinAnsiEncoding (Latin-1).
  * Replace ৳ with "BDT " and normalize smart quotes/dashes so every glyph renders sharply in all PDF viewers.
  */
 export function pdfSafeText(input) {
@@ -68,9 +68,21 @@ function wrapText(text, maxChars) {
     return lines;
 }
 
-function approxTextWidth(str, fontSize, isMono = false) {
+// Real Helvetica / Helvetica-Bold AFM advance widths (1/1000 em) for ASCII 32..126, so right/center alignment
+// and pill sizing match what the PDF viewer actually renders (bold capitals are much wider than an average guess).
+const HELV_W = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const HELV_BOLD_W = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+
+function approxTextWidth(str, fontSize, isMono = false, isBold = false) {
     const s = pdfSafeText(str);
-    return s.length * fontSize * (isMono ? 0.6 : 0.52);
+    if (isMono) return s.length * fontSize * 0.6;
+    const table = isBold ? HELV_BOLD_W : HELV_W;
+    let w = 0;
+    for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i) - 32;
+        w += table[c] ?? 556;
+    }
+    return (w * fontSize) / 1000;
 }
 
 const TONE_RGB = {
@@ -117,15 +129,15 @@ export function generateInvoicePdfBytes(invoice) {
         push(`${f(x1)} ${f(y1)} m ${f(x2)} ${f(y2)} l S`);
     };
 
-    // Font aliases: /F1 = Helvetica, /F2 = Helvetica-Bold, /F3 = Courier-Bold
+    // Font aliases: /F1 = Helvetica, /F2 = Helvetica-Bold, /F3 = Helvetica-Bold (numbers)
     const drawText = (str, x, baselineY, { font = 'F1', size = 9.5, color = [0.1, 0.14, 0.18], align = 'left' } = {}) => {
         const clean = escapePdfString(str);
         if (!clean) return;
         let drawX = x;
         if (align === 'right') {
-            drawX = x - approxTextWidth(str, size, font === 'F3');
+            drawX = x - approxTextWidth(str, size, false, font === 'F2' || font === 'F3');
         } else if (align === 'center') {
-            drawX = x - approxTextWidth(str, size, font === 'F3') / 2;
+            drawX = x - approxTextWidth(str, size, false, font === 'F2' || font === 'F3') / 2;
         }
         push('BT');
         push(`/${font} ${f(size)} Tf`);
@@ -183,7 +195,7 @@ export function generateInvoicePdfBytes(invoice) {
 
         if (!isContinuation && inv.statusBadge) {
             const badgeText = pdfSafeText(inv.statusBadge);
-            const pillW = Math.max(82, approxTextWidth(badgeText, 8, false) + 18);
+            const pillW = Math.max(82, approxTextWidth(badgeText, 7.8, false, true) + 22);
             fillRect(PAGE_W - MARGIN - pillW, PAGE_H - 52, pillW, 18, badgeRgb);
             drawText(badgeText, PAGE_W - MARGIN - pillW / 2, PAGE_H - 64, {
                 font: 'F2',
@@ -396,7 +408,7 @@ export function generateInvoicePdfBytes(invoice) {
     pages.push(ops.join('\n'));
 
     // ---- Assemble PDF 1.4 Object Graph ----
-    // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Helvetica, Obj 4: Font Helvetica-Bold, Obj 5: Font Courier-Bold
+    // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Helvetica, Obj 4: Font Helvetica-Bold, Obj 5: Font Helvetica-Bold (numbers)
     // Obj 6..: Page + Content stream pairs
     const objects = [];
     const addObj = (body) => {
@@ -408,7 +420,7 @@ export function generateInvoicePdfBytes(invoice) {
     const pagesId = addObj('');   // placeholder 2
     const f1Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
     const f2Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-    const f3Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>');
+    const f3Id = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
 
     const utf8Len = (s) => new TextEncoder().encode(s).length;
     const pageIds = [];
@@ -498,7 +510,7 @@ export function printInvoiceDocument(invoice) {
   .tagline { color: #a3e635; font-size: 11px; font-weight: 700; margin-top: 2px; }
   .meta-line { color: #cbd5e1; font-size: 11px; margin-top: 4px; }
   .doc-type { color: #a3e635; font-size: 13px; font-weight: 800; text-align: right; letter-spacing: 0.06em; }
-  .inv-no { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; font-weight: 700; text-align: right; margin-top: 4px; }
+  .inv-no { font-family: 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 700; text-align: right; margin-top: 4px; }
   .badge { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px; background: #10b981; color: #052e16; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; }
   .grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-top: 18px; }
   .box { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 12px; padding: 14px 16px; }
@@ -507,13 +519,13 @@ export function printInvoiceDocument(invoice) {
   .sub { font-size: 11.5px; color: #475569; margin-top: 3px; }
   .kv { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11.5px; }
   .kv span:first-child { color: #64748b; font-weight: 600; }
-  .kv span:last-child { font-weight: 700; font-family: ui-monospace, monospace; }
+  .kv span:last-child { font-weight: 700; font-family: 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
   .strip { display: grid; grid-template-columns: repeat(${Math.max(1, highlights.length)}, 1fr); gap: 10px; margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 14px; }
   .strip-label { font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #15803d; }
   .strip-val { font-size: 12px; font-weight: 800; color: #052e16; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; }
   th { background: #0f172a; color: #e2e8f0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 10px; text-align: left; }
-  th.num, td.num { text-align: right; font-family: ui-monospace, monospace; }
+  th.num, td.num { text-align: right; font-family: 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
   td { padding: 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
   .item-title { font-weight: 700; color: #0f172a; }
   .item-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
@@ -522,7 +534,7 @@ export function printInvoiceDocument(invoice) {
   .trow { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
   .trow.grand { background: #0f172a; color: #fff; font-weight: 800; font-size: 13px; }
   .trow.grand span:last-child { color: #a3e635; }
-  .trow .mono { font-family: ui-monospace, monospace; font-weight: 700; }
+  .trow .mono { font-family: 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; font-weight: 700; }
   .footer { margin-top: 32px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-end; color: #64748b; font-size: 11px; }
   .sig { text-align: right; }
   .sig-line { border-top: 1px solid #94a3b8; padding-top: 5px; min-width: 190px; font-weight: 700; color: #1e293b; }
@@ -550,7 +562,7 @@ export function printInvoiceDocument(invoice) {
         <div class="eyebrow">${escapeHtml(inv.partyLabel || 'BILLED TO')}</div>
         <div class="party-name">${escapeHtml(recipient.name || '—')}</div>
         ${recipient.subtitle ? `<div class="sub">${escapeHtml(recipient.subtitle)}</div>` : ''}
-        ${recipient.phone || recipient.email ? `<div class="sub" style="font-family:ui-monospace,monospace">${escapeHtml([recipient.phone, recipient.email].filter(Boolean).join(' · '))}</div>` : ''}
+        ${recipient.phone || recipient.email ? `<div class="sub" style="font-variant-numeric:tabular-nums">${escapeHtml([recipient.phone, recipient.email].filter(Boolean).join(' · '))}</div>` : ''}
       </div>
       <div class="box">
         <div class="kv"><span>Issue Date</span><span>${escapeHtml(inv.issueDate || '—')}</span></div>

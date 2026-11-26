@@ -76,7 +76,7 @@ export function InvoiceModal({ invoice, onClose }) {
                             <button
                                 type="button"
                                 onClick={handleCopyNo}
-                                className="text-[11px] font-mono text-emerald-400 hover:text-lime-300 inline-flex items-center gap-1 cursor-pointer"
+                                className="text-[11px] text-emerald-400 hover:text-lime-300 inline-flex items-center gap-1 cursor-pointer"
                                 title="Copy invoice number"
                             >
                                 <span>{invoice.invoiceNumber}</span>
@@ -121,7 +121,7 @@ export function InvoiceModal({ invoice, onClose }) {
                         <div className="space-y-1.5">
                             <CrossbarLogo size="sm"/>
                             <p className="text-[11.5px] text-slate-300 pt-1">{venue.address}</p>
-                            <p className="text-[11px] font-mono text-slate-400">
+                            <p className="text-[11px] text-slate-400">
                                 {[venue.phone, venue.email, venue.website].filter(Boolean).join(' · ')}
                             </p>
                         </div>
@@ -130,11 +130,11 @@ export function InvoiceModal({ invoice, onClose }) {
                             <div className="text-xs font-black uppercase tracking-widest text-lime-400 font-display">
                                 {invoice.docTypeLabel || 'OFFICIAL INVOICE'}
                             </div>
-                            <div className="text-base sm:text-lg font-black font-mono text-white">
+                            <div className="text-base sm:text-lg font-black text-white">
                                 #{invoice.invoiceNumber}
                             </div>
                             <div>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-mono font-bold uppercase border ${badgeCls}`}>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase border ${badgeCls}`}>
                                     {invoice.statusBadge || 'ISSUED'}
                                 </span>
                             </div>
@@ -144,13 +144,13 @@ export function InvoiceModal({ invoice, onClose }) {
                     {/* Billed To + Metadata */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                         <div className="p-4 rounded-2xl bg-[#080d12] border border-white/10 space-y-1">
-                            <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
                                 {invoice.partyLabel || 'BILLED TO'}
                             </div>
                             <div className="text-sm sm:text-base font-bold text-white">{recipient.name || '—'}</div>
                             {recipient.subtitle && <div className="text-slate-300">{recipient.subtitle}</div>}
                             {(recipient.phone || recipient.email) && (
-                                <div className="text-[11.5px] font-mono text-slate-400 pt-0.5 break-all">
+                                <div className="text-[11.5px] text-slate-400 pt-0.5 break-all">
                                     {[recipient.phone, recipient.email].filter(Boolean).join(' · ')}
                                 </div>
                             )}
@@ -159,11 +159,11 @@ export function InvoiceModal({ invoice, onClose }) {
                         <div className="p-4 rounded-2xl bg-[#080d12] border border-white/10 space-y-1.5">
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-slate-400">Issue Date</span>
-                                <span className="font-mono font-bold text-white">{invoice.issueDate || '—'}</span>
+                                <span className="font-bold text-white">{invoice.issueDate || '—'}</span>
                             </div>
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-slate-400">Reference</span>
-                                <span className="font-mono font-bold text-emerald-300">{invoice.referenceCode || invoice.invoiceNumber}</span>
+                                <span className="font-bold text-emerald-300">{invoice.referenceCode || invoice.invoiceNumber}</span>
                             </div>
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-slate-400">Payment Method</span>
@@ -172,7 +172,7 @@ export function InvoiceModal({ invoice, onClose }) {
                             {invoice.transactionRef && (
                                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
                                     <span className="text-slate-400 shrink-0">Txn / Note</span>
-                                    <span className="font-mono text-[11px] text-slate-200 truncate max-w-[190px]" title={invoice.transactionRef}>
+                                    <span className="text-[11px] text-slate-200 truncate max-w-[190px]" title={invoice.transactionRef}>
                                         {invoice.transactionRef}
                                     </span>
                                 </div>
@@ -185,7 +185,7 @@ export function InvoiceModal({ invoice, onClose }) {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/20 text-xs">
                             {highlights.map((h, i) => (
                                 <div key={i} className="min-w-0">
-                                    <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/90 truncate">{h.label}</div>
+                                    <div className="text-[10px] uppercase tracking-wider text-emerald-400/90 truncate">{h.label}</div>
                                     <div className="font-bold text-white truncate mt-0.5" title={String(h.value || '')}>{h.value || '—'}</div>
                                 </div>
                             ))}
@@ -197,7 +197,7 @@ export function InvoiceModal({ invoice, onClose }) {
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead>
-                                    <tr className="bg-white/[0.04] text-left text-[10.5px] font-mono uppercase tracking-wider text-slate-400 border-b border-white/10">
+                                    <tr className="bg-white/[0.04] text-left text-[10.5px] uppercase tracking-wider text-slate-400 border-b border-white/10">
                                         <th className="py-2.5 px-3.5 w-10">#</th>
                                         <th className="py-2.5 px-3.5">Description</th>
                                         <th className="py-2.5 px-3 text-right">Qty</th>
@@ -208,14 +208,14 @@ export function InvoiceModal({ invoice, onClose }) {
                                 <tbody className="divide-y divide-white/[0.06]">
                                     {items.map((it, idx) => (
                                         <tr key={idx}>
-                                            <td className="py-3 px-3.5 font-mono text-slate-500 align-top">{idx + 1}</td>
+                                            <td className="py-3 px-3.5 text-slate-500 align-top">{idx + 1}</td>
                                             <td className="py-3 px-3.5 align-top">
                                                 <div className="font-bold text-white">{it.description}</div>
                                                 {it.meta && <div className="text-[11px] text-slate-400 mt-0.5">{it.meta}</div>}
                                             </td>
-                                            <td className="py-3 px-3 font-mono text-slate-300 text-right align-top whitespace-nowrap">{it.quantity ?? 1}</td>
-                                            <td className="py-3 px-3 font-mono text-slate-300 text-right align-top whitespace-nowrap">{money(it.unitPrice)}</td>
-                                            <td className="py-3 px-3.5 font-mono font-bold text-white text-right align-top whitespace-nowrap">{money(it.amount)}</td>
+                                            <td className="py-3 px-3 text-slate-300 text-right align-top whitespace-nowrap">{it.quantity ?? 1}</td>
+                                            <td className="py-3 px-3 text-slate-300 text-right align-top whitespace-nowrap">{money(it.unitPrice)}</td>
+                                            <td className="py-3 px-3.5 font-bold text-white text-right align-top whitespace-nowrap">{money(it.amount)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -226,7 +226,7 @@ export function InvoiceModal({ invoice, onClose }) {
                     {/* Notes + Totals Breakdown */}
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start text-xs">
                         <div className="sm:col-span-7 p-4 rounded-2xl bg-[#080d12] border border-white/10 space-y-2">
-                            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
                                 Notes &amp; Verification
                             </div>
                             <p className="text-slate-300 leading-relaxed">
@@ -234,11 +234,11 @@ export function InvoiceModal({ invoice, onClose }) {
                             </p>
                             <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500">
                                 <span>Issued by: <strong className="text-slate-300">{invoice.authorizedBy || 'Crossbar Admin'}</strong></span>
-                                <span className="font-mono">{venue.website}</span>
+                                <span>{venue.website}</span>
                             </div>
                         </div>
 
-                        <div className="sm:col-span-5 rounded-2xl bg-[#080d12] border border-white/10 overflow-hidden font-mono">
+                        <div className="sm:col-span-5 rounded-2xl bg-[#080d12] border border-white/10 overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 text-xs">
                                 <span className="font-sans text-slate-400">Subtotal</span>
                                 <span className="text-slate-200">{money(invoice.subtotal ?? invoice.totalAmount)}</span>

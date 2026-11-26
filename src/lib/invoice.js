@@ -128,6 +128,68 @@ export function buildBookingInvoice(booking, siteSettings) {
     };
 }
 
+/** 1b. Booking Token (advance money) Receipt — proof of the token paid to hold a slot */
+export function buildTokenInvoice(booking, siteSettings) {
+    const b = booking || {};
+    const venue = normalizeVenue(siteSettings);
+    const code = b.bookingCode || `BK-${String(b.id || '').slice(-6).toUpperCase() || '0001'}`;
+    const total = Number(b.totalPrice ?? 0) || 0;
+    const token = Number(b.advanceAmount ?? 0) || 0;
+    const cancelled = b.paymentStatus === 'cancelled';
+    const refundDue = b.paymentStatus === 'needs_refund';
+    const balance = cancelled ? 0 : Math.max(0, Number(b.dueAmount ?? (total - token)) || 0);
+    const slot = b.displayTime || `${b.startTime || ''} - ${b.endTime || ''}`;
+    const txn = b.epsTransactionId || b.transactionId || b.gatewayTranId || '';
+
+    return {
+        kind: 'token',
+        docTypeLabel: 'BOOKING TOKEN RECEIPT',
+        invoiceNumber: `TKN-${code}`,
+        referenceCode: code,
+        issueDate: fmtDateShort(b.paidAt || b.createdAt || b.date),
+        dueDate: b.date || '',
+        statusBadge: cancelled ? 'TOKEN CANCELLED' : refundDue ? 'REFUND PENDING' : token > 0 ? 'TOKEN RECEIVED' : 'NO TOKEN PAID',
+        statusTone: cancelled ? 'rose' : refundDue ? 'violet' : token > 0 ? 'emerald' : 'amber',
+        venue,
+        partyLabel: 'TOKEN RECEIVED FROM',
+        recipient: {
+            name: b.captainName || 'Squad Captain',
+            subtitle: b.teamName ? `Squad: ${b.teamName}` : '',
+            phone: b.captainPhone || '',
+            email: b.captainEmail || ''
+        },
+        highlights: [
+            { label: 'Booking Code', value: code },
+            { label: 'Match Date', value: b.date || '-' },
+            { label: 'Kickoff Slot', value: slot.trim() || `Slot #${b.slotNumber || '-'}` },
+            { label: 'Booking Total', value: `৳${Math.round(total).toLocaleString()}` }
+        ],
+        items: [
+            {
+                description: `Slot Booking Token (Advance) — ${b.courtName || venue.name}`,
+                meta: `Holds Slot #${b.slotNumber || '-'} on ${b.date || '-'} · Booking total ৳${Math.round(total).toLocaleString()}`,
+                quantity: 1,
+                unitPrice: token,
+                amount: token
+            }
+        ],
+        subtotal: token,
+        discount: 0,
+        tax: 0,
+        totalAmount: token,
+        paidLabel: 'Token Received',
+        paidAmount: token,
+        dueLabel: 'Remaining Balance (Pay at Arena)',
+        dueAmount: balance,
+        paymentMethod: b.gatewayCardType || methodPretty(b.paymentMethod),
+        transactionRef: txn,
+        notes: cancelled
+            ? 'This booking was cancelled. Any token paid follows the arena refund policy.'
+            : `Token money confirms your slot. The remaining ৳${Math.round(balance).toLocaleString()} is payable at the arena desk before kickoff.`,
+        authorizedBy: b.isWalkIn ? 'Arena Front Desk' : 'Crossbar Automated Booking System'
+    };
+}
+
 /** 2. Payment Ledger Receipt / Invoice (Admin Payments & Customer) */
 export function buildPaymentInvoice(payment, linkedBooking, siteSettings) {
     if (linkedBooking && !linkedBooking.isPublicView) {
