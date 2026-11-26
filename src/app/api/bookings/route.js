@@ -123,7 +123,7 @@ export async function POST(request) {
         const listPrice = slotPrice(pricing, date, slotNumber);
         const override = body.courtPrice !== undefined && body.courtPrice !== null ? Number(body.courtPrice) : (body.totalPrice !== undefined ? Number(body.totalPrice) : NaN);
         const courtPrice = !Number.isNaN(override) && override >= 0 ? override : listPrice;
-        const { addOns, addOnsPrice } = resolveAddOns(body.addOns);
+        const { addOns, addOnsPrice } = resolveAddOns(body.addOns, pricing.bookingAddOns);
         const totalPrice = courtPrice + addOnsPrice;
         const advance = Math.min(Math.max(0, Number(body.advanceAmount ?? body.collected ?? 0) || 0), totalPrice);
         const paymentStatus = statusFromPayment(advance, totalPrice);

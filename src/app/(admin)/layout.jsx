@@ -164,7 +164,7 @@ export default function AdminLayout({ children }) {
                 items: [
                     { label: 'Financial Report', href: '/admin/financial-report', icon: TrendingUp },
                     { label: 'Investors', href: '/admin/investors', icon: Users },
-                    { label: 'Slot Pricing', href: '/admin/slot-pricing', icon: Tag },
+                    { label: 'Pricing & Add-Ons', href: '/admin/slot-pricing', icon: Tag },
                 ]
             },
             {
@@ -271,7 +271,7 @@ export default function AdminLayout({ children }) {
             return { section: 'Finance', title: `Financial Report · ${monthLabel}` };
         }
         if (pathname.includes('/investors')) return { section: 'Finance', title: 'Investors & Payouts' };
-        if (pathname.includes('/slot-pricing')) return { section: 'Finance', title: 'Slot Pricing & Rules' };
+        if (pathname.includes('/slot-pricing')) return { section: 'Finance', title: 'Slot Pricing & Turf Add-Ons' };
         if (pathname.includes('/shop-orders')) return { section: 'Pro Shop', title: 'Shop Orders' };
         if (pathname.includes('/products')) return { section: 'Pro Shop', title: 'Products & Inventory' };
         if (pathname.includes('/registrations')) return { section: 'Tournaments', title: 'Registrations' };

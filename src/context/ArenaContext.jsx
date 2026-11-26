@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { getActiveSlotHolds, placeSlotHold, releaseSlotHold, saveCurrentUser, getStoredSMSLogs, logSMSNotification } from '../utils/storage';
-import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+import { DEFAULT_PRICING, VENUE_INFO, SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '../data/initialData';
 import { cleanPhone } from '../lib/phone';
 import { hasPermission } from '../lib/permissions';
 
@@ -170,6 +170,7 @@ export const ArenaProvider = ({ children }) => {
                 ...prev,
                 ...p,
                 slotPrices: Array.isArray(p.slotPrices) && p.slotPrices.length === 12 ? p.slotPrices : (prev.slotPrices || SCHEDULE_SLOTS_DEFINITION),
+                bookingAddOns: Array.isArray(p.bookingAddOns) ? p.bookingAddOns : (prev.bookingAddOns || BOOKING_ADDONS),
                 weekendDays: Array.isArray(p.weekendDays) && p.weekendDays.length ? p.weekendDays : (prev.weekendDays || ['Friday', 'Saturday'])
             }));
         }
@@ -505,6 +506,10 @@ export const ArenaProvider = ({ children }) => {
     }, [bookings, otherIncome, refunds, expenses, investors, payouts, pricing]);
 
     const currentMonthFinance = useMemo(() => calculateMonthlyFinance(todayDhaka().slice(0, 7)), [calculateMonthlyFinance]);
+    const activeBookingAddOns = useMemo(
+        () => (Array.isArray(pricing?.bookingAddOns) ? pricing.bookingAddOns : BOOKING_ADDONS).filter(a => a && a.enabled !== false),
+        [pricing?.bookingAddOns]
+    );
     const grossRevenue = currentMonthFinance.totalRevenue;
     const totalExpenses = currentMonthFinance.totalExpenses;
     const netProfit = currentMonthFinance.netProfit;
@@ -1082,7 +1087,7 @@ export const ArenaProvider = ({ children }) => {
     }, [showNotice]);
 
     const value = useMemo(() => ({
-        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice, setNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer, setShowCartDrawer,
@@ -1107,7 +1112,7 @@ export const ArenaProvider = ({ children }) => {
         handleSavePhoto, handleDeletePhoto, handleToggleFeaturedPhoto,
         sendSMSNotification, exportDatabaseBackup, handleRestoreDatabase, refreshData: loadRealBackendData
     }), [
-        bookings, myBookings, slotHolds, pricing, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
+        bookings, myBookings, slotHolds, pricing, activeBookingAddOns, expenses, investors, myInvestorId, payouts, refunds, otherIncome, teams, myTeams, matchResults, myMatchResults,
         shopProducts, shopReservations, tournaments, registrations, challenges, myChallenges, galleryPhotos, users, roles, currentUser, authChecked,
         isVisitor, isAdmin, isInvestor, isStaff, canAccessAdmin, can, smsLogs, siteSettings, paymentGateways, isInitialized, isLoadingData, loadError, notice, showNotice,
         cartItems, addToCart, removeFromCart, clearCart, showCartDrawer,

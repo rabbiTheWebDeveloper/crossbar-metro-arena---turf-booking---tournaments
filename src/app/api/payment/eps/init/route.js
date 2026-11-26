@@ -80,7 +80,7 @@ export async function POST(request) {
 
         // Server-computed pricing (client prices are never trusted)
         const courtPrice = slotPrice(pricing, pb.date, slotNumber);
-        const { addOns, addOnsPrice } = resolveAddOns(pb.addOns);
+        const { addOns, addOnsPrice } = resolveAddOns(pb.addOns, pricing.bookingAddOns);
         const totalPrice = courtPrice + addOnsPrice;
         const paymentType = pb.paymentType === 'full_payment' ? 'full_payment' : 'advance_500';
         const payableAmount = paymentType === 'full_payment' ? totalPrice : Math.min(pricing.advanceAmount, totalPrice);

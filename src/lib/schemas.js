@@ -194,6 +194,53 @@ export function validateSlotPrices(slots) {
 
 export const isDayName = (d) => DAY_NAMES.includes(d);
 
+/**
+ * Validate configurable Optional Turf Equipment Add-Ons (`Setting.bookingAddOns`).
+ * Returns `{ value }` (cleaned array) or `{ error }`.
+ */
+export function validateBookingAddOns(items) {
+    if (!Array.isArray(items)) return { error: 'Equipment add-ons must be an array.' };
+    if (items.length > 30) return { error: 'You can configure at most 30 equipment add-ons.' };
+    const seen = new Set();
+    const out = [];
+    for (let i = 0; i < items.length; i++) {
+        const raw = items[i] || {};
+        const name = String(raw.name || '').trim().replace(/\s+/g, ' ');
+        if (name.length < 2 || name.length > 100) {
+            return { error: `Add-on #${i + 1}: name must be between 2 and 100 characters.` };
+        }
+        const description = String(raw.description || '').trim().replace(/\s+/g, ' ');
+        if (description.length > 200) {
+            return { error: `Add-on "${name}": description must be at most 200 characters.` };
+        }
+        const price = Number(raw.price);
+        if (!Number.isFinite(price) || price < 0 || price > 100000) {
+            return { error: `Add-on "${name}": price must be between ৳0 and ৳100,000.` };
+        }
+        let id = String(raw.id || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 40);
+        if (!id) {
+            id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || `addon-${i + 1}`;
+        }
+        if (seen.has(id)) {
+            id = `${id}-${i + 1}`;
+        }
+        seen.add(id);
+        out.push({
+            id,
+            name,
+            description,
+            price: Math.round(price),
+            enabled: raw.enabled !== false
+        });
+    }
+    return { value: out };
+}
+
 export const INVESTOR_SCHEMA = {
     name: { type: 'string', required: true, min: 2, max: 80, label: 'Investor name' },
     email: { type: 'email', label: 'Email' },

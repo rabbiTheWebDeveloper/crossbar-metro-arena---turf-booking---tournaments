@@ -8,7 +8,7 @@ import { useArena } from '../../../context/ArenaContext';
 import { Info, MapPin, Train, ShieldCheck, Clock, CheckCircle2, Calendar } from 'lucide-react';
 import Link from 'next/link';
 export default function AboutPage() {
-    const { pricing } = useArena();
+    const { pricing, activeBookingAddOns } = useArena();
     return (<>
       <PageHero crumb="About Venue" eyebrow="Dhaka's Premier Sports Destination" eyebrowIcon={Info} title="Crossbar Metro" highlight="Arena & Pitches" description="Built for football lovers right next to Uttara Center Metro Station. 12 daily 90-minute slots, professional 400-lux stadium floodlights, and seamless online booking." stats={[
             { label: 'Location', value: 'Sector 17, Uttara', icon: MapPin },
@@ -126,6 +126,26 @@ export default function AboutPage() {
               </tbody>
             </table>
           </div>
+          {activeBookingAddOns && activeBookingAddOns.length > 0 && (
+            <div className="pt-4 space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">
+                Optional Turf Equipment Add-Ons (Available at Checkout)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeBookingAddOns.map(addon => (
+                  <div key={addon.id} className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-bold text-white">{addon.name}</div>
+                      {addon.description ? <div className="text-xs text-slate-400 mt-0.5">{addon.description}</div> : null}
+                    </div>
+                    <span className="text-sm font-mono font-black text-emerald-400 shrink-0">
+                      +৳{Number(addon.price || 0).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Venue Location Section */}

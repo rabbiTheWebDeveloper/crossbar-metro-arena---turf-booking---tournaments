@@ -37,9 +37,11 @@ export function kickoffDate(dateIso, startTime = '00:00') {
 export async function loadPricing() {
     const settings = await Setting.getOrCreateSettings();
     const slotPrices = settings.slotPrices && settings.slotPrices.length === 12 ? settings.slotPrices : SCHEDULE_SLOTS_DEFINITION;
+    const bookingAddOns = Array.isArray(settings.bookingAddOns) ? settings.bookingAddOns : BOOKING_ADDONS;
     return {
         settings,
         slotPrices,
+        bookingAddOns,
         weekendDays: settings.weekendDays && settings.weekendDays.length ? settings.weekendDays : ['Friday', 'Saturday'],
         advanceAmount: settings.advanceAmount ?? 500,
         holdMinutes: settings.holdMinutes ?? 10,
@@ -60,11 +62,12 @@ export function slotPrice(pricing, dateIso, slotNumber) {
     return isWeekend(dateIso, pricing.weekendDays) ? Number(def.weekendPrice) : Number(def.weekdayPrice);
 }
 
-/** Resolve add-on ids (or objects with ids) to the canonical catalogue entries and their total. */
-export function resolveAddOns(input) {
+/** Resolve add-on ids (or objects with ids) to the active configured catalogue entries and their total. */
+export function resolveAddOns(input, catalogue = BOOKING_ADDONS) {
+    const activeList = (Array.isArray(catalogue) ? catalogue : BOOKING_ADDONS).filter(a => a && a.enabled !== false);
     const ids = (Array.isArray(input) ? input : []).map(a => (typeof a === 'string' ? a : a?.id)).filter(Boolean);
-    const addOns = [...new Set(ids)].map(id => BOOKING_ADDONS.find(a => a.id === id)).filter(Boolean)
-        .map(a => ({ id: a.id, name: a.name, description: a.description, price: a.price, iconName: a.iconName || '' }));
+    const addOns = [...new Set(ids)].map(id => activeList.find(a => a.id === id)).filter(Boolean)
+        .map(a => ({ id: a.id, name: a.name, description: a.description || '', price: Number(a.price) || 0, iconName: a.iconName || '' }));
     return { addOns, addOnsPrice: addOns.reduce((s, a) => s + a.price, 0) };
 }
 

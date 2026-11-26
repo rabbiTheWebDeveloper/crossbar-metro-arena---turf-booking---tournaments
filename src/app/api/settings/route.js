@@ -3,10 +3,10 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { requirePermission, can } from '@/lib/apiAuth';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
-import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
+import { SETTINGS_SCHEMA, validateSlotPrices, validateBookingAddOns, isDayName } from '@/lib/schemas';
 import { isEpsConfigured } from '@/service/eps-service';
 
-const PRICING_KEYS = ['slotPrices', 'morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours', 'weekendDays', 'approveResultsFirst'];
+const PRICING_KEYS = ['slotPrices', 'bookingAddOns', 'morningSlotPrice', 'afternoonSlotPrice', 'eveningSlotPrice', 'weekendSurcharge', 'advanceAmount', 'holdMinutes', 'bookingWindowDays', 'cancellationHours', 'weekendDays', 'approveResultsFirst'];
 
 /** Split one Setting document into the two shapes the client uses. */
 function shape(settings, paymentGateways) {
@@ -51,7 +51,7 @@ export async function PUT(request) {
         const { data, error } = validate(merged, SETTINGS_SCHEMA, { partial: true });
         if (error) return badRequest(error);
 
-        const touchesPricing = merged.slotPrices !== undefined || Object.keys(data).some(k => PRICING_KEYS.includes(k));
+        const touchesPricing = merged.slotPrices !== undefined || merged.bookingAddOns !== undefined || Object.keys(data).some(k => PRICING_KEYS.includes(k));
         const touchesVenue = Object.keys(data).some(k => !PRICING_KEYS.includes(k));
         if ((touchesPricing && !can(user, 'pricing')) || (touchesVenue && !can(user, 'settings'))) {
             return NextResponse.json({ error: 'You do not have permission to change those settings.' }, { status: 403 });
@@ -68,8 +68,29 @@ export async function PUT(request) {
             return badRequest('Slot prices must be a list of 12 slots.');
         }
 
+        let bookingAddOns;
+        if (merged.bookingAddOns !== undefined) {
+            const checkedAddOns = validateBookingAddOns(merged.bookingAddOns);
+            if (checkedAddOns.error) return badRequest(checkedAddOns.error);
+            bookingAddOns = checkedAddOns.value;
+        }
+
         await connectToDatabase();
         const settings = await Setting.getOrCreateSettings();
+
+        if (bookingAddOns !== undefined) {
+            const nextIds = new Set(bookingAddOns.map(a => a.id));
+            const removedAny = (settings.bookingAddOns || []).some(existing => existing?.id && !nextIds.has(existing.id));
+            if (removedAny && user.role !== 'admin') {
+                return NextResponse.json(
+                    { error: 'Only Super Admin has permission to delete turf equipment add-ons.' },
+                    { status: 403 }
+                );
+            }
+            settings.bookingAddOns = bookingAddOns;
+            settings.bookingAddOnsSeeded = true;
+        }
+
         settings.set(data);
         if (slotPrices) settings.slotPrices = slotPrices;
         await settings.save();

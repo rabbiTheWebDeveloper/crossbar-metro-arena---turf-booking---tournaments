@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validate } from '@/lib/validate';
-import { INVESTOR_SCHEMA, BULK_BOOKING_SCHEMA, validateSlotPrices } from '@/lib/schemas';
+import { INVESTOR_SCHEMA, BULK_BOOKING_SCHEMA, validateSlotPrices, validateBookingAddOns } from '@/lib/schemas';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 
 describe('validate() & schemas', () => {
@@ -84,5 +84,24 @@ describe('validate() & schemas', () => {
 
         const bad = validateSlotPrices(SCHEDULE_SLOTS_DEFINITION.slice(0, 5));
         expect(bad.error).toMatch(/12 slots/i);
+    });
+
+    it('validates dynamic turf equipment add-ons and supports empty or disabled items', () => {
+        const res = validateBookingAddOns([
+            { name: '  Certified Match Referee  ', price: 600, description: '  90 min match referee ', enabled: true },
+            { id: 'gopro', name: 'GoPro Match Recording', price: 850, description: 'Full HD highlight footage', enabled: false }
+        ]);
+        expect(res.error).toBeUndefined();
+        expect(res.value).toEqual([
+            { id: 'certified-match-referee', name: 'Certified Match Referee', price: 600, description: '90 min match referee', enabled: true },
+            { id: 'gopro', name: 'GoPro Match Recording', price: 850, description: 'Full HD highlight footage', enabled: false }
+        ]);
+
+        const empty = validateBookingAddOns([]);
+        expect(empty.error).toBeUndefined();
+        expect(empty.value).toEqual([]);
+
+        const badPrice = validateBookingAddOns([{ name: 'Bad Item', price: -50 }]);
+        expect(badPrice.error).toMatch(/price/i);
     });
 });

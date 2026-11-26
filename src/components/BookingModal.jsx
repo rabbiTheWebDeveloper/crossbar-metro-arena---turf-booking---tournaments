@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { BOOKING_ADDONS } from '../data/initialData';
 import { useArena, cleanPhone } from '../context/ArenaContext';
 import { formatIsoDate, BD_PHONE_REGEX } from '../lib/dateUtils';
 import { X, Shield, Phone, User, Users, AlertCircle, Timer, Check, ArrowRight } from 'lucide-react';
@@ -11,7 +10,7 @@ import { X, Shield, Phone, User, Users, AlertCircle, Timer, Check, ArrowRight } 
  * server-priced payment. No prices are ever sent to the server from here.
  */
 export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
-    const { handlePlaceSlotHold, handleReleaseSlotHold, currentUser, isVisitor, pricing, teams, setShowSSLCommerzModal, setPendingBookingData, customerSettings } = useArena();
+    const { handlePlaceSlotHold, handleReleaseSlotHold, currentUser, isVisitor, pricing, activeBookingAddOns, teams, setShowSSLCommerzModal, setPendingBookingData, customerSettings } = useArena();
     const gatewayLabel = 'EPS';
 
     const captainTeams = useMemo(() => {
@@ -58,8 +57,9 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
     // Price preview (same rules the server applies; the server recomputes before payment)
     const advanceSetting = Number(pricing.advanceAmount) > 0 ? Number(pricing.advanceAmount) : 500;
     const courtPrice = Number(slot.price) || 0;
-    const selectedAddOns = BOOKING_ADDONS.filter(a => selectedAddOnIds.includes(a.id));
-    const addOnsTotal = selectedAddOns.reduce((sum, item) => sum + item.price, 0);
+    const availableAddOns = Array.isArray(activeBookingAddOns) ? activeBookingAddOns : [];
+    const selectedAddOns = availableAddOns.filter(a => selectedAddOnIds.includes(a.id));
+    const addOnsTotal = selectedAddOns.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
     const totalPrice = courtPrice + addOnsTotal;
     const advanceAmount = paymentChoice === 'advance_500' ? Math.min(advanceSetting, totalPrice) : totalPrice;
     const dueAmount = Math.max(0, totalPrice - advanceAmount);
@@ -95,7 +95,7 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
             teamName: teamName.trim(),
             playerCount: 14,
             matchType,
-            addOns: selectedAddOnIds,
+            addOns: selectedAddOns.map(a => a.id),
             paymentType: paymentChoice,
             notes: notes.trim()
         };
@@ -201,37 +201,39 @@ export const BookingModal = ({ court, slot, selectedDate, onClose }) => {
             </div>
           </div>
 
-          {/* 2. Add-ons */}
-          <div className="space-y-3 pt-2 border-t border-white/10">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              2. Optional Turf Equipment Add-Ons
-            </h4>
+          {/* 2. Add-ons (dynamically driven by Admin > Pricing & Add-Ons) */}
+          {availableAddOns.length > 0 && (
+            <div className="space-y-3 pt-2 border-t border-white/10">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                2. Optional Turf Equipment Add-Ons
+              </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {BOOKING_ADDONS.map(addon => {
-                  const isSelected = selectedAddOnIds.includes(addon.id);
-                  return (<button type="button" key={addon.id} onClick={() => toggleAddOn(addon)} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-left ${isSelected
-                      ? 'bg-emerald-500/15 border-emerald-500 text-white'
-                      : 'bg-white/[0.02] border-white/10 text-slate-300 hover:bg-white/5'}`}>
-                    <div>
-                      <div className="text-xs font-bold">{addon.name}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">{addon.description}</div>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <div className="text-xs font-mono font-bold text-emerald-400">+৳{addon.price}</div>
-                      <div className={`w-4 h-4 rounded-md border mt-1 ml-auto flex items-center justify-center ${isSelected ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-white/20'}`}>
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]"/>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {availableAddOns.map(addon => {
+                    const isSelected = selectedAddOnIds.includes(addon.id);
+                    return (<button type="button" key={addon.id} onClick={() => toggleAddOn(addon)} className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between text-left ${isSelected
+                        ? 'bg-emerald-500/15 border-emerald-500 text-white'
+                        : 'bg-white/[0.02] border-white/10 text-slate-300 hover:bg-white/5'}`}>
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs font-bold">{addon.name}</div>
+                        {addon.description ? <div className="text-[11px] text-slate-400 mt-0.5">{addon.description}</div> : null}
                       </div>
-                    </div>
-                  </button>);
-              })}
+                      <div className="text-right shrink-0 ml-2">
+                        <div className="text-xs font-mono font-bold text-emerald-400">+৳{Number(addon.price || 0).toLocaleString()}</div>
+                        <div className={`w-4 h-4 rounded-md border mt-1 ml-auto flex items-center justify-center ${isSelected ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-white/20'}`}>
+                          {isSelected && <Check className="w-3 h-3 stroke-[3]"/>}
+                        </div>
+                      </div>
+                    </button>);
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 3. Payment option */}
           <div className="space-y-3 pt-2 border-t border-white/10">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              3. Payment Option (bKash / Nagad / Cards via {gatewayLabel})
+              {availableAddOns.length > 0 ? '3.' : '2.'} Payment Option (bKash / Nagad / Cards via {gatewayLabel})
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

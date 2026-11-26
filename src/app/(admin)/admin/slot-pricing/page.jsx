@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useArena } from '@/context/ArenaContext';
-import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
-import { Clock, Save, CheckCircle2, ShieldCheck, Award } from 'lucide-react';
+import { SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '@/data/initialData';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import { Clock, Save, CheckCircle2, ShieldCheck, Award, Plus, Pencil, Trash2, Sparkles, Eye, EyeOff, X, RotateCcw, Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -17,8 +18,9 @@ const to12 = (hhmm) => {
 const displayRange = (start, end) => `${to12(start)} – ${to12(end)}`;
 
 export default function AdminSlotPricingPage() {
-    const { pricing, handleSavePricing, isLoadingData } = useArena();
+    const { pricing, handleSavePricing, isLoadingData, isAdmin } = useArena();
     const [slotPrices, setSlotPrices] = useState(SCHEDULE_SLOTS_DEFINITION);
+    const [bookingAddOns, setBookingAddOns] = useState(BOOKING_ADDONS);
     const [advanceAmount, setAdvanceAmount] = useState(500);
     const [holdMinutes, setHoldMinutes] = useState(10);
     const [bookingWindowDays, setBookingWindowDays] = useState(60);
@@ -30,10 +32,18 @@ export default function AdminSlotPricingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
+    // Optional Turf Equipment Add-Ons modal & delete confirmation state
+    const [addonModal, setAddonModal] = useState(null); // { mode: 'create'|'edit', id, name, price, description, enabled }
+    const [addonFormError, setAddonFormError] = useState('');
+    const [addonBusy, setAddonBusy] = useState(false);
+    const [deleteAddonTarget, setDeleteAddonTarget] = useState(null);
+    const [deleteAddonError, setDeleteAddonError] = useState('');
+
     // Sync the form from the server-loaded pricing (not just once on mount)
     useEffect(() => {
         if (!pricing) return;
         setSlotPrices(Array.isArray(pricing.slotPrices) && pricing.slotPrices.length === 12 ? pricing.slotPrices.map(s => ({ ...s })) : SCHEDULE_SLOTS_DEFINITION);
+        setBookingAddOns(Array.isArray(pricing.bookingAddOns) ? pricing.bookingAddOns.map(a => ({ ...a, enabled: a.enabled !== false })) : BOOKING_ADDONS);
         setAdvanceAmount(nonNeg(pricing.advanceAmount ?? 500));
         setHoldMinutes(nonNeg(pricing.holdMinutes ?? 10));
         setBookingWindowDays(nonNeg(pricing.bookingWindowDays ?? 60));
@@ -64,6 +74,91 @@ export default function AdminSlotPricingPage() {
         setWeekendDays(prev => (prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]));
     };
 
+    // ---- Optional Turf Equipment Add-Ons CRUD (saves straight to MongoDB so public website updates immediately) ----
+    const openCreateAddon = () => {
+        setAddonFormError('');
+        setAddonModal({ mode: 'create', id: '', name: '', price: 200, description: '', enabled: true });
+    };
+
+    const openEditAddon = (addon) => {
+        setAddonFormError('');
+        setAddonModal({
+            mode: 'edit',
+            id: addon.id,
+            name: addon.name || '',
+            price: Number(addon.price) || 0,
+            description: addon.description || '',
+            enabled: addon.enabled !== false
+        });
+    };
+
+    const handleAddonModalSubmit = async (e) => {
+        e.preventDefault();
+        if (!addonModal || addonBusy) return;
+        setAddonFormError('');
+        const name = String(addonModal.name || '').trim().replace(/\s+/g, ' ');
+        const description = String(addonModal.description || '').trim().replace(/\s+/g, ' ');
+        const price = Number(addonModal.price);
+
+        if (name.length < 2) { setAddonFormError('Enter an add-on title (at least 2 characters).'); return; }
+        if (!Number.isFinite(price) || price < 0 || price > 100000) { setAddonFormError('Price must be between ৳0 and ৳100,000.'); return; }
+
+        let id = addonModal.id;
+        if (addonModal.mode === 'create' || !id) {
+            const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28) || 'addon';
+            const used = new Set(bookingAddOns.map(a => a.id));
+            id = used.has(base) ? `${base}-${Date.now().toString(36).slice(-4)}` : base;
+        }
+
+        const item = { id, name, description, price: Math.round(price), enabled: Boolean(addonModal.enabled) };
+        const nextList = addonModal.mode === 'edit'
+            ? bookingAddOns.map(a => (a.id === addonModal.id ? item : a))
+            : [...bookingAddOns, item];
+
+        setAddonBusy(true);
+        const res = await handleSavePricing({ bookingAddOns: nextList });
+        setAddonBusy(false);
+        if (!res?.ok) {
+            setAddonFormError(res?.error || 'Could not save equipment add-on.');
+            return;
+        }
+        setBookingAddOns(nextList);
+        setAddonModal(null);
+    };
+
+    const handleToggleAddonEnabled = async (addon) => {
+        if (addonBusy) return;
+        const nextList = bookingAddOns.map(a => (a.id === addon.id ? { ...a, enabled: a.enabled === false } : a));
+        setAddonBusy(true);
+        const res = await handleSavePricing({ bookingAddOns: nextList });
+        setAddonBusy(false);
+        if (res?.ok) setBookingAddOns(nextList);
+    };
+
+    const handleRestoreDefaultAddOns = async () => {
+        if (addonBusy) return;
+        const defaults = BOOKING_ADDONS.map(a => ({ ...a, enabled: true }));
+        setAddonBusy(true);
+        const res = await handleSavePricing({ bookingAddOns: defaults });
+        setAddonBusy(false);
+        if (res?.ok) setBookingAddOns(defaults);
+    };
+
+    const handleConfirmDeleteAddon = async () => {
+        if (!deleteAddonTarget || addonBusy) return;
+        setDeleteAddonError('');
+        const nextList = bookingAddOns.filter(a => a.id !== deleteAddonTarget.id);
+        setAddonBusy(true);
+        const res = await handleSavePricing({ bookingAddOns: nextList });
+        setAddonBusy(false);
+        if (!res?.ok) {
+            setDeleteAddonError(res?.error || 'Could not delete equipment add-on.');
+            return;
+        }
+        setBookingAddOns(nextList);
+        setDeleteAddonTarget(null);
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
@@ -89,6 +184,7 @@ export default function AdminSlotPricingPage() {
                 weekdayActualPrice: nonNeg(s.weekdayActualPrice),
                 weekendActualPrice: nonNeg(s.weekendActualPrice)
             })),
+            bookingAddOns,
             advanceAmount: nonNeg(advanceAmount),
             holdMinutes: nonNeg(holdMinutes),
             bookingWindowDays: nonNeg(bookingWindowDays),
@@ -117,10 +213,10 @@ export default function AdminSlotPricingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
         <div>
           <h2 className="text-xl font-black text-white font-display">
-Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
+            Slot Pricing, Rules &amp; Turf Equipment Add-Ons
           </h2>
           <p className="text-xs text-slate-400">
-            Set the kick-off times and, for weekdays and weekends, the actual price and the offer price of all 12 slots. Customers pay the offer price.
+            Configure the 12 daily slot rates, booking hold rules, and Optional Turf Equipment Add-Ons shown on the public website checkout.
           </p>
         </div>
 
@@ -314,6 +410,130 @@ Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
 
         {error && (<div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">{error}</div>)}
 
+        {/* OPTIONAL TURF EQUIPMENT ADD-ONS MANAGER */}
+        <div id="addons" className="p-5 rounded-3xl bg-[#0c131a] border border-emerald-500/20 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-lime-400"/>
+                <span>Optional Turf Equipment Add-Ons</span>
+                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  {bookingAddOns.filter(a => a.enabled !== false).length} live on website
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Customers see and select these optional extras during online slot booking (e.g. Certified Referee, Team Bibs, Match Ball, Water Pack). Changes go live immediately.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {bookingAddOns.length === 0 && (
+                <button
+                  type="button"
+                  disabled={addonBusy}
+                  onClick={handleRestoreDefaultAddOns}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-emerald-400"/>
+                  <span>Restore Defaults</span>
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={addonBusy || bookingAddOns.length >= 30}
+                onClick={openCreateAddon}
+                className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black text-xs uppercase tracking-wider inline-flex items-center gap-1.5 shadow-md shadow-lime-400/15 cursor-pointer disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4 stroke-[3]"/>
+                <span>Add Add-On</span>
+              </button>
+            </div>
+          </div>
+
+          {bookingAddOns.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-[#080d12] border border-white/10 text-center space-y-2 text-xs text-slate-400">
+              <p className="font-bold text-white">No turf equipment add-ons configured</p>
+              <p>The &quot;Optional Turf Equipment Add-Ons&quot; step is currently hidden on public booking checkout. Click &quot;Add Add-On&quot; or &quot;Restore Defaults&quot; to publish items.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {bookingAddOns.map(addon => {
+                const active = addon.enabled !== false;
+                return (
+                  <div
+                    key={addon.id}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                      active
+                        ? 'bg-[#080d12] border-white/10 hover:border-emerald-400/35'
+                        : 'bg-[#080d12]/60 border-white/5 opacity-65'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-white">{addon.name}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                            active
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              : 'bg-white/5 text-slate-400 border-white/10'
+                          }`}>
+                            {active ? 'Live' : 'Hidden'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {addon.description || 'Optional match-day turf add-on'}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-mono font-black text-lime-400">
+                          +৳{Number(addon.price || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-end gap-1.5 text-xs">
+                      <button
+                        type="button"
+                        disabled={addonBusy}
+                        onClick={() => handleToggleAddonEnabled(addon)}
+                        className="px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 text-slate-300 hover:text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title={active ? 'Hide from public booking form' : 'Show on public booking form'}
+                      >
+                        {active ? <EyeOff className="w-3.5 h-3.5"/> : <Eye className="w-3.5 h-3.5 text-emerald-400"/>}
+                        <span>{active ? 'Hide' : 'Show'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={addonBusy}
+                        onClick={() => openEditAddon(addon)}
+                        className="px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-lime-400"/>
+                        <span>Edit</span>
+                      </button>
+
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={addonBusy}
+                          onClick={() => { setDeleteAddonError(''); setDeleteAddonTarget(addon); }}
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-300 font-bold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          title="Delete add-on (Super Admin only)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5"/>
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Save button (sticky above mobile app dock when dirty) */}
         <div className={`flex items-center justify-between sm:justify-end gap-3 ${dirty ? 'sticky bottom-[4.75rem] md:bottom-3 z-20 p-3 rounded-2xl bg-[#0c131a]/95 border border-amber-400/30 backdrop-blur-md shadow-2xl' : ''}`}>
           {dirty && !isSubmitting ? <span className="text-[11px] text-amber-300 font-mono">Unsaved changes</span> : <span className="sm:hidden" />}
@@ -324,6 +544,133 @@ Slot Pricing (Actual &amp; Offer) &amp; Turf Rules
         </div>
 
       </form>)}
+
+      {/* ADD / EDIT EQUIPMENT ADD-ON MODAL */}
+      {addonModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="addon-modal-title"
+          onClick={(e) => { if (e.target === e.currentTarget && !addonBusy) setAddonModal(null); }}
+        >
+          <div className="bg-[#0c131a] border-t sm:border border-lime-400/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-6 max-w-md w-full space-y-4 shadow-2xl text-xs">
+            <div className="sm:hidden w-10 h-1 rounded-full bg-white/15 mx-auto -mt-1 mb-1"/>
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h3 id="addon-modal-title" className="text-base font-bold text-white font-display">
+                {addonModal.mode === 'edit' ? 'Edit Turf Equipment Add-On' : 'Add Turf Equipment Add-On'}
+              </h3>
+              <button
+                type="button"
+                disabled={addonBusy}
+                onClick={() => setAddonModal(null)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4"/>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddonModalSubmit} className="space-y-3.5">
+              <div>
+                <label htmlFor="addon-name" className="block text-slate-300 font-semibold mb-1">
+                  Add-On Name <span className="text-lime-400">*</span>
+                </label>
+                <input
+                  id="addon-name"
+                  type="text"
+                  required
+                  maxLength={100}
+                  placeholder="e.g. Certified Match Referee"
+                  value={addonModal.name}
+                  onChange={e => setAddonModal(m => ({ ...m, name: e.target.value }))}
+                  className="w-full bg-[#080d12] border border-white/10 focus:border-lime-400/60 rounded-xl px-3 py-2.5 text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="addon-price" className="block text-slate-300 font-semibold mb-1">
+                  Extra Charge (৳) <span className="text-lime-400">*</span>
+                </label>
+                <input
+                  id="addon-price"
+                  type="number"
+                  required
+                  min={0}
+                  max={100000}
+                  step={10}
+                  value={addonModal.price}
+                  onChange={e => setAddonModal(m => ({ ...m, price: e.target.value }))}
+                  className="w-full bg-[#080d12] border border-white/10 focus:border-lime-400/60 rounded-xl px-3 py-2.5 text-white font-mono outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="addon-desc" className="block text-slate-300 font-semibold mb-1">
+                  Subtitle / Description
+                </label>
+                <input
+                  id="addon-desc"
+                  type="text"
+                  maxLength={200}
+                  placeholder="e.g. Official referee for 90 minutes match"
+                  value={addonModal.description}
+                  onChange={e => setAddonModal(m => ({ ...m, description: e.target.value }))}
+                  className="w-full bg-[#080d12] border border-white/10 focus:border-lime-400/60 rounded-xl px-3 py-2.5 text-white outline-none"
+                />
+              </div>
+
+              <label className="p-3 rounded-xl bg-[#080d12] border border-white/10 flex items-center justify-between gap-3 cursor-pointer select-none">
+                <div>
+                  <div className="font-semibold text-white">Show on public website</div>
+                  <div className="text-[11px] text-slate-400">Customers can select this add-on during online booking</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(addonModal.enabled)}
+                  onChange={e => setAddonModal(m => ({ ...m, enabled: e.target.checked }))}
+                  className="w-4 h-4 accent-lime-400 cursor-pointer shrink-0"
+                />
+              </label>
+
+              {addonFormError && (
+                <p role="alert" className="text-rose-400 text-xs">{addonFormError}</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={addonBusy}
+                  onClick={() => setAddonModal(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addonBusy}
+                  className="flex-1 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-black uppercase tracking-wider inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {addonBusy && <Loader2 className="w-3.5 h-3.5 animate-spin"/>}
+                  <span>{addonBusy ? 'Saving…' : addonModal.mode === 'edit' ? 'Update Add-On' : 'Add Add-On'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteAddonTarget)}
+        badge="Delete Turf Add-On · Super Admin"
+        title="Are you sure you want to delete this turf equipment add-on?"
+        itemName={deleteAddonTarget ? `${deleteAddonTarget.name} (+৳${Number(deleteAddonTarget.price || 0).toLocaleString()})` : ''}
+        description="This permanently removes the add-on from the public booking checkout. Existing bookings that already included it are unaffected."
+        loading={addonBusy}
+        error={deleteAddonError}
+        onCancel={() => { if (!addonBusy) setDeleteAddonTarget(null); }}
+        onConfirm={handleConfirmDeleteAddon}
+      />
 
     </div>);
 }

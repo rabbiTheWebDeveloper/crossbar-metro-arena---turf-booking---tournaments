@@ -6,7 +6,8 @@ import {
     isWeekend,
     addDays,
     generateBookingCode,
-    publicBookingView
+    publicBookingView,
+    resolveAddOns
 } from '@/lib/booking';
 import {
     formatMoney,
@@ -80,6 +81,18 @@ describe('booking helpers', () => {
         expect(view.captainPhone).toBeUndefined();
         expect(view.captainName).toBeUndefined();
         expect(view.advanceAmount).toBeUndefined();
+    });
+
+    it('resolves dynamic admin-configured add-ons while ignoring hidden/deleted items', () => {
+        const customCatalogue = [
+            { id: 'referee', name: 'Certified Match Referee', price: 650, description: 'Updated rate', enabled: true },
+            { id: 'drone', name: 'Drone Footage', price: 1200, description: 'Aerial highlights', enabled: true },
+            { id: 'water', name: 'Water Pack', price: 400, description: 'Out of stock', enabled: false }
+        ];
+        const resolved = resolveAddOns(['referee', 'drone', 'water', 'deleted-id', 'referee'], customCatalogue);
+        expect(resolved.addOns).toHaveLength(2);
+        expect(resolved.addOnsPrice).toBe(1850);
+        expect(resolved.addOns.map(a => a.id)).toEqual(['referee', 'drone']);
     });
 });
 

@@ -56,7 +56,7 @@ const SummaryRow = ({ label, value, mono }) => (
  *   date / onDateChange: selected day (YYYY-MM-DD)      period / onPeriodChange: 'all' | period key
  */
 export function SlotPicker({ availability, ready, date, onDateChange, period, onPeriodChange }) {
-    const { pricing, currentUser, showNotice, isInitialized } = useArena();
+    const { pricing, activeBookingAddOns, currentUser, showNotice, isInitialized } = useArena();
     const { today, lastDate, slotsFor, secondsToRefresh, refreshing, refreshNow } = availability;
     const [selectedNumber, setSelectedNumber] = useState(null);
     const [checkoutSlot, setCheckoutSlot] = useState(null);
@@ -212,6 +212,21 @@ export function SlotPicker({ availability, ready, date, onDateChange, period, on
                             <Button onClick={continueToPayment} disabled={!selected} className="mt-6 w-full">
                                 {selected ? 'Continue to payment' : 'Pick a slot to continue'}
                             </Button>
+                            {activeBookingAddOns && activeBookingAddOns.length > 0 ? (
+                                <div className="mt-5 rounded-xl border border-hairline bg-ink/50 p-3.5">
+                                    <div className="font-code text-[11px] uppercase tracking-[0.14em] text-neon">
+                                        Optional Turf Equipment Add-Ons
+                                    </div>
+                                    <ul className="mt-2 space-y-1.5 text-[13px] text-paper/80">
+                                        {activeBookingAddOns.map(addon => (
+                                            <li key={addon.id} className="flex items-baseline justify-between gap-2">
+                                                <span className="truncate">{addon.name}</span>
+                                                <span className="font-code text-[12px] text-neon shrink-0">+৳{Number(addon.price || 0).toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : null}
                             <p className="mt-5 text-[14px] leading-[1.5] text-paper/60">
                                 We hold your slot for {holdMinutes} minutes while you pay. Lock it with a {bdt(advance)} advance or pay in full. Changes up to {cancelHours} hours before kick-off go through the arena desk.
                             </p>

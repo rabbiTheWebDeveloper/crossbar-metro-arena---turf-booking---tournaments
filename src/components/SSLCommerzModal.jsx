@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo, useRef } from 'react';
 import { useArena } from '../context/ArenaContext';
-import { COURTS, SCHEDULE_SLOTS_DEFINITION, BOOKING_ADDONS } from '../data/initialData';
+import { COURTS, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
 import { isWeekendDate, formatIsoDate } from '../lib/dateUtils';
 import { X, AlertTriangle, ExternalLink, Loader2, ShieldCheck, MessageCircle, Phone, Lock } from 'lucide-react';
 
@@ -23,7 +23,7 @@ const classifyError = (message) => {
 export const SSLCommerzModal = () => {
     const {
         setShowSSLCommerzModal, pendingBookingData, setPendingBookingData,
-        startOnlinePayment, pricing, siteSettings, handleReleaseSlotHold, refreshBookings
+        startOnlinePayment, pricing, activeBookingAddOns, siteSettings, handleReleaseSlotHold, refreshBookings
     } = useArena();
 
     const gatewayName = 'EPS (Easy Payment System)';
@@ -45,13 +45,13 @@ export const SSLCommerzModal = () => {
         const def = defs.find(d => Number(d.slotNumber) === Number(pb.slotNumber)) || {};
         const weekend = isWeekendDate(pb.date, pricing.weekendDays);
         const courtPrice = Number(weekend ? def.weekendPrice : def.weekdayPrice) || 0;
-        const addOns = BOOKING_ADDONS.filter(a => (pb.addOns || []).includes(a.id));
-        const addOnsPrice = addOns.reduce((s, a) => s + a.price, 0);
+        const addOns = (activeBookingAddOns || []).filter(a => (pb.addOns || []).includes(a.id));
+        const addOnsPrice = addOns.reduce((s, a) => s + (Number(a.price) || 0), 0);
         const totalPrice = courtPrice + addOnsPrice;
         const advanceSetting = Number(pricing.advanceAmount) > 0 ? Number(pricing.advanceAmount) : 500;
         const amount = pb.paymentType === 'full_payment' ? totalPrice : Math.min(advanceSetting, totalPrice);
         return { displayTime: def.displayTime || `Slot #${pb.slotNumber}`, courtPrice, addOns, addOnsPrice, totalPrice, amount, dueAfterPayment: Math.max(0, totalPrice - amount) };
-    }, [pb, pricing.slotPrices, pricing.weekendDays, pricing.advanceAmount]);
+    }, [pb, pricing.slotPrices, pricing.weekendDays, pricing.advanceAmount, activeBookingAddOns]);
 
     if (!pb || !estimate) return null;
 

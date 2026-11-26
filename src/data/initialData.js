@@ -60,13 +60,20 @@ export const SCHEDULE_SLOTS_DEFINITION = [
     { slotNumber: 11, startTime: '21:30', endTime: '23:00', displayTime: '09:30 PM – 11:00 PM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 },
     { slotNumber: 12, startTime: '23:00', endTime: '00:30', displayTime: '11:00 PM – 12:30 AM', period: 'evening', weekdayActualPrice: 6000, weekdayPrice: 5500, weekendActualPrice: 7000, weekendPrice: 6500 }
 ];
-// All 24 pricing matrix + configurable rules
+export const BOOKING_ADDONS = [
+    { id: 'referee', name: 'Certified Match Referee', price: 500, description: 'Official referee for 90 minutes match', enabled: true },
+    { id: 'bibs', name: 'Numbered Team Bibs (Set of 14)', price: 200, description: 'Two colored sets of match bibs', enabled: true },
+    { id: 'ball', name: 'Extra FIFA Match Ball', price: 150, description: 'Official tournament spec match ball', enabled: true },
+    { id: 'water', name: 'Chilled Water & Electrolyte Pack', price: 400, description: 'Cold mineral water bottles for both squads', enabled: true }
+];
+// All 24 pricing matrix + configurable rules + equipment add-ons
 export const DEFAULT_PRICING = {
     morningSlotPrice: 4000,
     afternoonSlotPrice: 5500,
     eveningSlotPrice: 5500,
     weekendSurcharge: 1000,
     slotPrices: SCHEDULE_SLOTS_DEFINITION,
+    bookingAddOns: BOOKING_ADDONS,
     advanceAmount: 500,
     holdMinutes: 10,
     bookingWindowDays: 60,
@@ -74,12 +81,6 @@ export const DEFAULT_PRICING = {
     weekendDays: ['Friday', 'Saturday'],
     approveResultsFirst: false
 };
-export const BOOKING_ADDONS = [
-    { id: 'referee', name: 'Certified Match Referee', price: 500, description: 'Official referee for 90 minutes match' },
-    { id: 'bibs', name: 'Numbered Team Bibs (Set of 14)', price: 200, description: 'Two colored sets of match bibs' },
-    { id: 'ball', name: 'Extra FIFA Match Ball', price: 150, description: 'Official tournament spec match ball' },
-    { id: 'water', name: 'Chilled Water & Electrolyte Pack', price: 400, description: 'Cold mineral water bottles for both squads' }
-];
 export const INITIAL_USERS = [];
 export const INITIAL_BOOKINGS = [];
 export const INITIAL_TOURNAMENTS = [];
