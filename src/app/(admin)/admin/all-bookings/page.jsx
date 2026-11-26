@@ -6,7 +6,16 @@ import { buildBookingInvoice } from '@/lib/invoice';
 import { Search, XCircle, FileText, Download, Pencil } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
+const currentMonth = () => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+};
+const monthLabel = (ym) => {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+const customerKey = (b) => String(b.captainPhone || b.captainName || '').trim();
 const FILTERS = [
     { key: 'all', label: 'All' },
     { key: 'unpaid', label: 'Unpaid' },
@@ -47,7 +56,9 @@ export default function AdminAllBookingsPage() {
     const { bookings, pricing, siteSettings, openInvoice, downloadInvoice, handleUpdateBookingStatus, handleRescheduleBooking, handleMarkPlayed, handleCancelBooking, showNotice, isLoadingData } = useArena();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const [page, setPage] = useState(1);
+    const [month, setMonth] = useState(currentMonth); // '' = all time
+    const [customer, setCustomer] = useState('');
     const [collectingBooking, setCollectingBooking] = useState(null);
     const [collectAmount, setCollectAmount] = useState(0);
     const [collectError, setCollectError] = useState('');
@@ -61,11 +72,27 @@ export default function AdminAllBookingsPage() {
         [pricing]
     );
 
+    // Customers (unique by phone) for the filter dropdown
+    const customers = useMemo(() => {
+        const map = new Map();
+        for (const b of bookings) {
+            if (b.isPublicView) continue;
+            const key = customerKey(b);
+            if (!key) continue;
+            const cur = map.get(key);
+            if (cur) cur.count += 1;
+            else map.set(key, { key, name: b.captainName || 'Unknown', phone: b.captainPhone || '', count: 1 });
+        }
+        return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }, [bookings]);
+
     // Filtered and sorted (newest play date first, then slot)
     const filteredBookings = useMemo(() => {
         const q = search.trim().toLowerCase();
         const list = bookings.filter(b => {
             if (b.isPublicView) return false;
+            if (month && !String(b.date || '').startsWith(month)) return false;
+            if (customer && customerKey(b) !== customer) return false;
             if (q) {
                 const hay = [b.teamName, b.captainName, b.captainPhone, b.bookingCode, b.date, b.seriesLabel, b.transactionId, b.epsTransactionId, b.gatewayCardType, b.paymentGateway].map(x => String(x || '').toLowerCase());
                 if (!hay.some(h => h.includes(q))) return false;
@@ -81,11 +108,22 @@ export default function AdminAllBookingsPage() {
             }
         });
         return list.sort((a, b) => (a.date === b.date ? Number(b.slotNumber) - Number(a.slotNumber) : (a.date < b.date ? 1 : -1)));
-    }, [bookings, search, filterStatus]);
+    }, [bookings, search, filterStatus, month, customer]);
 
-    const visibleBookings = filteredBookings.slice(0, visibleCount);
+    const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const visibleBookings = filteredBookings.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const pageNumbers = useMemo(() => {
+        const set = new Set([1, totalPages, safePage - 1, safePage, safePage + 1]);
+        const nums = [...set].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+        const out = [];
+        nums.forEach((n, i) => { if (i > 0 && n - nums[i - 1] > 1) out.push('…'); out.push(n); });
+        return out;
+    }, [totalPages, safePage]);
 
-    const changeFilter = (key) => { setFilterStatus(key); setVisibleCount(PAGE_SIZE); };
+    const changeFilter = (key) => { setFilterStatus(key); setPage(1); };
+    const isDefaultView = month === currentMonth() && !customer && !search && filterStatus === 'all';
+    const resetAll = () => { setSearch(''); setCustomer(''); setFilterStatus('all'); setMonth(currentMonth()); setPage(1); };
 
     const openCollect = (b) => {
         setCollectingBooking(b);
@@ -141,10 +179,17 @@ export default function AdminAllBookingsPage() {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"/>
-          <input type="text" value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} placeholder="Search by code, name, phone, team or date..." className="w-full bg-[#0c131a] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-slate-500 outline-none transition-colors"/>
+          <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by code, name, phone, team or date..." className="w-full bg-[#0c131a] border border-white/10 focus:border-lime-400 focus:ring-1 focus:ring-lime-400 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-slate-500 outline-none transition-colors"/>
         </div>
 
-        {search && (<button type="button" onClick={() => setSearch('')} className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold transition-colors cursor-pointer">
+        <input type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }} title="Filter by month" className="bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 px-3 text-xs text-white font-mono outline-none [color-scheme:dark]"/>
+
+        <select value={customer} onChange={e => { setCustomer(e.target.value); setPage(1); }} title="Filter by customer" className="bg-[#0c131a] border border-white/10 focus:border-lime-400 rounded-xl py-2.5 px-3 text-xs text-white outline-none max-w-full sm:max-w-[220px]">
+          <option value="">All customers</option>
+          {customers.map(c => (<option key={c.key} value={c.key}>{c.name}{c.phone ? ` · ${c.phone}` : ''} ({c.count})</option>))}
+        </select>
+
+        {!isDefaultView && (<button type="button" onClick={resetAll} className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold transition-colors cursor-pointer">
             Reset
           </button>)}
 
@@ -158,14 +203,14 @@ export default function AdminAllBookingsPage() {
       </div>
 
       <div className="text-[11px] font-mono text-slate-500">
-        {filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'} · newest play date first
+        {filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'} · {month ? monthLabel(month) : 'all time'}{month && (<button type="button" onClick={() => { setMonth(''); setPage(1); }} className="ml-2 text-lime-400 hover:underline cursor-pointer">show all time</button>)} · newest play date first
       </div>
 
       {/* BOOKINGS LIST */}
       <div className="space-y-1.5">
         {isLoadingData && bookings.length === 0 ? (Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-2xl bg-[#0c131a] border border-white/5 animate-pulse"/>))
         : filteredBookings.length === 0 ? (<div className="p-12 text-center rounded-2xl bg-[#0c131a] border border-white/10 text-slate-400 text-xs">
-            No bookings found matching your search.
+            No bookings found for the selected filters.
           </div>) : (visibleBookings.map(b => {
             const isCancelled = b.paymentStatus === 'cancelled';
             const isHold = b.paymentStatus === 'pending_payment';
@@ -301,10 +346,17 @@ export default function AdminAllBookingsPage() {
               </div>);
         }))}
 
-        {filteredBookings.length > visibleCount && (<div className="pt-2 flex justify-center">
-            <button type="button" onClick={() => setVisibleCount(c => c + PAGE_SIZE)} className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-bold cursor-pointer">
-              Show more ({filteredBookings.length - visibleCount} remaining)
-            </button>
+        {totalPages > 1 && (<div className="pt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-mono text-slate-500">
+              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filteredBookings.length)} of {filteredBookings.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Prev</button>
+              {pageNumbers.map((n, i) => n === '…'
+                ? <span key={`e${i}`} className="px-1 text-slate-500">…</span>
+                : <button key={n} type="button" onClick={() => setPage(n)} className={`min-w-8 px-2 py-1.5 rounded-lg font-bold cursor-pointer border ${n === safePage ? 'bg-lime-400 text-slate-950 border-lime-400' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'}`}>{n}</button>)}
+              <button type="button" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+            </div>
           </div>)}
       </div>
 
