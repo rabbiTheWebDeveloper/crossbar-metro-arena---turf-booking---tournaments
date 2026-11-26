@@ -170,3 +170,117 @@ export function mapGatewayMethod(cardType = '') {
     if (t.includes('okwallet') || t.includes('eps')) return 'eps';
     return 'card';
 }
+
+function toIsoDateLocal(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Expand a recurrence rule into concrete YYYY-MM-DD dates.
+ * `weekdays`: array of 0..6 (Sunday = 0). Empty array means "every day".
+ */
+export function expandDates({ startDate, endDate, weekdays }) {
+    if (!isIsoDate(startDate) || !isIsoDate(endDate) || endDate < startDate) return [];
+    const start = parseLocalDate(startDate);
+    const end = parseLocalDate(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+    const days = Array.isArray(weekdays) ? weekdays.map(Number).filter(n => n >= 0 && n <= 6) : [];
+    const out = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        if (days.length === 0 || days.includes(cursor.getDay())) out.push(toIsoDateLocal(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return out;
+}
+
+/**
+ * Build deduplicated, sorted `(date, slotNumber)` session pairs from either:
+ *   1. Explicit `raw.sessions = [{ date, slotNumber }, ...]`,
+ *   2. `raw.specificDates` + `raw.slotNumbers`, OR
+ *   3. `startDate` + `endDate` + `weekdays` + `slotNumbers`.
+ */
+export function resolveRequestedSessions(raw, data = {}) {
+    if (Array.isArray(raw?.sessions) && raw.sessions.length > 0) {
+        if (raw.sessions.length > 800) {
+            return { error: 'Please keep one bulk series under 800 slot sessions.' };
+        }
+        const seen = new Set();
+        const sessions = [];
+        for (let i = 0; i < raw.sessions.length; i++) {
+            const item = raw.sessions[i] || {};
+            const date = String(item.date || '').trim();
+            const slotNumber = Number(item.slotNumber);
+            if (!isIsoDate(date)) {
+                return { error: `Session #${i + 1}: enter a valid date (YYYY-MM-DD).` };
+            }
+            if (!Number.isInteger(slotNumber) || slotNumber < 1 || slotNumber > 12) {
+                return { error: `Session on ${date}: select a valid time slot (1–12).` };
+            }
+            const key = `${date}#${slotNumber}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            sessions.push({ date, slotNumber });
+        }
+        sessions.sort((a, b) => (a.date === b.date ? a.slotNumber - b.slotNumber : a.date.localeCompare(b.date)));
+        const distinctDates = [...new Set(sessions.map(s => s.date))];
+        const distinctSlots = [...new Set(sessions.map(s => s.slotNumber))].sort((a, b) => a - b);
+        const distinctWeekdays = [...new Set(distinctDates.map(d => parseLocalDate(d).getDay()))];
+        return { sessions, dates: distinctDates, slots: distinctSlots, weekdays: distinctWeekdays };
+    }
+
+    const slotNumbers = Array.isArray(raw?.slotNumbers) ? raw.slotNumbers : [];
+    const slots = [...new Set(slotNumbers.map(Number))]
+        .filter(n => Number.isInteger(n) && n >= 1 && n <= 12)
+        .sort((a, b) => a - b);
+    if (slots.length === 0) {
+        return { error: 'Select at least one time slot.' };
+    }
+
+    if (Array.isArray(raw?.specificDates) && raw.specificDates.length > 0) {
+        const cleanDates = [...new Set(raw.specificDates.map(d => String(d || '').trim()))].filter(isIsoDate).sort();
+        if (cleanDates.length === 0) {
+            return { error: 'Pick at least one valid date.' };
+        }
+        if (cleanDates.length * slots.length > 800) {
+            return { error: 'Please keep one bulk series under 800 bookings.' };
+        }
+        const sessions = [];
+        for (const date of cleanDates) {
+            for (const slotNumber of slots) sessions.push({ date, slotNumber });
+        }
+        const distinctWeekdays = [...new Set(cleanDates.map(d => parseLocalDate(d).getDay()))];
+        return { sessions, dates: cleanDates, slots, weekdays: distinctWeekdays };
+    }
+
+    const startDate = data.startDate || raw?.startDate;
+    const endDate = data.endDate || raw?.endDate;
+    if (!isIsoDate(startDate) || !isIsoDate(endDate)) {
+        return { error: 'Select both a start date and an end date.' };
+    }
+    if (endDate < startDate) {
+        return { error: 'End date must be on or after the start date.' };
+    }
+    if ((parseLocalDate(endDate) - parseLocalDate(startDate)) / 86400000 > 800) {
+        return { error: 'A series can cover at most 800 days. Shorten the date range.' };
+    }
+
+    const weekdays = Array.isArray(raw?.weekdays) ? [...new Set(raw.weekdays.map(Number))] : [];
+    if (weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) {
+        return { error: 'Weekdays must be numbers from 0 (Sunday) to 6 (Saturday).' };
+    }
+
+    const dates = expandDates({ startDate, endDate, weekdays });
+    if (dates.length === 0) {
+        return { error: 'No dates match the selected weekdays in that date range.' };
+    }
+    if (dates.length * slots.length > 800) {
+        return { error: `That is ${dates.length * slots.length} bookings. Please keep one series under 800 bookings.` };
+    }
+
+    const sessions = [];
+    for (const date of dates) {
+        for (const slotNumber of slots) sessions.push({ date, slotNumber });
+    }
+    return { sessions, dates, slots, weekdays };
+}

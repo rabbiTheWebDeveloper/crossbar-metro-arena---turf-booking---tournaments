@@ -7,9 +7,10 @@ import {
     addDays,
     generateBookingCode,
     publicBookingView,
-    resolveAddOns
+    resolveAddOns,
+    expandDates,
+    resolveRequestedSessions
 } from '@/lib/booking';
-import { expandDates, resolveRequestedSessions } from '@/app/api/bookings/bulk/route';
 import { buildBulkSeriesInvoice } from '@/lib/invoice';
 import {
     formatMoney,
