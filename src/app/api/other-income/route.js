@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, escapeRegex } from '@/lib/apiAuth';
+import { actorLabel, stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { OtherIncome } from '@/models/other-income-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -41,7 +42,11 @@ export async function POST(request) {
         if (error) return badRequest(error);
 
         await connectToDatabase();
-        const income = new OtherIncome({ ...data, recordedBy: user?.name || 'Staff' });
+        const income = new OtherIncome({
+            ...data,
+            recordedBy: actorLabel(user, 'Staff'),
+            ...stampCreate(user, { fallback: 'Staff' })
+        });
         await income.save();
 
         return NextResponse.json({

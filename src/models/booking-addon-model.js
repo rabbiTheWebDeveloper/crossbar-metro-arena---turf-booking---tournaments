@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { BOOKING_ADDONS } from '../data/initialData.js';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 import { Setting } from './setting-model.js';
 
 const BookingAddOnModelSchema = new Schema({
@@ -43,7 +44,8 @@ const BookingAddOnModelSchema = new Schema({
         type: Number,
         default: 0,
         index: true
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {
@@ -84,7 +86,9 @@ BookingAddOnModelSchema.statics.ensureSeeded = async function () {
             price: Number(item.price) || 0,
             iconName: item.iconName || '',
             enabled: item.enabled !== false,
-            sortOrder: idx + 1
+            sortOrder: idx + 1,
+            createdBy: 'System',
+            updatedBy: 'System'
         }));
         await this.insertMany(docs, { ordered: false }).catch(() => { /* ignore duplicate race */ });
     }

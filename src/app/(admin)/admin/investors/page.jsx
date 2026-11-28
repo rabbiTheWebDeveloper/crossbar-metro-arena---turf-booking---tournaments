@@ -6,6 +6,7 @@ import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
 import { INVESTOR_SMS_TEMPLATES, renderInvestorSms, tk } from '@/lib/investorSms';
 import { buildPayoutInvoice, buildInvestorStatementInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import {
     ChevronLeft, ChevronRight, Plus, Pencil, Mail, Send, Link2, UserMinus, UserCheck,
     Trash2, KeyRound, AlertTriangle, Copy, Check, CheckCircle2, Info, UserPlus,
@@ -716,6 +717,7 @@ export default function AdminInvestorsPage() {
                       <span className="text-amber-300/80">No login account</span>
                     )}
                   </div>
+                  <RecordAuditMeta record={inv} compact className="mt-1" fallbackCreatedBy="Admin" />
                 </div>
               </div>
 
@@ -818,6 +820,7 @@ export default function AdminInvestorsPage() {
                         {voucher.invoiceNumber} · Paid {pay.datePaid ? formatDate(pay.datePaid) : '—'}
                         {pay.transactionNote ? ` · ${pay.transactionNote}` : ''}
                       </div>
+                      <RecordAuditMeta record={pay} compact className="mt-1" fallbackCreatedBy={pay.recordedBy || 'Admin'} />
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">

@@ -2,7 +2,9 @@ import { readJson } from '@/lib/validate';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
+import { User } from '@/models/user-model';
 import { can, requirePermission, optionalAuth, escapeRegex, cleanPhone } from '@/lib/apiAuth';
+import { actorId, actorLabel, stampCreate } from '@/lib/audit';
 import { trackCustomer } from '@/lib/customers';
 import { createPaymentRecord } from '@/queries/payment-queries';
 import { notifyBookingConfirmed, notifyPaymentSuccess } from '@/service/sms-service';
@@ -42,7 +44,7 @@ export async function GET(request) {
         if (to && isIsoDate(to)) query.date = { ...(typeof query.date === 'object' ? query.date : {}), $lte: to };
         if (search && isAdmin) {
             const re = { $regex: escapeRegex(search), $options: 'i' };
-            query.$or = [{ bookingCode: re }, { captainName: re }, { captainPhone: re }, { teamName: re }];
+            query.$or = [{ bookingCode: re }, { captainName: re }, { captainPhone: re }, { teamName: re }, { createdBy: re }, { updatedBy: re }];
         }
 
         const myPhone = user ? cleanPhone(user.phone) : '';
@@ -129,6 +131,10 @@ export async function POST(request) {
         const paymentStatus = statusFromPayment(advance, totalPrice);
         const method = ['pay_at_turf', 'bkash', 'nagad', 'rocket', 'upay', 'card', 'cash'].includes(body.paymentMethod) ? body.paymentMethod : (advance > 0 ? 'cash' : 'pay_at_turf');
 
+        const customerUser = await User.findOne({ phone }).select('_id').lean();
+        const linkedUserId = customerUser?._id ? String(customerUser._id) : actorId(user);
+        const auditFields = stampCreate(user, { fallback: 'Admin Desk', userId: linkedUserId });
+
         let booking = null;
         for (let attempt = 0; attempt < 3 && !booking; attempt++) {
             try {
@@ -159,7 +165,8 @@ export async function POST(request) {
                     transactionId: body.transactionId ? String(body.transactionId).trim() : `COUNTER-${Date.now().toString().slice(-6)}`,
                     paidAt: advance > 0 ? new Date() : undefined,
                     isWalkIn: body.isWalkIn !== false,
-                    notes: body.notes ? String(body.notes).trim() : `Counter booking recorded by ${user.name || 'admin'}`
+                    notes: body.notes ? String(body.notes).trim() : `Counter booking recorded by ${user.name || 'admin'}`,
+                    ...auditFields
                 });
             } catch (e) {
                 if (e && e.code === 11000 && String(e.message).includes('bookingCode')) continue; // regenerate code
@@ -169,7 +176,7 @@ export async function POST(request) {
         }
         if (!booking) return NextResponse.json({ error: 'Could not allocate a booking code, please retry.' }, { status: 500 });
 
-        await trackCustomer({ name: booking.captainName, phone: booking.captainPhone, source: 'walk_in' });
+        await trackCustomer({ name: booking.captainName, phone: booking.captainPhone, source: 'walk_in', actor: user });
 
         if (advance > 0) {
             await createPaymentRecord({
@@ -189,9 +196,10 @@ export async function POST(request) {
                 slotDate: booking.date,
                 slotNumber: booking.slotNumber,
                 slotDisplay: booking.displayTime,
-                recordedBy: user.name || 'Admin Desk',
+                recordedBy: actorLabel(user, 'Admin Desk'),
                 verifiedAt: new Date(),
-                notes: 'Counter / desk booking payment'
+                notes: 'Counter / desk booking payment',
+                ...auditFields
             }).catch((err) => console.error('Counter payment log failed:', err));
 
             await notifyPaymentSuccess(booking, { paidAmount: advance, gateway: method }).catch(() => {});

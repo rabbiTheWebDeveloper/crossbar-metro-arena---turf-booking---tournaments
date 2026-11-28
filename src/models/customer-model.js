@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { CUSTOMER_SOURCES, POSITIONS } from '../lib/customerMeta.js';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 /**
  * Customer list: everyone the arena has dealt with, with or without a login account.
@@ -33,7 +34,8 @@ const CustomerSchema = new Schema({
     sources: { type: [String], default: [] },
     // Linked login account (models/user-model.js), '' when they have none
     userId: { type: String, trim: true, default: '', index: true },
-    lastActivityAt: { type: Date, default: Date.now }
+    lastActivityAt: { type: Date, default: Date.now },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

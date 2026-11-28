@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { buildRegistrationInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Search, Pencil, Users, Phone, Mail, Shirt, CreditCard, CheckCircle2, AlertTriangle, Loader2, Trash2, FileText, Download } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -186,6 +187,7 @@ export default function AdminRegistrationsPage() {
                 {squad.length > 8 && <span className="px-1.5 py-0.5 text-slate-500 text-[11px]">+{squad.length - 8} more</span>}
               </div>)}
               {reg.notes && <div className="text-[11px] text-slate-500 italic">“{reg.notes}”</div>}
+              <RecordAuditMeta record={reg} compact className="pt-1" fallbackCreatedBy={reg.captainName ? `${reg.captainName} (Online)` : 'Captain'} />
             </div>
 
             <div className="pt-3 border-t border-white/10 flex flex-wrap gap-1.5">
@@ -237,6 +239,7 @@ export default function AdminRegistrationsPage() {
             <div>
               <h3 className="text-base font-bold text-white font-display">Registration details</h3>
               <p className="text-[11px] text-slate-400 font-mono">{editing.tournamentTitle} · submitted {editing.createdAt || editing.registeredAt ? new Date(editing.createdAt || editing.registeredAt).toLocaleString() : '—'}</p>
+              <RecordAuditMeta record={editing} className="mt-1.5" fallbackCreatedBy={editing.captainName ? `${editing.captainName} (Online)` : 'Captain'} />
             </div>
             <button type="button" onClick={() => setEditing(null)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
           </div>

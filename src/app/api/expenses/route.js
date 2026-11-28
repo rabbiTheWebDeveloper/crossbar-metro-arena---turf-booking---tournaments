@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, escapeRegex } from '@/lib/apiAuth';
+import { actorLabel, stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Expense } from '@/models/expense-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -43,7 +44,11 @@ export async function POST(request) {
         if (error) return badRequest(error);
 
         await connectToDatabase();
-        const expense = new Expense({ ...data, recordedBy: user?.name || 'Admin' });
+        const expense = new Expense({
+            ...data,
+            recordedBy: actorLabel(user, 'Admin'),
+            ...stampCreate(user, { fallback: 'Admin' })
+        });
         await expense.save();
 
         return NextResponse.json({

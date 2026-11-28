@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { buildPaymentInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import {
     Search, RefreshCw, CreditCard, CheckCircle2, AlertTriangle, Clock, XCircle,
     ShieldCheck, Loader2, ChevronLeft, ChevronRight, DatabaseZap, ArrowUpRight, X, Copy, Check, Download, FileText, Receipt
@@ -346,6 +347,8 @@ export default function AdminPaymentsPage() {
                                         </span>
                                     </div>
 
+                                    <RecordAuditMeta record={p} compact fallbackCreatedBy={p.recordedBy || (p.gateway === 'eps' ? 'Online Checkout' : 'Admin Desk')} />
+
                                     <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2 text-[10.5px] font-mono text-slate-400">
                                         <span className="truncate">{p.merchantTransactionId || fmtDateTime(p.createdAt)}</span>
                                         <div className="inline-flex items-center gap-1.5 shrink-0 font-sans">
@@ -414,6 +417,7 @@ export default function AdminPaymentsPage() {
                                                 <div className="font-bold text-white">{p.customerName || '—'}</div>
                                                 <div className="font-mono text-[11px] text-slate-400">{p.customerPhone || '—'}</div>
                                                 {p.teamName && <div className="text-[11px] text-slate-500">{p.teamName}</div>}
+                                                <RecordAuditMeta record={p} compact className="mt-1" fallbackCreatedBy={p.recordedBy || (p.gateway === 'eps' ? 'Online Checkout' : 'Admin Desk')} />
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-bold uppercase ${gwCls}`}>
@@ -696,7 +700,10 @@ function PaymentDetailDrawer({ payment: p, onClose, onVerify, verifying }) {
                             <DetailRow label="Started">{fmtDateTime(p.createdAt)}</DetailRow>
                             <DetailRow label="Verified">{fmtDateTime(p.verifiedAt)}</DetailRow>
                             <DetailRow label="Last update">{fmtDateTime(p.updatedAt)}</DetailRow>
-                            <DetailRow label="Recorded by">{p.recordedBy || '—'}</DetailRow>
+                            <DetailRow label="Recorded by">{p.recordedBy || p.createdBy || '—'}</DetailRow>
+                            <DetailRow label="Created by">{p.createdBy || p.recordedBy || 'System'}</DetailRow>
+                            <DetailRow label="Updated by">{p.updatedBy || p.createdBy || '—'}</DetailRow>
+                            <DetailRow label="User ID"><CopyValue value={p.userId || p.createdById || booking?.userId}/></DetailRow>
                             {p.notes && <DetailRow label="Notes"><span className="break-words">{p.notes}</span></DetailRow>}
                         </dl>
                     </section>

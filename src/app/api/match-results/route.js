@@ -5,6 +5,7 @@ import { MatchResult } from '@/models/match-result-model';
 import { Team } from '@/models/team-model';
 import { Setting } from '@/models/setting-model';
 import { can, requireAuth, optionalAuth, cleanPhone, isObjectId } from '@/lib/apiAuth';
+import { actorLabel, applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { applyResultToStandings, syncStandings } from '@/lib/standings';
 import { isIsoDate, todayDhaka } from '@/lib/booking';
 
@@ -75,6 +76,7 @@ export async function POST(request) {
                 if (body.matchReport !== undefined) existing.matchReport = String(body.matchReport).slice(0, 2000);
                 if (Array.isArray(body.scorers)) existing.scorers = body.scorers;
                 if (body.status && ['pending_approval', 'published', 'rejected'].includes(body.status)) existing.status = body.status;
+                applyUpdateAudit(existing, user, { fallback: 'Admin Desk', backfillUserId: true });
                 await syncStandings(existing, prevStatus);
                 await existing.save();
                 return NextResponse.json({ success: true, message: 'Match result updated successfully', matchResult: existing.toJSON() });
@@ -131,11 +133,11 @@ export async function POST(request) {
             matchReport: String(body.matchReport || '').slice(0, 2000),
             teamPhoto: /^https?:\/\//.test(body.teamPhoto || '') ? body.teamPhoto : '',
             matchType: String(body.matchType || '7v7 Friendly').slice(0, 40),
-            postedBy: isAdmin ? (body.postedBy || 'Admin Desk') : user.name,
+            postedBy: isAdmin ? (body.postedBy || actorLabel(user, 'Admin Desk')) : user.name,
             postedByPhone: cleanPhone(user.phone),
-            userId: String(user.userId || user.id || ''),
             postedAt: new Date().toISOString(),
-            status
+            status,
+            ...stampCreate(user, { fallback: isAdmin ? 'Admin Desk' : (user.name || 'Captain') })
         });
 
         if (status === 'published') {

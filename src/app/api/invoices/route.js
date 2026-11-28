@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requirePermission, cleanPhone } from '@/lib/apiAuth';
+import { actorId, actorLabel } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Invoice } from '@/models/invoice-model';
 import { Investor } from '@/models/investor-model';
@@ -120,7 +121,7 @@ export async function POST(request) {
                     recipientPhone: phoneClean,
                     recipientEmail: data.recipientEmail || '',
                     recipientSubtitle: data.recipientSubtitle || '',
-                    userId: data.userId || '',
+                    userId: data.userId || actorId(user),
                     investorId: data.investorId || '',
                     issueDate: data.issueDate || new Date().toISOString().slice(0, 10),
                     dueDate: data.dueDate || '',
@@ -135,7 +136,10 @@ export async function POST(request) {
                     paymentMethod: paidAmount > 0 ? (data.paymentMethod || 'cash') : 'unpaid',
                     transactionRef: data.transactionRef || '',
                     notes: data.notes || '',
-                    createdBy: user.name || 'Admin Desk'
+                    createdBy: actorLabel(user, 'Admin Desk'),
+                    updatedBy: actorLabel(user, 'Admin Desk'),
+                    createdById: actorId(user),
+                    updatedById: actorId(user)
                 });
             } catch (err) {
                 if (err?.code !== 11000 || attempt === 3) throw err;

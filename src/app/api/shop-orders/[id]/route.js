@@ -5,6 +5,7 @@ import { ShopReservation } from '@/models/shop-reservation-model';
 import { Product } from '@/models/product-model';
 import { OtherIncome } from '@/models/other-income-model';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { actorLabel, applyUpdateAudit, stampCreate, stampUpdate } from '@/lib/audit';
 
 /**
  * PATCH /api/shop-orders/:id  (admin)
@@ -31,7 +32,7 @@ export async function PATCH(request, { params }) {
                 // Take stock now; refuse if something sold out in the meantime
                 for (const item of order.items || []) {
                     if (!isObjectId(item.productId)) continue;
-                    const res = await Product.updateOne({ _id: item.productId, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } });
+                    const res = await Product.updateOne({ _id: item.productId, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity }, $set: stampUpdate(user, { fallback: 'Admin Desk' }) });
                     if (res.matchedCount === 0) {
                         const p = await Product.findById(item.productId).select('name stock');
                         return NextResponse.json({ error: `Not enough stock for ${p ? p.name : item.name} (have ${p ? p.stock : 0}, need ${item.quantity}).` }, { status: 409 });
@@ -46,7 +47,8 @@ export async function PATCH(request, { params }) {
                         amount: Number(order.totalAmount || 0),
                         date: new Date().toISOString().split('T')[0],
                         notes: (order.items || []).map(i => `${i.name} x${i.quantity}`).join(', '),
-                        recordedBy: user.name || 'Admin Desk'
+                        recordedBy: actorLabel(user, 'Admin Desk'),
+                        ...stampCreate(user, { fallback: 'Admin Desk' })
                     });
                 }
                 order.collectedAt = new Date();
@@ -55,7 +57,7 @@ export async function PATCH(request, { params }) {
                 // Undo: put the stock back and remove the income line
                 for (const item of order.items || []) {
                     if (!isObjectId(item.productId)) continue;
-                    await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity }, $set: { inStock: true } });
+                    await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity }, $set: { inStock: true, ...stampUpdate(user, { fallback: 'Admin Desk' }) } });
                 }
                 await OtherIncome.deleteOne({ title: `Shop order ${order.reservationCode}` });
             }
@@ -63,6 +65,7 @@ export async function PATCH(request, { params }) {
         }
         if (body.notes !== undefined) order.notes = String(body.notes).slice(0, 300);
         if (body.pickupDate && /^\d{4}-\d{2}-\d{2}$/.test(body.pickupDate)) order.pickupDate = body.pickupDate;
+        applyUpdateAudit(order, user, { fallback: 'Admin Desk', backfillUserId: true });
 
         await order.save();
         return NextResponse.json({ success: true, message: 'Shop order updated', reservation: order.toJSON() });

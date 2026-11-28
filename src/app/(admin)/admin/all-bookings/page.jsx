@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { buildBookingInvoice, buildTokenInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Search, XCircle, FileText, Receipt, Download, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -301,6 +302,12 @@ export default function AdminAllBookingsPage() {
                       )}
                       {isHold && <span className="text-slate-500">gateway hold</span>}
                     </div>
+                    <RecordAuditMeta
+                      record={b}
+                      compact
+                      className="mt-1"
+                      fallbackCreatedBy={b.isWalkIn ? 'Admin Desk' : `${b.captainName || 'Customer'} (Online)`}
+                    />
                   </div>
                 </div>
 

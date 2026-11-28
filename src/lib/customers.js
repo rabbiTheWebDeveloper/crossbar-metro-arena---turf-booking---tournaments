@@ -7,6 +7,7 @@ import { Team } from '@/models/team-model';
 import { User } from '@/models/user-model';
 import { cleanPhone, isValidBdPhone } from './phone';
 import { escapeRegex } from './apiAuth';
+import { actorId, actorLabel, stampCreateAuditOnly, stampUpdate } from './audit';
 import {
     CUSTOMER_SOURCES, POSITIONS, cleanName, realEmail, planCustomerUpdate, updateFromPlan
 } from './customerMeta';
@@ -35,6 +36,8 @@ const validDate = (value) => {
 export async function upsertCustomer(facts = {}) {
     const phone = cleanPhone(facts.phone);
     if (!isValidBdPhone(phone)) return null;
+    const actor = facts.actor || (facts.userId ? { id: facts.userId, name: facts.name } : null);
+    const fallbackLabel = facts.source ? `Auto (${facts.source})` : 'System';
 
     let doc = await Customer.findOne({ phone });
     if (!doc) {
@@ -49,7 +52,8 @@ export async function upsertCustomer(facts = {}) {
                 userId: String(facts.userId || '').trim(),
                 source,
                 sources: [source],
-                lastActivityAt: validDate(facts.at) || new Date()
+                lastActivityAt: validDate(facts.at) || new Date(),
+                ...stampCreateAuditOnly(actor, fallbackLabel)
             });
             return { customer: doc, created: true };
         } catch (err) {
@@ -61,7 +65,11 @@ export async function upsertCustomer(facts = {}) {
     }
 
     const plan = planCustomerUpdate(doc.toObject(), facts);
-    if (plan) doc = await Customer.findOneAndUpdate({ _id: doc._id }, updateFromPlan(plan), { returnDocument: 'after' });
+    if (plan) {
+        const upd = updateFromPlan(plan);
+        upd.$set = { ...(upd.$set || {}), ...stampUpdate(actor, { fallback: fallbackLabel }) };
+        doc = await Customer.findOneAndUpdate({ _id: doc._id }, upd, { returnDocument: 'after' });
+    }
     return { customer: doc, created: false };
 }
 
@@ -84,18 +92,22 @@ export async function trackCustomer(facts) {
  * The account owner's own details win over what an old booking said. A changed mobile number moves the
  * customer record along with the account.
  */
-export async function syncCustomerFromUser(user, { previousPhone = '', source = 'signup' } = {}) {
+export async function syncCustomerFromUser(user, { previousPhone = '', source = 'signup', actor = null } = {}) {
     if (!user || user.role !== 'player') return null;
     const phone = cleanPhone(user.phone);
     const previous = cleanPhone(previousPhone);
     const userId = String(user._id || user.id || user.userId || '');
+    const effectiveActor = actor || user;
     try {
         if (previous && previous !== phone && userId) {
             // Duplicate key (the new number already has a record) is fine: that record gets linked below
-            await Customer.updateOne({ phone: previous, userId }, { $set: { phone } }).catch(() => null);
+            await Customer.updateOne(
+                { phone: previous, userId },
+                { $set: { phone, ...stampUpdate(effectiveActor, { fallback: 'Profile Sync' }) } }
+            ).catch(() => null);
         }
     } catch { /* handled above */ }
-    return trackCustomer({ name: user.name, phone, email: user.email, userId, playingPosition: user.playingPosition, source, overwrite: true });
+    return trackCustomer({ name: user.name, phone, email: user.email, userId, playingPosition: user.playingPosition, source, overwrite: true, actor: effectiveActor });
 }
 
 /** The signed-in player's customer record, created on first use (accounts older than the customer list). */
@@ -114,10 +126,15 @@ export async function ensureCustomerForUser(user) {
 
 export const getCustomerSettings = (customerId) => CustomerSetting.forCustomer(customerId);
 
-export async function saveCustomerSettings(customerId, value) {
+export async function saveCustomerSettings(customerId, value, actor = null) {
+    const uid = actorId(actor);
+    const label = actorLabel(actor, 'Customer');
     const doc = await CustomerSetting.findOneAndUpdate(
         { customerId: String(customerId) },
-        { $set: value },
+        {
+            $set: { ...value, updatedBy: label, updatedById: uid, ...(uid ? { userId: uid } : {}) },
+            $setOnInsert: { createdBy: label, createdById: uid }
+        },
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
     );
     return doc.toJSON();
@@ -238,7 +255,9 @@ const FIRST_SEEN = { $ifNull: ['$createdAt', { $toDate: '$_id' }] };
  * (online, counter and fixed slots), tournament registrations, shop orders and team captains. Safe to run any
  * number of times: existing customers only get blank details filled in and new ways added, never overwritten.
  */
-export async function syncCustomersFromAllModels() {
+export async function syncCustomersFromAllModels(actor = null) {
+    const syncAuditCreate = stampCreateAuditOnly(actor, 'System Sync');
+    const syncAuditUpdate = stampUpdate(actor, { fallback: 'System Sync' });
     const seen = new Map(); // phone -> { name, nameAt, accountName, email, userId, playingPosition, bySource }
     const scanned = { accounts: 0, bookings: 0, registrations: 0, orders: 0, teams: 0 };
 
@@ -323,7 +342,7 @@ export async function syncCustomersFromAllModels() {
             const firstSource = sources.reduce((a, b) => (f.bySource[b].first < f.bySource[a].first ? b : a));
             ops.push({ insertOne: { document: {
                 name: name || phone, phone, email: f.email, playingPosition: f.playingPosition, userId: f.userId,
-                source: firstSource, sources, lastActivityAt: lastAt
+                source: firstSource, sources, lastActivityAt: lastAt, ...syncAuditCreate
             } } });
             toCreate += 1;
             continue;
@@ -332,7 +351,9 @@ export async function syncCustomersFromAllModels() {
             name, email: f.email, userId: f.userId, playingPosition: f.playingPosition, sources, at: lastAt
         });
         if (plan) {
-            ops.push({ updateOne: { filter: { _id: current._id }, update: updateFromPlan(plan) } });
+            const upd = updateFromPlan(plan);
+            upd.$set = { ...(upd.$set || {}), ...syncAuditUpdate };
+            ops.push({ updateOne: { filter: { _id: current._id }, update: upd } });
             toUpdate += 1;
         }
     }

@@ -6,6 +6,7 @@ import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { formatMoney } from '@/data/finance';
 import { buildBulkSeriesInvoice, buildBookingInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import {
     Repeat, CalendarRange, Calendar, Clock, CheckCircle2, AlertTriangle, XCircle,
     Loader2, Search, RefreshCw, Pencil, Plus, Trash2, ChevronDown, ChevronUp,
@@ -1180,6 +1181,8 @@ export default function AdminRecurringBookingsPage() {
                         <span className="text-emerald-400">Paid {formatMoney(s.collected)} of {formatMoney(s.totalValue)}</span>
                         {s.due > 0 && <span className="text-amber-300 font-bold">Due {formatMoney(s.due)}</span>}
                       </div>
+
+                      <RecordAuditMeta record={s} compact fallbackCreatedBy="Admin Desk" />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5 shrink-0">
@@ -1263,6 +1266,7 @@ export default function AdminRecurringBookingsPage() {
                                   {b.bookingCode} · {formatMoney(b.totalPrice)}
                                   {isCanc ? <span className="text-rose-400"> · Cancelled</span> : b.played ? <span className="text-cyan-300"> · Played</span> : null}
                                 </div>
+                                <RecordAuditMeta record={b} compact className="mt-1" fallbackCreatedBy="Admin Desk" />
                               </div>
 
                               <div className="flex items-center gap-1 shrink-0">

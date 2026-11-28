@@ -5,6 +5,7 @@ import { Tournament } from '@/models/tournament-model';
 import { normalizeStatus, toStringList, parseRegistrationEdits, applyRegistrationEdits, adjustRegisteredCount } from '@/lib/registrationEdits';
 import { badRequest, readJson } from '@/lib/validate';
 import { can, requirePermission, optionalAuth, cleanPhone, isObjectId, escapeRegex, rateLimit } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { todayDhaka } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
 
@@ -51,7 +52,7 @@ export async function POST(request) {
         const targetId = body.id || body._id;
 
         if (isObjectId(targetId)) {
-            const { denied } = await requirePermission(request, 'registrations');
+            const { user: actor, denied } = await requirePermission(request, 'registrations');
             if (denied) return denied;
             const { data: edits, error: editError } = parseRegistrationEdits(body);
             if (editError) return badRequest(editError);
@@ -60,6 +61,7 @@ export async function POST(request) {
             const prevStatus = existing.status;
             applyRegistrationEdits(existing, edits);
             if (edits.status) existing.status = edits.status;
+            applyUpdateAudit(existing, actor, { fallback: 'Admin Desk', backfillUserId: true });
             await existing.save();
             await adjustRegisteredCount(existing.tournamentId, prevStatus, existing.status, existing);
             return NextResponse.json({ success: true, message: 'Tournament registration updated successfully', registration: existing.toJSON() });
@@ -108,11 +110,12 @@ export async function POST(request) {
             transactionId: String(body.transactionId || '').trim().slice(0, 60),
             amount: Number(tournament.entryFee || 0),
             status: 'pending',
-            notes: ''
+            notes: '',
+            ...stampCreate(user, { fallback: `${captainName.slice(0, 60)} (Online)` })
         });
         await newRegistration.save();
 
-        await trackCustomer({ name: captainName, phone: captainPhone, email: newRegistration.captainEmail, source: 'tournament' });
+        await trackCustomer({ name: captainName, phone: captainPhone, email: newRegistration.captainEmail, source: 'tournament', actor: user });
 
         return NextResponse.json({
             success: true,

@@ -5,6 +5,7 @@ import { Booking } from '@/models/booking-model';
 import { publicBaseUrl } from '@/lib/baseUrl';
 import { getEpsConfig, initiateEpsBookingPayment } from '@/service/eps-service';
 import { optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate } from '@/lib/audit';
 import {
     loadPricing, slotDefinition, slotPrice, resolveAddOns, validateBookingDate,
     generateBookingCode, expireStaleHolds, findActiveBooking
@@ -102,7 +103,6 @@ export async function POST(request) {
                     displayTime: def.displayTime,
                     captainName,
                     captainPhone: phone,
-                    userId: user ? String(user.userId || user.id || '') : undefined,
                     teamName,
                     playerCount: Number(pb.playerCount) || 14,
                     matchType: ['friendly', 'competitive', 'practice', 'corporate'].includes(pb.matchType) ? pb.matchType : 'friendly',
@@ -119,7 +119,8 @@ export async function POST(request) {
                     expectedAmount: payableAmount,
                     holdExpiresAt,
                     isWalkIn: false,
-                    notes: pb.notes ? String(pb.notes).slice(0, 300) : ''
+                    notes: pb.notes ? String(pb.notes).slice(0, 300) : '',
+                    ...stampCreate(user, { fallback: `${captainName} (Online)` })
                 });
             } catch (e) {
                 if (e && e.code === 11000 && String(e.message).includes('bookingCode')) continue;
@@ -152,6 +153,7 @@ export async function POST(request) {
             // Release the slot hold if EPS initialization fails
             booking.paymentStatus = 'cancelled';
             booking.notes = `EPS init failed: ${gwErr.message}`;
+            applyUpdateAudit(booking, user, { fallback: 'EPS Gateway' });
             await booking.save();
             throw gwErr;
         }

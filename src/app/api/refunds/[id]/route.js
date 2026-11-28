@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/refund-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +8,7 @@ import { REFUND_UPDATE_SCHEMA } from '@/lib/schemas';
 
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'refunds');
+        const { user, denied } = await requirePermission(request, 'refunds');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
@@ -30,6 +31,7 @@ export async function PATCH(request, { params }) {
         if (data.status === 'completed' && !refund.refundedDate) {
             refund.refundedDate = new Date().toISOString().split('T')[0];
         }
+        applyUpdateAudit(refund, user, { fallback: 'Admin Desk', backfillUserId: true });
         await refund.save();
 
         return NextResponse.json({

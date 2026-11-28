@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const OtherIncomeSchema = new Schema({
     source: {
@@ -31,7 +32,8 @@ const OtherIncomeSchema = new Schema({
         type: String,
         trim: true,
         default: 'Staff'
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

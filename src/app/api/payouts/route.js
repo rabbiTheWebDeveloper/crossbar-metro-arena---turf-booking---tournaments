@@ -5,6 +5,7 @@ import { Investor } from '@/models/investor-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { PAYOUT_SCHEMA } from '@/lib/schemas';
 import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { actorLabel, applyUpdateAudit, stampCreate } from '@/lib/audit';
 
 async function myInvestor(user) {
     const uid = String(user.userId || user.id || '');
@@ -75,11 +76,13 @@ export async function POST(request) {
             datePaid: /^\d{4}-\d{2}-\d{2}$/.test(datePaid || '') ? datePaid : new Date().toISOString().split('T')[0],
             paymentMethod: method,
             transactionNote,
-            recordedBy: user.name || 'Admin Desk'
+            recordedBy: actorLabel(user, 'Admin Desk'),
+            ...stampCreate(user, { fallback: 'Admin Desk' })
         });
         await newPayout.save();
 
         investor.payoutsPaid = (investor.payoutsPaid || 0) + amount;
+        applyUpdateAudit(investor, user, { fallback: 'Admin Desk' });
         await investor.save();
         const investors = await Investor.find().sort({ sharePercentage: -1 });
 

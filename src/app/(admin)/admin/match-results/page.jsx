@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -141,6 +142,7 @@ export default function AdminMatchResultsPage() {
                     Submitted by: {res.postedBy || 'Unknown'}{res.postedByPhone ? ` (${res.postedByPhone})` : ''}
                   </div>
                 </div>
+                <RecordAuditMeta record={res} compact fallbackCreatedBy={res.postedBy || 'Captain'} />
 
                 {/* Actions */}
                 <div className="pt-2 flex flex-wrap justify-end gap-2">

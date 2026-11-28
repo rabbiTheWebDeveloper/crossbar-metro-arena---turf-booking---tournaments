@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/apiAuth';
+import { actorLabel, stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Refund } from '@/models/refund-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -32,7 +33,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'refunds');
+        const { user, denied } = await requirePermission(request, 'refunds');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -47,7 +48,8 @@ export async function POST(request) {
             customerPhone: data.customerPhone || '',
             status: 'pending',
             requestDate: new Date().toISOString().split('T')[0],
-            recordedBy: 'Admin Desk'
+            recordedBy: actorLabel(user, 'Admin Desk'),
+            ...stampCreate(user, { fallback: 'Admin Desk' })
         });
         await refund.save();
 

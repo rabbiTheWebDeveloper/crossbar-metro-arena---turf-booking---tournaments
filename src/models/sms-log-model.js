@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 export const SMS_LOG_CATEGORIES = [
     'manual',
@@ -122,7 +123,8 @@ const SmsLogSchema = new Schema({
         type: String,
         trim: true,
         default: 'System'
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

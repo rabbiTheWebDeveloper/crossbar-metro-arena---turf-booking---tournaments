@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const RegisteredPlayerSchema = new Schema({
     name: { type: String, required: true },
@@ -84,7 +85,8 @@ const TournamentRegistrationSchema = new Schema({
         type: String,
         trim: true,
         default: ''
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

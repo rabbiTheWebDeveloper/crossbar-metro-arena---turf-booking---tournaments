@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/challenge-model';
 import { can, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 
 const isOwner = (user, c) => user && (c.userId === String(user.userId || user.id) || (cleanPhone(user.phone) && cleanPhone(user.phone) === cleanPhone(c.captainPhone)));
 
@@ -30,6 +31,7 @@ export async function PATCH(request, { params }) {
             c.matchedTeamName = String(body.teamName || user.teamId || user.name || 'Opponent').slice(0, 60);
             c.matchedCaptainName = user.name;
             c.matchedPhone = cleanPhone(user.phone);
+            applyUpdateAudit(c, user, { fallback: user.name || 'Opponent Captain' });
             await c.save();
             // Reveal the poster's number to the accepting captain so the two sides can talk
             return NextResponse.json({ success: true, message: `Challenge accepted. Captain ${c.captainName} can be reached at ${c.captainPhone}.`, challenge: c.toJSON() });
@@ -44,6 +46,7 @@ export async function PATCH(request, { params }) {
         if (body.notes !== undefined) c.notes = String(body.notes).slice(0, 300);
         if (body.timeSlot !== undefined) c.timeSlot = String(body.timeSlot).slice(0, 40);
         if (body.date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(body.date)) c.date = body.date;
+        applyUpdateAudit(c, user, { fallback: 'Captain' });
         await c.save();
         return NextResponse.json({ success: true, message: 'Challenge updated', challenge: c.toJSON() });
     } catch (err) {

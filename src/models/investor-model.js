@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 const InvestorSchema = new Schema({
     name: {
@@ -52,7 +53,8 @@ const InvestorSchema = new Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
-    }
+    },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

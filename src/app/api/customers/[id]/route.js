@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { Customer } from '@/models/customer-model';
@@ -44,7 +45,7 @@ export async function GET(request, { params }) {
 /** PATCH /api/customers/:id - edit name, email, position, area, notes, tags. The mobile number cannot change. */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'players');
+        const { user: actor, denied } = await requirePermission(request, 'players');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return notFound();
@@ -81,7 +82,8 @@ export async function PATCH(request, { params }) {
                     email: customer.email || `${customer.phone}@bookcrossbar.com`,
                     password: loginPassword,
                     role: 'player',
-                    disabled: false
+                    disabled: false,
+                    ...stampCreate(actor, { fallback: 'Admin Desk' })
                 });
                 await newUser.save();
                 customer.userId = String(newUser._id);
@@ -89,6 +91,7 @@ export async function PATCH(request, { params }) {
             }
         }
 
+        applyUpdateAudit(customer, actor, { fallback: 'Admin Desk' });
         await customer.save();
         if (createdLogin) {
             await safeSendWelcomeEmail({

@@ -5,6 +5,7 @@ import { User } from '@/models/user-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requirePermission, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate, stampCreateAuditOnly, stampUpdate } from '@/lib/audit';
 import { findInvestorForUser } from '@/lib/investorAccess';
 import { withStaffRoleNames } from '@/lib/userAdmin';
 import { isDeliverableEmail, safeSendInvestorWelcomeEmail } from '@/utils/mail';
@@ -145,7 +146,7 @@ export async function POST(request) {
             if (isObjectId(id)) {
                 const updated = await Investor.findByIdAndUpdate(
                     id,
-                    { $set: pickFields(item) },
+                    { $set: { ...pickFields(item), ...stampUpdate(actor, { fallback: 'Admin Desk' }) } },
                     { new: true, runValidators: true }
                 );
                 if (updated) {
@@ -167,6 +168,7 @@ export async function POST(request) {
                     accountLinked = true;
                     if (isDeliverableEmail(fields.email) && !isDeliverableEmail(existingUser.email)) {
                         existingUser.email = fields.email;
+                        applyUpdateAudit(existingUser, actor, { fallback: 'Admin Desk' });
                         await existingUser.save();
                     }
                     const [uJson] = await withStaffRoleNames([existingUser.toJSON()]);
@@ -176,6 +178,7 @@ export async function POST(request) {
                     if (isDeliverableEmail(fields.email) && !isDeliverableEmail(existingUser.email)) {
                         existingUser.email = fields.email;
                     }
+                    applyUpdateAudit(existingUser, actor, { fallback: 'Admin Desk' });
                     await existingUser.save();
                     linkedUserId = String(existingUser._id);
                     accountLinked = true;
@@ -192,7 +195,8 @@ export async function POST(request) {
                     email: fields.email || '',
                     password: item.password,
                     role: 'investor',
-                    disabled: false
+                    disabled: false,
+                    ...stampCreate(actor, { fallback: 'Admin Desk' })
                 });
                 await newUser.save();
                 linkedUserId = String(newUser._id);
@@ -208,7 +212,8 @@ export async function POST(request) {
                 capitalInvested: Number(fields.capitalInvested || 0),
                 joinedDate: fields.joinedDate || new Date().toISOString().split('T')[0],
                 payoutsPaid: Number(item.payoutsPaid || 0),
-                status: fields.status || 'active'
+                status: fields.status || 'active',
+                ...stampCreateAuditOnly(actor, 'Admin Desk')
             });
             await created.save();
 

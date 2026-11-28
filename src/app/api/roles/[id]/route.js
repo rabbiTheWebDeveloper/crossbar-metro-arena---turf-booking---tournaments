@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Role } from '@/models/role-model';
 import { User } from '@/models/user-model';
 import { requireAdmin, requireSuperAdminDelete, isObjectId, invalidateLiveUserCache } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parseRoleInput, rolesWithCounts } from '@/lib/roleAdmin';
 
@@ -11,7 +12,7 @@ const notFound = () => NextResponse.json({ error: 'Role not found' }, { status: 
 /** PUT /api/roles/:id (admin) - replace the name, description and permissions. Takes effect for its staff at once. */
 export async function PUT(request, { params }) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { user, denied } = await requireAdmin(request);
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return notFound();
@@ -27,6 +28,7 @@ export async function PUT(request, { params }) {
         if (clash) return NextResponse.json({ error: `A role called "${data.name}" already exists.` }, { status: 409 });
 
         role.set(data);
+        applyUpdateAudit(role, user, { fallback: 'Admin', backfillUserId: true });
         await role.save();
         invalidateLiveUserCache();
         const [json] = await rolesWithCounts([role]);

@@ -68,6 +68,7 @@ export async function POST(request) {
         // from the Players page (PATCH /api/users/:id), never from the client body.
         const assignedRole = 'player';
 
+        const selfLabel = `${name.trim()} (Self Signup)`;
         const newUser = new User({
             name: name.trim(),
             phone: cleanPhone,
@@ -75,13 +76,15 @@ export async function POST(request) {
             role: assignedRole,
             playingPosition: playingPosition || 'MID',
             email: cleanEmail || `${cleanPhone}@bookcrossbar.com`,
-            disabled: false
+            disabled: false,
+            createdBy: selfLabel,
+            updatedBy: selfLabel
         });
 
         await newUser.save();
 
         // Add them to the customer list (never blocks sign-up; a customer added earlier at the counter is linked)
-        await syncCustomerFromUser(newUser, { source: 'signup' });
+        await syncCustomerFromUser(newUser, { source: 'signup', actor: newUser });
 
         // Send welcome email when a real email address was provided (never blocks registration)
         await safeSendWelcomeEmail({

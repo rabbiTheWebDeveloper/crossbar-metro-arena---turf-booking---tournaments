@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { SmsLog } from '@/models/sms-log-model';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { actorId, actorLabel, applyUpdateAudit } from '@/lib/audit';
 import { hasPermission } from '@/lib/permissions';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { parsePhoneTokens } from '@/lib/smsUtils';
@@ -37,7 +38,7 @@ export async function GET(request) {
         const logId = (searchParams.get('logId') || '').trim();
 
         if (requestId || logId) {
-            const reportRes = await syncSmsLogReport({ logId, requestId });
+            const reportRes = await syncSmsLogReport({ logId, requestId, actor: user });
             return NextResponse.json(
                 { success: reportRes.ok, ...reportRes },
                 { status: reportRes.ok ? 200 : 400 }
@@ -167,7 +168,7 @@ export async function GET(request) {
  */
 export async function PUT(request) {
     try {
-        const { denied } = await requirePermission(request, 'settings');
+        const { user, denied } = await requirePermission(request, 'settings');
         if (denied) return denied;
 
         const { body, error: jsonError } = await readJson(request);
@@ -182,6 +183,7 @@ export async function PUT(request) {
         const settings = await Setting.getOrCreateSettings();
         settings.smsApiKey = smsApiKey;
         settings.smsSenderId = smsSenderId;
+        applyUpdateAudit(settings, user, { fallback: 'Admin Desk', backfillUserId: true });
         await settings.save();
 
         const [cfg, balanceRes] = await Promise.all([getSmsConfig(), getSmsBalance()]);
@@ -273,7 +275,8 @@ export async function POST(request) {
                 : uniquePhones[0];
         }
 
-        const sentBy = user?.name ? `${user.name}` : 'Admin';
+        const sentBy = actorLabel(user, 'Admin');
+        const senderUserId = actorId(user);
 
         // Chunk large recipient lists cleanly (500 per gateway POST)
         const chunks = [];
@@ -300,7 +303,8 @@ export async function POST(request) {
                 logMeta: {
                     category,
                     recipientSummary: batchSummary,
-                    sentBy
+                    sentBy,
+                    userId: senderUserId
                 }
             });
 

@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Camera, Plus, Search, Eye, Star, Trash2, Edit3, Copy, Check, ExternalLink, Layers, Image as ImageIcon, X, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 
 const ALBUMS = ['Matches', 'Arena', 'Tournaments', 'Facilities', 'Night Floodlights', 'Community'];
@@ -290,6 +291,7 @@ export default function AdminGalleryManager() {
                 <div>
                   <h4 className="font-bold text-white text-sm line-clamp-1 group-hover:text-emerald-400 transition-colors font-display">{photo.title}</h4>
                   {photo.caption ? <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{photo.caption}</p> : null}
+                  <RecordAuditMeta record={photo} compact className="mt-2" fallbackCreatedBy="Admin" />
                 </div>
                 <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[12px] text-slate-400">
                   <div className="flex items-center gap-1 truncate max-w-[65%]">
@@ -324,6 +326,7 @@ export default function AdminGalleryManager() {
                   <td className="py-3 px-4 max-w-xs">
                     <div className="font-bold text-white truncate">{photo.title}</div>
                     <div className="text-[12px] text-slate-400 truncate">{photo.caption}</div>
+                    <RecordAuditMeta record={photo} compact className="mt-1" fallbackCreatedBy="Admin" />
                   </td>
                   <td className="py-3 px-4">
                     <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">{photo.album}</span>

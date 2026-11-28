@@ -5,6 +5,7 @@ import { User } from '@/models/user-model';
 import { Customer } from '@/models/customer-model';
 import { Investor } from '@/models/investor-model';
 import { SmsLog } from '@/models/sms-log-model';
+import { applyUpdateAudit } from '@/lib/audit';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { parsePhoneTokens, estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
 import { kickoffDate, todayDhaka } from '@/lib/booking';
@@ -163,7 +164,12 @@ export async function sendSms({ to, msg, schedule = '', senderId = '', contentId
         senderId: effectiveSender,
         contentId: effectiveContentId,
         bookingCode: meta.bookingCode || '',
-        sentBy: meta.sentBy || 'System'
+        sentBy: meta.sentBy || 'System',
+        userId: meta.userId || '',
+        createdBy: meta.sentBy || 'System',
+        updatedBy: meta.sentBy || 'System',
+        createdById: meta.userId || '',
+        updatedById: meta.userId || ''
     };
 
     if (!cfg.configured) {
@@ -271,7 +277,7 @@ export async function getSmsReport(requestId) {
 /**
  * Fetch live delivery report from api.sms.net.bd and sync the matching SmsLog record in MongoDB.
  */
-export async function syncSmsLogReport({ logId = '', requestId = '' } = {}) {
+export async function syncSmsLogReport({ logId = '', requestId = '', actor = null } = {}) {
     await connectToDatabase();
     let logDoc = null;
     if (logId) {
@@ -318,6 +324,7 @@ export async function syncSmsLogReport({ logId = '', requestId = '' } = {}) {
         }
         logDoc.deliveryReport = report;
         logDoc.lastCheckedAt = new Date();
+        applyUpdateAudit(logDoc, actor, { fallback: 'SMS Gateway Sync', backfillUserId: true });
         await logDoc.save().catch(() => {});
     }
 

@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const PlayerItemSchema = new Schema({
     id: { type: String, default: () => `p-${Date.now()}-${Math.random().toString(36).substr(2, 4)}` },
@@ -61,7 +62,8 @@ const TeamSchema = new Schema({
     players: {
         type: [PlayerItemSchema],
         default: []
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

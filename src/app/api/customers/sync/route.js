@@ -12,11 +12,11 @@ import { syncCustomersFromAllModels } from '@/lib/customers';
  */
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'players');
+        const { user: actor, denied } = await requirePermission(request, 'players');
         if (denied) return denied;
         await connectToDatabase();
 
-        const result = await syncCustomersFromAllModels();
+        const result = await syncCustomersFromAllModels(actor);
         const message = result.created || result.updated
             ? `Customer list updated: ${result.created} added, ${result.updated} refreshed.`
             : 'The customer list is already up to date.';

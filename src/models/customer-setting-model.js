@@ -2,6 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import {
     DEFAULT_CUSTOMER_SETTINGS, CONTACT_CHANNELS, REMINDER_HOURS, BOOKING_MATCH_TYPES, BOOKING_PAYMENT_CHOICES
 } from '../lib/customerMeta.js';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const D = DEFAULT_CUSTOMER_SETTINGS;
 
@@ -26,7 +27,8 @@ const CustomerSettingSchema = new Schema({
         teamName: { type: String, trim: true, maxlength: 60, default: D.bookingDefaults.teamName },
         matchType: { type: String, enum: BOOKING_MATCH_TYPES, default: D.bookingDefaults.matchType },
         paymentChoice: { type: String, enum: BOOKING_PAYMENT_CHOICES, default: D.bookingDefaults.paymentChoice }
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     minimize: false,

@@ -167,6 +167,23 @@ const InvoiceSchema = new Schema({
         type: String,
         trim: true,
         default: 'Admin Desk'
+    },
+    updatedBy: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    createdById: {
+        type: String,
+        trim: true,
+        default: '',
+        index: true
+    },
+    updatedById: {
+        type: String,
+        trim: true,
+        default: '',
+        index: true
     }
 }, {
     timestamps: true,

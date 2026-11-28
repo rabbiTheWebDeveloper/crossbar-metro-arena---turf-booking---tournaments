@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Role } from '@/models/role-model';
 import { requireAdmin } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { PERMISSIONS } from '@/lib/permissions';
 import { parseRoleInput, listRoles, rolesWithCounts } from '@/lib/roleAdmin';
@@ -24,7 +25,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     try {
-        const { denied } = await requireAdmin(request);
+        const { user, denied } = await requireAdmin(request);
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -33,7 +34,7 @@ export async function POST(request) {
 
         await connectToDatabase();
         if (await Role.findOne({ nameKey: data.nameKey })) return NextResponse.json({ error: `A role called "${data.name}" already exists.` }, { status: 409 });
-        const role = await Role.create(data);
+        const role = await Role.create({ ...data, ...stampCreate(user, { fallback: 'Admin' }) });
         const [json] = await rolesWithCounts([role]);
         return NextResponse.json({ success: true, message: `Role "${role.name}" created.`, role: json }, { status: 201 });
     } catch (err) {

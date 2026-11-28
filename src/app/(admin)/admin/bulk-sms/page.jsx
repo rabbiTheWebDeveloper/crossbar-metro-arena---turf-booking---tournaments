@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { parsePhoneTokens, estimateSmsParts, normalizeScheduleInput } from '@/lib/smsUtils';
 
 export const dynamic = 'force-dynamic';
@@ -1432,6 +1433,7 @@ export default function AdminBulkSmsPage() {
                                             </button>
                                         )}
                                     </div>
+                                    <RecordAuditMeta record={log} compact fallbackCreatedBy={log.sentBy || 'System'} />
 
                                     <div className="pt-2 border-t border-white/[0.06] flex flex-wrap items-center justify-end gap-1.5">
                                         {log.requestId && (
@@ -1520,6 +1522,7 @@ export default function AdminBulkSmsPage() {
                                                 <div className="mt-0.5 text-[10.5px] text-slate-500">
                                                     By {log.sentBy || 'System'}
                                                 </div>
+                                                <RecordAuditMeta record={log} compact className="mt-1" fallbackCreatedBy={log.sentBy || 'System'} />
                                             </td>
 
                                             <td className="py-3.5 px-4 whitespace-nowrap">

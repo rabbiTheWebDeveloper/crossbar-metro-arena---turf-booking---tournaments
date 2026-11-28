@@ -5,6 +5,7 @@ import { useArena } from '@/context/ArenaContext';
 import { EmailVerificationBox } from '@/components/EmailVerificationBox';
 import { EpsSettingsCard } from '@/components/admin/EpsSettingsCard';
 import { SmsSettingsCard } from '@/components/admin/SmsSettingsCard';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { Building2, Phone, MapPin, Share2, Save, RotateCcw, Download, Lock, User, ExternalLink, Tag, CheckCircle2, AlertCircle, Database } from 'lucide-react';
 
@@ -266,7 +267,12 @@ export default function AdminSettingsPage() {
           <h2 className="text-xl font-black text-white font-display">Arena Settings</h2>
           <p className="text-xs text-slate-400">{canEditVenue ? 'Venue details shown on the website, your login, and data backup.' : 'Your login details and password.'}</p>
         </div>
-        {canEditVenue && lastSaved && <span className="text-[11px] font-mono text-slate-500">Venue details last saved {lastSaved}</span>}
+        {canEditVenue && (
+          <div className="flex flex-col sm:items-end gap-1">
+            {lastSaved && <span className="text-[11px] font-mono text-slate-500">Venue details last saved {lastSaved}</span>}
+            {siteSettings && <RecordAuditMeta record={siteSettings} compact fallbackCreatedBy="Admin" />}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">

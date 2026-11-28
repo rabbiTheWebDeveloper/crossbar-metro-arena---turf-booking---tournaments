@@ -9,7 +9,7 @@ import { verifyAndConfirmEpsPayment } from '@/service/eps-service';
  */
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, ['bookings', 'finance']);
+        const { user: actor, denied } = await requirePermission(request, ['bookings', 'finance']);
         if (denied) return denied;
 
         const { body, error: jsonError } = await readJson(request);
@@ -27,7 +27,8 @@ export async function POST(request) {
         const result = await verifyAndConfirmEpsPayment({
             merchantTransactionId,
             epsTransactionId,
-            source: 'admin_verify'
+            source: 'admin_verify',
+            actor
         });
 
         return NextResponse.json({

@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 const BookingAddOnSchema = new Schema({
     id: { type: String, required: true },
     name: { type: String, required: true },
@@ -27,8 +28,8 @@ const BookingSchema = new Schema({
     displayTime: { type: String, required: true },
     captainName: { type: String, required: true, trim: true },
     captainPhone: { type: String, required: true, trim: true, index: true },
-    // Account that made the booking (when logged in). Used for "my bookings" and ownership checks.
-    userId: { type: String, trim: true, index: true },
+    // Account that made the booking (when logged in) or desk actor. Used for "my bookings" and audit tracking.
+    userId: { type: String, trim: true, default: '', index: true },
     teamName: { type: String, required: true, trim: true },
     playerCount: { type: Number, default: 14 },
     matchType: {
@@ -86,7 +87,8 @@ const BookingSchema = new Schema({
     paymentSmsRequestId: { type: String, trim: true, default: '' },
     reminderSmsRequestId: { type: String, trim: true, default: '' },
     reminderSmsScheduledAt: { type: Date, default: null },
-    reminderSmsSentAt: { type: Date, default: null }
+    reminderSmsSentAt: { type: Date, default: null },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

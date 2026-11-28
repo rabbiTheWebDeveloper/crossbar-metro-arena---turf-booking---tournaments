@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/apiAuth';
+import { actorId, actorLabel } from '@/lib/audit';
 import { errorResponse } from '@/lib/validate';
 import { listPayments, getPaymentOverview } from '@/queries/payment-queries';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -13,7 +14,7 @@ import { Payment } from '@/models/payment-model';
  */
 export async function GET(request) {
     try {
-        const { denied } = await requirePermission(request, ['bookings', 'finance']);
+        const { user: actor, denied } = await requirePermission(request, ['bookings', 'finance']);
         if (denied) return denied;
 
         const sp = new URL(request.url).searchParams;
@@ -51,7 +52,12 @@ export async function GET(request) {
                     slotNumber: Number(b.slotNumber) || 0,
                     slotDisplay: b.displayTime || '',
                     verifiedAt: b.paidAt || b.createdAt || new Date(),
-                    notes: 'Synced from booking record'
+                    notes: 'Synced from booking record',
+                    userId: b.userId || actorId(actor),
+                    createdBy: b.createdBy || actorLabel(actor, 'System Sync'),
+                    createdById: b.createdById || actorId(actor),
+                    updatedBy: actorLabel(actor, 'System Sync'),
+                    updatedById: actorId(actor)
                 });
             }
             if (toInsert.length > 0) {

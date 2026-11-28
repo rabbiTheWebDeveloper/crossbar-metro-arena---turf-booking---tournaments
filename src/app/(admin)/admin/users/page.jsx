@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { permissionLabel, ROLE_TEMPLATES, getDefaultPortalForRole } from '@/lib/permissions';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Search, Plus, Pencil, KeyRound, Ban, CheckCircle2, Trash2, AlertTriangle, Copy, Check, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -262,6 +263,8 @@ export default function AdminUsersPage() {
                   : <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px] font-mono font-bold">ACTIVE</span>}
               </div>
 
+              <RecordAuditMeta record={{ ...u, userId: u.userId || u.id }} compact fallbackCreatedBy={u.name ? `${u.name} (Self)` : 'System'} />
+
               <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-end gap-2">
                 <button type="button" disabled={busy} onClick={() => openEdit(u)} className="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50">
                   <Pencil className="w-3.5 h-3.5"/> Edit
@@ -312,6 +315,7 @@ export default function AdminUsersPage() {
                         <div className="min-w-0">
                           <div className="font-bold text-white truncate flex items-center gap-1.5">{u.name}{u.id === myId && <span className="px-1.5 py-0.5 rounded text-[10px] uppercase bg-lime-400/15 text-lime-300 font-mono">you</span>}</div>
                           <div className="text-[11px] text-slate-500 truncate">{u.email || 'No email'}</div>
+                          <RecordAuditMeta record={{ ...u, userId: u.userId || u.id }} compact className="mt-0.5" fallbackCreatedBy={u.name ? `${u.name} (Self)` : 'System'} />
                         </div>
                       </div>
                     </td>

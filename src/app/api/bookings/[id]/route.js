@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Booking } from '@/models/booking-model';
 import { Refund } from '@/models/refund-model';
 import { can, requirePermission, optionalAuth, requireAuth, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { actorId, actorLabel, applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { ACTIVE_STATUSES, loadPricing, slotDefinition, slotPrice, kickoffDate, statusFromPayment, publicBookingView } from '@/lib/booking';
 import { readJson, validate, badRequest } from '@/lib/validate';
 import { BOOKING_UPDATE_SCHEMA } from '@/lib/schemas';
@@ -134,6 +135,7 @@ export async function PATCH(request, { params }) {
         if (body.captainPhone) booking.captainPhone = cleanPhone(body.captainPhone) || String(body.captainPhone).trim();
         if (body.teamName) booking.teamName = String(body.teamName).trim();
         if (body.paymentMethod && cash <= 0) booking.paymentMethod = body.paymentMethod;
+        applyUpdateAudit(booking, actor, { fallback: 'Admin Desk', backfillUserId: true });
 
         await booking.save();
 
@@ -157,9 +159,10 @@ export async function PATCH(request, { params }) {
                 slotDate: booking.date,
                 slotNumber: booking.slotNumber,
                 slotDisplay: booking.displayTime,
-                recordedBy: actor?.name || 'Admin Desk',
+                recordedBy: actorLabel(actor, 'Admin Desk'),
                 verifiedAt: new Date(),
-                notes: requested === 'paid_full' ? 'Settled remaining balance at desk' : 'Balance collected at desk'
+                notes: requested === 'paid_full' ? 'Settled remaining balance at desk' : 'Balance collected at desk',
+                ...stampCreate(actor, { fallback: 'Admin Desk', userId: booking.userId || actorId(actor) })
             }).catch((err) => console.error('Collect payment log failed:', err));
 
             await notifyPaymentSuccess(booking, {
@@ -202,6 +205,7 @@ export async function DELETE(request, { params }) {
         let refund = null;
         const paid = booking.advanceAmount || 0;
         if (paid > 0 && booking.paymentStatus !== 'pending_payment') {
+            const refundFallback = isAdmin ? 'Admin Desk' : 'Customer (online)';
             refund = await Refund.create({
                 bookingId: String(booking._id),
                 bookingCode: booking.bookingCode,
@@ -212,13 +216,15 @@ export async function DELETE(request, { params }) {
                 refundMethod: ['bkash', 'nagad', 'rocket'].includes(booking.paymentMethod) ? booking.paymentMethod : 'bkash',
                 status: 'pending',
                 requestDate: new Date().toISOString().split('T')[0],
-                recordedBy: isAdmin ? (user.name || 'Admin Desk') : 'Customer (online)'
+                recordedBy: isAdmin ? actorLabel(user, 'Admin Desk') : 'Customer (online)',
+                ...stampCreate(user, { fallback: refundFallback, userId: booking.userId || actorId(user) })
             });
         }
 
         booking.paymentStatus = 'cancelled';
         booking.cancelledAt = new Date();
         booking.cancelledBy = isAdmin ? `admin:${user.name || ''}` : `customer:${cleanPhone(user.phone)}`;
+        applyUpdateAudit(booking, user, { fallback: isAdmin ? 'Admin Desk' : 'Customer' });
         await booking.save();
 
         return NextResponse.json({

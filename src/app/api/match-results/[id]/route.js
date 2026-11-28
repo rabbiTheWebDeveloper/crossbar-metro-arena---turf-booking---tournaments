@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { MatchResult } from '@/models/match-result-model';
 import { requirePermission, requireAuth, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { syncStandings, applyResultToStandings } from '@/lib/standings';
 
 /** PATCH /api/match-results/:id  (admin: approve / reject / edit) */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'matches');
+        const { user, denied } = await requirePermission(request, 'matches');
         if (denied) return denied;
         await connectToDatabase();
         const { id } = await params;
@@ -35,6 +36,7 @@ export async function PATCH(request, { params }) {
             if (!['pending_approval', 'published', 'rejected'].includes(next)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
             result.status = next;
         }
+        applyUpdateAudit(result, user, { fallback: 'Admin Desk', backfillUserId: true });
         await syncStandings(result);
         await result.save();
 

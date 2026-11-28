@@ -5,6 +5,7 @@ import { Investor } from '@/models/investor-model';
 import { User } from '@/models/user-model';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { requirePermission, isObjectId, cleanPhone, isValidBdPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { canEditAccount, withStaffRoleNames, EMAIL_RE } from '@/lib/userAdmin';
 import { replaceEmailOtp } from '@/queries/auth-queries';
 import {
@@ -87,6 +88,7 @@ export async function POST(request, { params }) {
 
             if (rawEmailOverride && body.saveEmail !== false && rawEmailOverride !== investor.email) {
                 investor.email = rawEmailOverride;
+                applyUpdateAudit(investor, actor, { fallback: 'Admin Desk' });
                 await investor.save();
             }
 
@@ -138,10 +140,12 @@ export async function POST(request, { params }) {
                 linkedUser.email = targetEmail;
                 linkedUser.emailVerified = false;
                 linkedUser.emailVerifiedAt = null;
+                applyUpdateAudit(linkedUser, actor, { fallback: 'Admin Desk' });
                 await linkedUser.save();
             }
             if (rawEmailOverride && body.saveEmail !== false && rawEmailOverride !== investor.email) {
                 investor.email = rawEmailOverride;
+                applyUpdateAudit(investor, actor, { fallback: 'Admin Desk' });
                 await investor.save();
             }
 
@@ -152,7 +156,8 @@ export async function POST(request, { params }) {
                 email: targetEmail,
                 purpose: 'password-reset',
                 codeHash: hashOtp(code),
-                expiresAt
+                expiresAt,
+                actor
             });
 
             await sendEmailOtp({
@@ -196,10 +201,12 @@ export async function POST(request, { params }) {
             }
             if (rawEmailOverride && body.saveEmail !== false && rawEmailOverride !== investor.email) {
                 investor.email = rawEmailOverride;
+                applyUpdateAudit(investor, actor, { fallback: 'Admin Desk' });
                 await investor.save();
             }
 
             linkedUser.password = newPassword; // hashed by pre-save hook
+            applyUpdateAudit(linkedUser, actor, { fallback: 'Admin Desk' });
             await linkedUser.save();
 
             let emailStatus = { sent: false, reason: 'skipped_by_admin' };
@@ -255,11 +262,13 @@ export async function POST(request, { params }) {
                 email: targetEmail,
                 password,
                 role: 'investor',
-                disabled: false
+                disabled: false,
+                ...stampCreate(actor, { fallback: 'Admin Desk' })
             });
             await newUser.save();
 
             investor.userId = String(newUser._id);
+            applyUpdateAudit(investor, actor, { fallback: 'Admin Desk' });
             await investor.save();
 
             let emailStatus = { sent: false, reason: 'skipped_by_admin' };

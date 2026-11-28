@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRole } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { Customer } from '@/models/customer-model';
@@ -54,13 +55,14 @@ export async function PUT(request) {
         if (body.settings !== undefined) {
             const { value, error } = sanitizeCustomerSettings(body.settings, settings);
             if (error) return badRequest(error);
-            settings = await saveCustomerSettings(customer.id, value);
+            settings = await saveCustomerSettings(customer.id, value, user);
         }
 
         if (body.profile && body.profile.area !== undefined) {
             const area = String(body.profile.area || '').trim().replace(/\s+/g, ' ');
             if (area.length > 80) return badRequest('Area must be at most 80 characters.');
             customer.area = area;
+            applyUpdateAudit(customer, user, { fallback: 'Customer' });
             await customer.save();
         }
 

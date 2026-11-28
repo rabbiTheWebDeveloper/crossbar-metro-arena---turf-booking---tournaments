@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { GalleryPhoto } from '@/models/gallery-photo-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -28,7 +29,7 @@ export async function GET(request) {
 /** POST adds a photo, or updates it when the body carries an existing id (used by the admin editor). */
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'gallery');
+        const { user, denied } = await requirePermission(request, 'gallery');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -45,11 +46,16 @@ export async function POST(request) {
 
         if (existing) {
             existing.set(data);
+            applyUpdateAudit(existing, user, { fallback: 'Admin Desk', backfillUserId: true });
             await existing.save();
             return NextResponse.json({ success: true, message: 'Gallery photo updated successfully', photo: existing.toJSON() });
         }
 
-        const photo = new GalleryPhoto({ ...data, uploadedAt: new Date().toISOString().split('T')[0] });
+        const photo = new GalleryPhoto({
+            ...data,
+            uploadedAt: new Date().toISOString().split('T')[0],
+            ...stampCreate(user, { fallback: 'Admin Desk' })
+        });
         await photo.save();
 
         return NextResponse.json({

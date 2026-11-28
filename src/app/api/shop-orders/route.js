@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { ShopReservation } from '@/models/shop-reservation-model';
 import { Product } from '@/models/product-model';
 import { can, optionalAuth, cleanPhone, isObjectId, rateLimit } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { generateBookingCode } from '@/lib/booking';
 import { trackCustomer } from '@/lib/customers';
 
@@ -77,12 +78,12 @@ export async function POST(request) {
                     reservationCode: generateBookingCode('ORD'),
                     customerName,
                     customerPhone,
-                    userId: user ? String(user.userId || user.id) : undefined,
                     items,
                     totalAmount,
                     status: 'reserved_pickup',
                     pickupDate: /^\d{4}-\d{2}-\d{2}$/.test(body.pickupDate || '') ? body.pickupDate : new Date().toISOString().split('T')[0],
-                    notes: String(body.notes || '').slice(0, 300)
+                    notes: String(body.notes || '').slice(0, 300),
+                    ...stampCreate(user, { fallback: `${customerName} (Online)` })
                 });
             } catch (e) {
                 if (e && e.code === 11000) continue;
@@ -91,7 +92,7 @@ export async function POST(request) {
         }
         if (!reservation) return NextResponse.json({ error: 'Could not allocate an order code, please retry.' }, { status: 500 });
 
-        await trackCustomer({ name: customerName, phone: customerPhone, source: 'shop' });
+        await trackCustomer({ name: customerName, phone: customerPhone, source: 'shop', actor: user });
 
         return NextResponse.json({ success: true, message: 'Shop order placed successfully', reservation: reservation.toJSON() }, { status: 201 });
     } catch (err) {

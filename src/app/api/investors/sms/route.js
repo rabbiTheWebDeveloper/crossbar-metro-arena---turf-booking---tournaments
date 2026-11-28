@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Investor } from '@/models/investor-model';
 import { requirePermission, isObjectId } from '@/lib/apiAuth';
+import { actorId, actorLabel } from '@/lib/audit';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { cleanPhone, isValidBdPhone } from '@/lib/phone';
 import { getSmsBalance, sendSms } from '@/service/sms-service';
@@ -55,7 +56,8 @@ export async function POST(request) {
         const byId = new Map(investors.map(i => [String(i._id), i]));
 
         const schedule = typeof body.schedule === 'string' ? body.schedule : '';
-        const sentBy = actor?.name || 'Admin';
+        const sentBy = actorLabel(actor, 'Admin');
+        const senderUserId = actorId(actor);
         const results = [];
 
         for (const item of messages) {
@@ -87,7 +89,8 @@ export async function POST(request) {
                 logMeta: {
                     category: 'manual',
                     recipientSummary: `${inv.name} (${phone}) · Investor`,
-                    sentBy
+                    sentBy,
+                    userId: senderUserId
                 }
             });
             results.push({

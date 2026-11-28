@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 const ShopItemSchema = new Schema({
     productId: { type: String, required: true },
@@ -65,7 +66,8 @@ const ShopReservationSchema = new Schema({
         type: String,
         trim: true,
         default: ''
-    }
+    },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

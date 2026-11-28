@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/team-model';
 import { can, requireAuth, optionalAuth, isObjectId, escapeRegex, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { sanitizePlayer, canManageTeam } from '@/lib/teams';
 
 export async function GET(request, { params }) {
@@ -81,6 +82,7 @@ export async function PATCH(request, { params }) {
             if (body.captainPhone) team.captainPhone = String(body.captainPhone).replace(/[^0-9]/g, '');
         }
 
+        applyUpdateAudit(team, user, { fallback: 'Captain', backfillUserId: true });
         await team.save();
         return NextResponse.json({ success: true, message: 'Team updated successfully', team: team.toJSON() });
     } catch (err) {

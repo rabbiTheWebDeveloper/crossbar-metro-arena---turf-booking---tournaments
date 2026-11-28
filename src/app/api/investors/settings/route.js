@@ -4,6 +4,7 @@ import { Investor } from '@/models/investor-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_PAYOUT_DETAILS_SCHEMA, MOBILE_WALLET_METHODS } from '@/lib/schemas';
 import { requirePermission, isObjectId, isValidBdPhone, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { findInvestorForUser } from '@/lib/investorAccess';
 
 /**
@@ -118,6 +119,7 @@ export async function PUT(request) {
         }
 
         investor.payoutDetails = { ...details, updatedAt: new Date() };
+        applyUpdateAudit(investor, user, { fallback: 'Investor Portal' });
         await investor.save();
 
         return NextResponse.json({

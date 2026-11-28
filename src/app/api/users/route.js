@@ -6,6 +6,7 @@ import { User } from '@/models/user-model';
 import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
 import { syncCustomerFromUser } from '@/lib/customers';
 import { safeSendWelcomeEmail } from '@/utils/mail';
+import { stampCreateAuditOnly } from '@/lib/audit';
 
 /** GET /api/users  (admin, or staff with the players / investors permission) */
 export async function GET(request) {
@@ -78,10 +79,11 @@ export async function POST(request) {
 
         const user = new User({
             name, phone, password, email, role, staffRoleId,
-            ...(VALID_POSITIONS.includes(body.playingPosition) ? { playingPosition: body.playingPosition } : {})
+            ...(VALID_POSITIONS.includes(body.playingPosition) ? { playingPosition: body.playingPosition } : {}),
+            ...stampCreateAuditOnly(actor, 'Admin')
         });
         await user.save(); // password is hashed by the pre-save hook
-        await syncCustomerFromUser(user, { source: 'manual' }); // player accounts also join the customer list
+        await syncCustomerFromUser(user, { source: 'manual', actor }); // player accounts also join the customer list
         await safeSendWelcomeEmail({
             toEmail: user.email,
             fullName: user.name,

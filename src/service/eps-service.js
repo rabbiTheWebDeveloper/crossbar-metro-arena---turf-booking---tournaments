@@ -9,6 +9,7 @@ import {
     findPaymentByMerchantTranId
 } from '@/queries/payment-queries';
 import { mapGatewayMethod, statusFromPayment } from '@/lib/booking';
+import { actorId, stampCreate, stampUpdate } from '@/lib/audit';
 import { trackCustomer } from '@/lib/customers';
 import { publicBaseUrl } from '@/lib/baseUrl';
 import { notifyPaymentSuccess } from '@/service/sms-service';
@@ -181,6 +182,7 @@ export async function initiateEpsBookingPayment({
     await booking.save();
 
     // Persist an initiated Payment record (EPS best practice)
+    const initiatorLabel = booking.createdBy || `${booking.captainName || 'Customer'} (Online)`;
     await createPaymentRecord({
         bookingId: String(booking._id),
         bookingCode: booking.bookingCode,
@@ -199,7 +201,12 @@ export async function initiateEpsBookingPayment({
         slotNumber: booking.slotNumber,
         slotDisplay: booking.displayTime,
         sandbox: config.sandbox,
-        notes: `EPS checkout initiated (${config.sandbox ? 'sandbox' : 'live'})`
+        notes: `EPS checkout initiated (${config.sandbox ? 'sandbox' : 'live'})`,
+        userId: booking.userId || '',
+        createdBy: initiatorLabel,
+        updatedBy: initiatorLabel,
+        createdById: booking.createdById || '',
+        updatedById: booking.updatedById || ''
     });
 
     return {
@@ -214,12 +221,14 @@ export async function initiateEpsBookingPayment({
  * Always verify the EPS payment directly with EPS's server before confirming a booking.
  * Safe to call multiple times (idempotent across callback / manual admin re-verify).
  */
-export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTransactionId, source = 'callback' }) {
+export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTransactionId, source = 'callback', actor = null }) {
     if (!merchantTransactionId && !epsTransactionId) {
         return { ok: false, code: 'not_found', message: 'Missing transaction id' };
     }
 
     await connectToDatabase();
+    const verifyFallback = source === 'admin_verify' ? 'Admin Verify' : 'EPS Gateway';
+    const verifyAudit = stampUpdate(actor, { fallback: verifyFallback });
 
     let booking = null;
     if (merchantTransactionId) {
@@ -260,7 +269,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
                 gatewayTransactionId: verification?.EpsTransactionId || booking.epsTransactionId || '',
                 financialEntity: verification?.FinancialEntity || '',
                 errorCode: verification?.ErrorCode || '',
-                errorMessage: verification?.ErrorMessage || `EPS status: ${epsStatus || 'unknown'}`
+                errorMessage: verification?.ErrorMessage || `EPS status: ${epsStatus || 'unknown'}`,
+                ...verifyAudit
             });
         }
         return {
@@ -279,7 +289,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
         if (mTranId) {
             await updatePaymentByMerchantTranId(mTranId, {
                 status: 'failed',
-                errorMessage: reason
+                errorMessage: reason,
+                ...verifyAudit
             });
         }
         return { ok: false, code: 'invalid', booking, verification, message: reason };
@@ -294,7 +305,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
         name: booking.captainName,
         phone: booking.captainPhone,
         email: verification.CustomerEmail || undefined,
-        source: 'online_booking'
+        source: 'online_booking',
+        actor
     });
 
     const updated = await Booking.findOneAndUpdate(
@@ -312,7 +324,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
                 gatewayCardType: financialEntity,
                 paidAt: new Date(),
                 holdExpiresAt: null,
-                notes: `${booking.notes ? booking.notes + ' · ' : ''}EPS verified (${financialEntity}, ${source})`
+                notes: `${booking.notes ? booking.notes + ' · ' : ''}EPS verified (${financialEntity}, ${source})`,
+                ...verifyAudit
             }
         },
         { new: true }
@@ -333,7 +346,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
             verifiedAt: new Date(),
             errorCode: '',
             errorMessage: '',
-            notes: `EPS verified (${source})`
+            notes: `EPS verified (${source})`,
+            ...verifyAudit
         });
     } else {
         await createPaymentRecord({
@@ -355,7 +369,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
             slotNumber: booking.slotNumber,
             slotDisplay: booking.displayTime,
             verifiedAt: new Date(),
-            notes: `EPS verified (${source})`
+            notes: `EPS verified (${source})`,
+            ...stampCreate(actor, { fallback: verifyFallback, userId: booking.userId || actorId(actor) })
         });
     }
 
@@ -375,7 +390,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
             refundMethod: ['bkash', 'nagad', 'rocket'].includes(method) ? method : 'bkash',
             status: 'pending',
             requestDate: new Date().toISOString().split('T')[0],
-            recordedBy: 'EPS Payment Gateway'
+            recordedBy: 'EPS Payment Gateway',
+            ...stampCreate(actor, { fallback: 'EPS Payment Gateway', userId: booking.userId || actorId(actor) })
         }).catch((err) => console.error('Refund create failed:', err));
 
         await Booking.updateOne(
@@ -389,7 +405,8 @@ export async function verifyAndConfirmEpsPayment({ merchantTransactionId, epsTra
                     transactionId: verifiedEpsId,
                     gatewayCardType: financialEntity,
                     advanceAmount: paid,
-                    notes: 'Paid via EPS after hold expired; slot no longer available. Refund queued.'
+                    notes: 'Paid via EPS after hold expired; slot no longer available. Refund queued.',
+                    ...verifyAudit
                 }
             }
         ).catch(() => {});
@@ -428,6 +445,7 @@ export async function markEpsPaymentFailedOrCancelled({ merchantTransactionId, s
         {
             $set: {
                 paymentStatus: 'cancelled',
+                updatedBy: 'EPS Gateway',
                 notes: isCancel
                     ? 'EPS payment cancelled by customer'
                     : isReject
@@ -439,6 +457,7 @@ export async function markEpsPaymentFailedOrCancelled({ merchantTransactionId, s
 
     await updatePaymentByMerchantTranId(merchantTransactionId, {
         status: isCancel ? 'cancelled' : 'failed',
+        updatedBy: 'EPS Gateway',
         errorMessage: isCancel
             ? 'Cancelled by customer'
             : isReject

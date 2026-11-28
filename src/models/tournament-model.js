@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const TournamentSchema = new Schema({
     title: {
@@ -72,7 +73,8 @@ const TournamentSchema = new Schema({
     bannerUrl: {
         type: String,
         default: ''
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

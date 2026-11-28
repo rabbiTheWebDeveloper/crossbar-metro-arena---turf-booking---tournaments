@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { requirePermission } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { getEpsConfig, createEpsClient } from '@/service/eps-service';
 
@@ -74,7 +75,7 @@ export async function POST(request) {
  */
 export async function PUT(request) {
     try {
-        const { denied } = await requirePermission(request, 'settings');
+        const { user, denied } = await requirePermission(request, 'settings');
         if (denied) return denied;
 
         const { body, error: jsonError } = await readJson(request);
@@ -112,6 +113,7 @@ export async function PUT(request) {
         settings.epsMerchantId = epsMerchantId;
         settings.epsStoreId = epsStoreId;
         settings.epsSandbox = epsSandbox;
+        applyUpdateAudit(settings, user, { fallback: 'Admin Desk', backfillUserId: true });
         await settings.save();
 
         const cfg = await getEpsConfig();

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 const ChallengeSchema = new mongoose.Schema({
     teamName: { type: String, required: true },
@@ -17,7 +18,8 @@ const ChallengeSchema = new mongoose.Schema({
     matchedCaptainName: { type: String, default: '' },
     matchedPhone: { type: String, default: '' },
     status: { type: String, enum: ['open', 'matched', 'closed'], default: 'open' },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tournament } from '@/models/tournament-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +8,7 @@ import { TOURNAMENT_SCHEMA } from '@/lib/schemas';
 
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'events');
+        const { user, denied } = await requirePermission(request, 'events');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
@@ -26,6 +27,7 @@ export async function PATCH(request, { params }) {
         if (maxTeams && registered > maxTeams) return badRequest('Registered teams cannot exceed the maximum number of teams.');
 
         tournament.set(data);
+        applyUpdateAudit(tournament, user, { fallback: 'Admin Desk', backfillUserId: true });
         await tournament.save();
 
         return NextResponse.json({

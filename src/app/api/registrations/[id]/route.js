@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { TournamentRegistration } from '@/models/tournament-registration-model';
 import { readJson, badRequest } from '@/lib/validate';
@@ -24,7 +25,7 @@ export async function GET(request, { params }) {
  */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'registrations');
+        const { user: actor, denied } = await requirePermission(request, 'registrations');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
@@ -42,6 +43,7 @@ export async function PATCH(request, { params }) {
         const prevStatus = reg.status;
         applyRegistrationEdits(reg, body);
         if (body.status) reg.status = body.status;
+        applyUpdateAudit(reg, actor, { fallback: 'Admin Desk', backfillUserId: true });
 
         await reg.save();
         await adjustRegisteredCount(reg.tournamentId, prevStatus, reg.status, reg);

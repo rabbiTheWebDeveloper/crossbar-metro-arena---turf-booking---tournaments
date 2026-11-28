@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { formatMoney, formatDate, REFUND_METHODS, REFUND_STATUS_LABELS, paymentMethodLabel } from '@/data/finance';
 import { buildRefundInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { CheckCircle2, Clock, ShieldCheck, XCircle, Download, FileText } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +118,7 @@ export default function AdminRefundsPage() {
                   <div className="font-mono text-slate-400 text-[12px]">{ref.customerPhone}</div>
                   <div className="text-[12px] text-slate-400 mt-1 capitalize">Reason: {reasonLabel(ref.reason)}</div>
                   <div className="text-[11px] text-slate-500 mt-0.5">Requested {formatDate(ref.requestDate, { day: 'numeric', month: 'short', year: 'numeric' })}{ref.refundMethod ? ` · prefers ${paymentMethodLabel(ref.refundMethod)}` : ''}</div>
+                  <RecordAuditMeta record={ref} compact className="mt-1.5" fallbackCreatedBy={ref.recordedBy || 'System'} />
                 </div>
 
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
@@ -165,6 +167,7 @@ export default function AdminRefundsPage() {
                   {ref.status === 'completed' ? `${paymentMethodLabel(ref.refundMethod)}${ref.transactionRef ? ` · ${ref.transactionRef}` : ''}` : (ref.transactionRef || '—')}
                 </span>
               </div>
+              <RecordAuditMeta record={ref} compact fallbackCreatedBy={ref.recordedBy || 'System'} />
             </div>
           ))}
         </div>
@@ -190,7 +193,10 @@ export default function AdminRefundsPage() {
               {closedRefunds.map(ref => (<tr key={ref.id}>
                   <td className="py-2.5 px-3 text-slate-400">{formatDate(ref.refundedDate || ref.requestDate, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   <td className="py-2.5 px-3 text-white font-bold">{ref.bookingCode}</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">{ref.customerName} ({ref.customerPhone})</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">
+                    <div>{ref.customerName} ({ref.customerPhone})</div>
+                    <RecordAuditMeta record={ref} compact className="mt-0.5" fallbackCreatedBy={ref.recordedBy || 'System'} />
+                  </td>
                   <td className={`py-2.5 px-3 font-bold ${ref.status === 'completed' ? 'text-emerald-400' : 'text-slate-500 line-through'}`}>{formatMoney(ref.amount)}</td>
                   <td className="py-2.5 px-3 text-slate-400">
                     {ref.status === 'completed' ? `${paymentMethodLabel(ref.refundMethod)}${ref.transactionRef ? ` (${ref.transactionRef})` : ''}` : (ref.transactionRef || '—')}

@@ -5,10 +5,12 @@ import { Booking } from '@/models/booking-model';
 import { Payment } from '@/models/payment-model';
 import { Refund } from '@/models/refund-model';
 import { Setting } from '@/models/setting-model';
+import { User } from '@/models/user-model';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { BULK_BOOKING_SCHEMA } from '@/lib/schemas';
-import { requirePermission } from '@/lib/apiAuth';
+import { requirePermission, cleanPhone } from '@/lib/apiAuth';
+import { actorId, actorLabel, stampCreate, stampUpdate } from '@/lib/audit';
 import { trackCustomer } from '@/lib/customers';
 import { expireStaleHolds, generateBookingCode, statusFromPayment, todayDhaka, addDays, isIsoDate, resolveRequestedSessions } from '@/lib/booking';
 import { safeSendSms, scheduleBookingReminderSms } from '@/service/sms-service';
@@ -178,6 +180,10 @@ export async function POST(request) {
             return code;
         };
 
+        const customerUser = await User.findOne({ phone: cleanPhone(captainPhone) }).select('_id').lean();
+        const linkedUserId = customerUser?._id ? String(customerUser._id) : actorId(actor);
+        const seriesAudit = stampCreate(actor, { fallback: 'Admin Desk', userId: linkedUserId });
+
         const docs = plan.map((p) => {
             const advance = p.advance;
             const due = p.due;
@@ -217,7 +223,8 @@ export async function POST(request) {
                 isRecurring: true,
                 seriesId,
                 seriesLabel: label,
-                notes: notes || `Fixed slot (${p.dayName} · ${p.displayTime} · ${seriesId})`
+                notes: notes || `Fixed slot (${p.dayName} · ${p.displayTime} · ${seriesId})`,
+                ...seriesAudit
             };
         });
 
@@ -240,7 +247,7 @@ export async function POST(request) {
             }, { status: 409 });
         }
 
-        await trackCustomer({ name: captainName, phone: captainPhone, source: 'fixed_slot' });
+        await trackCustomer({ name: captainName, phone: captainPhone, source: 'fixed_slot', actor });
 
         const paidDocs = created.filter(b => (Number(b.advanceAmount) || 0) > 0);
         if (paidDocs.length > 0) {
@@ -261,9 +268,10 @@ export async function POST(request) {
                 slotDate: b.date,
                 slotNumber: b.slotNumber,
                 slotDisplay: b.displayTime,
-                recordedBy: actor?.name || 'Admin Desk',
+                recordedBy: actorLabel(actor, 'Admin Desk'),
                 verifiedAt: now,
-                notes: `Bulk / fixed slot series (${seriesId})`
+                notes: `Bulk / fixed slot series (${seriesId})`,
+                ...seriesAudit
             }));
             await Payment.insertMany(paymentRows, { ordered: false }).catch(err => {
                 console.error('Bulk booking payment log failed:', err?.message || err);
@@ -473,7 +481,12 @@ export async function PATCH(request) {
                 isRecurring: true,
                 seriesId,
                 seriesLabel: label,
-                notes: notes || `Rescheduled fixed slot (${p.dayName} · ${p.displayTime})`
+                notes: notes || `Rescheduled fixed slot (${p.dayName} · ${p.displayTime})`,
+                userId: sample.userId || actorId(actor),
+                createdBy: sample.createdBy || actorLabel(actor, 'Admin Desk'),
+                createdById: sample.createdById || actorId(actor),
+                updatedBy: actorLabel(actor, 'Admin Desk'),
+                updatedById: actorId(actor)
             };
         });
 
@@ -484,7 +497,7 @@ export async function PATCH(request) {
         // Also keep team/captain metadata consistent across played bookings in the same series
         await Booking.updateMany(
             { seriesId },
-            { $set: { teamName, captainName, captainPhone, seriesLabel: label } }
+            { $set: { teamName, captainName, captainPhone, seriesLabel: label, ...stampUpdate(actor, { fallback: 'Admin Desk' }) } }
         );
 
         let refundQueued = null;
@@ -499,7 +512,8 @@ export async function PATCH(request) {
                 refundMethod: ['bkash', 'nagad', 'rocket'].includes(preservedMethod) ? preservedMethod : 'cash',
                 status: 'pending',
                 requestDate: today,
-                recordedBy: actor?.name || 'Admin Desk'
+                recordedBy: actorLabel(actor, 'Admin Desk'),
+                ...stampCreate(actor, { fallback: 'Admin Desk', userId: sample.userId || actorId(actor) })
             });
         }
 
@@ -551,6 +565,9 @@ export async function GET(request) {
                     matchType: b.matchType || 'friendly',
                     notes: b.notes || '',
                     createdAt: b.createdAt,
+                    createdBy: b.createdBy || '',
+                    updatedBy: b.updatedBy || '',
+                    userId: b.userId || b.createdById || '',
                     total: 0,
                     active: 0,
                     cancelled: 0,
@@ -568,6 +585,9 @@ export async function GET(request) {
             const g = bySeries.get(sid);
             g.total += 1;
             if (b.createdAt && (!g.createdAt || b.createdAt < g.createdAt)) g.createdAt = b.createdAt;
+            if (b.updatedBy) g.updatedBy = b.updatedBy;
+            if (!g.createdBy && b.createdBy) g.createdBy = b.createdBy;
+            if (!g.userId && (b.userId || b.createdById)) g.userId = b.userId || b.createdById;
 
             const dayIdx = isIsoDate(b.date) ? parseLocalDate(b.date).getDay() : 0;
             const dayName = DAY_NAMES[dayIdx] || '';
@@ -617,7 +637,10 @@ export async function GET(request) {
                 captainName: b.captainName,
                 captainPhone: b.captainPhone,
                 isRecurring: true,
-                seriesId: sid
+                seriesId: sid,
+                userId: b.userId || b.createdById || '',
+                createdBy: b.createdBy || '',
+                updatedBy: b.updatedBy || ''
             });
         }
 
@@ -639,6 +662,9 @@ export async function GET(request) {
                     matchType: g.matchType,
                     notes: g.notes,
                     createdAt: g.createdAt,
+                    createdBy: g.createdBy,
+                    updatedBy: g.updatedBy,
+                    userId: g.userId,
                     total: g.total,
                     active: g.active,
                     cancelled: g.cancelled,
@@ -695,7 +721,8 @@ export async function DELETE(request) {
                 paymentStatus: 'cancelled',
                 dueAmount: 0,
                 cancelledAt: new Date(),
-                cancelledBy: `admin:${actor?.name || 'Admin Desk'}`
+                cancelledBy: `admin:${actor?.name || 'Admin Desk'}`,
+                ...stampUpdate(actor, { fallback: 'Admin Desk' })
             }
         });
         return NextResponse.json({

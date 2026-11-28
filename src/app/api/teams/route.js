@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Team } from '@/models/team-model';
 import { User } from '@/models/user-model';
 import { can, requireAuth, optionalAuth, cleanPhone, escapeRegex, isObjectId } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { sanitizePlayer } from '@/lib/teams';
 
 export async function GET(request) {
@@ -65,7 +66,8 @@ export async function POST(request) {
             homeColor: /^#[0-9a-fA-F]{6}$/.test(body.homeColor || '') ? body.homeColor : '#4cbf02',
             area: String(body.area || 'Uttara, Dhaka').slice(0, 60),
             stats: { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0, form: [] },
-            players
+            players,
+            ...stampCreate(user, { fallback: captainName })
         });
         await newTeam.save();
 

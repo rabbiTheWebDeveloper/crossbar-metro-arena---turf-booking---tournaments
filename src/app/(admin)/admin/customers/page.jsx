@@ -9,6 +9,7 @@ import { listCustomers, getCustomer, createCustomer, updateCustomer, deleteCusto
 import { CUSTOMER_SOURCES, CHANNEL_LABELS, sourceLabel } from '@/lib/customerMeta';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 25;
@@ -280,6 +281,8 @@ export default function AdminCustomersPage() {
                   <div className="flex gap-1">{shown.map(s => <SourceChip key={s} source={s}/>)}</div>
                 </div>
 
+                <RecordAuditMeta record={c} compact fallbackCreatedBy={`Auto (${c.source || 'sync'})`} />
+
                 <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-end gap-2">
                   <button type="button" onClick={() => openEdit(c)} className="flex-1 py-2 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold border border-lime-400/20 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                     <Pencil className="w-3.5 h-3.5"/> View / Edit
@@ -329,6 +332,7 @@ export default function AdminCustomersPage() {
                         <div className="flex flex-wrap gap-1 mt-0.5">
                           {(c.tags || []).slice(0, 3).map(t => <span key={t} className="px-1.5 py-0.5 rounded bg-white/5 text-slate-400 text-[10px]">#{t}</span>)}
                         </div>
+                        <RecordAuditMeta record={c} compact className="mt-1" fallbackCreatedBy={`Auto (${c.source || 'sync'})`} />
                       </div>
                     </div>
                   </td>
@@ -384,6 +388,9 @@ export default function AdminCustomersPage() {
               <p className="text-[11px] text-slate-400 font-mono">
                 {editor.mode === 'add' ? 'Added individually by you. Their bookings and orders link up through the mobile number.' : `Added ${fmtDate(editor.customer.createdAt)} · first via ${sourceLabel(editor.customer.source)}`}
               </p>
+              {editor.mode === 'edit' && (
+                <RecordAuditMeta record={detail?.customer || editor.customer} className="mt-1.5" fallbackCreatedBy={`Auto (${editor.customer.source || 'sync'})`} />
+              )}
             </div>
             <button type="button" onClick={closeEditor} className="text-slate-400 hover:text-white cursor-pointer" aria-label="Close"><X className="w-5 h-5"/></button>
           </div>

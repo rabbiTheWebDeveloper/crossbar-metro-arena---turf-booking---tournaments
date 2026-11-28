@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { BookingAddOn } from '@/models/booking-addon-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -15,7 +16,7 @@ async function findAddOnByParam(idOrSlug) {
 /** PATCH /api/booking-addons/:id — update name, price, description, or visibility (`pricing` permission). */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'pricing');
+        const { user, denied } = await requirePermission(request, 'pricing');
         if (denied) return denied;
         const { id } = await params;
         const { body, error: jsonError } = await readJson(request);
@@ -31,6 +32,7 @@ export async function PATCH(request, { params }) {
         }
 
         addOn.set(data);
+        applyUpdateAudit(addOn, user, { fallback: 'Admin Desk', backfillUserId: true });
         await addOn.save();
 
         return NextResponse.json({

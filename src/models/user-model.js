@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const UserSchema = new Schema({
     name: {
@@ -61,7 +62,8 @@ const UserSchema = new Schema({
     disabled: {
         type: Boolean,
         default: false
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {
@@ -84,8 +86,15 @@ UserSchema.pre('validate', function () {
     }
 });
 
-// Hash password before saving
+// Hash password & ensure self-audit defaults before saving
 UserSchema.pre('save', async function () {
+    if (this.isNew) {
+        if (!this.userId && this._id) this.userId = String(this._id);
+        if (!this.createdBy) this.createdBy = this.name ? `${this.name} (Self)` : 'System';
+        if (!this.updatedBy) this.updatedBy = this.createdBy;
+        if (!this.createdById && this._id) this.createdById = String(this._id);
+        if (!this.updatedById && this._id) this.updatedById = this.createdById;
+    }
     if (!this.isModified('password'))
         return;
     const salt = await bcrypt.genSalt(10);

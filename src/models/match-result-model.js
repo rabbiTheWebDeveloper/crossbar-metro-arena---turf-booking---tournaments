@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 const MatchScorerSchema = new Schema({
     playerName: { type: String, required: true },
@@ -93,7 +94,8 @@ const MatchResultSchema = new Schema({
         enum: ['pending_approval', 'published', 'rejected'],
         default: 'published',
         index: true
-    }
+    },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true,
     toJSON: {

@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { PERMISSION_KEYS } from '../lib/permissions.js';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 /**
  * A staff role: a named set of admin-portal permissions (see lib/permissions.js).
@@ -22,7 +23,8 @@ const RoleSchema = new Schema({
             validator: (list) => list.every(k => PERMISSION_KEYS.includes(k)),
             message: 'Unknown permission.'
         }
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

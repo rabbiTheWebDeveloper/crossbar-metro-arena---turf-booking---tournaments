@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const ProductSchema = new Schema({
     name: {
@@ -61,7 +62,8 @@ const ProductSchema = new Schema({
     image: {
         type: String,
         required: true
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

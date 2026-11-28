@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { buildShopOrderInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { FileText, Download } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -110,6 +111,7 @@ export default function AdminShopOrdersPage() {
                   </div>
                   {res.pickupDate && (<div className="text-slate-500 text-[11px] mt-0.5">Pickup: {parseLocalDate(res.pickupDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</div>)}
                   {res.notes && (<div className="text-slate-500 text-[11px] mt-0.5 italic">&quot;{res.notes}&quot;</div>)}
+                  <RecordAuditMeta record={res} compact className="mt-1.5" fallbackCreatedBy={res.customerName ? `${res.customerName} (Shop)` : 'Customer'} />
                 </div>
 
                 {/* Itemised lines */}

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Clock, Save, CheckCircle2, ShieldCheck, Award, Plus, Pencil, Trash2, Sparkles, Eye, EyeOff, X, RotateCcw, Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -210,6 +211,7 @@ export default function AdminSlotPricingPage() {
           <p className="text-xs text-slate-400">
             Configure the 12 daily slot rates, booking hold rules, and Optional Turf Equipment Add-Ons shown on the public website checkout.
           </p>
+          {pricing && <RecordAuditMeta record={pricing} compact className="mt-1.5" fallbackCreatedBy="Admin" />}
         </div>
 
         {savedSuccess && (<div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-lime-400/10 border border-lime-400/30 text-lime-300 text-xs font-bold">
@@ -475,6 +477,7 @@ export default function AdminSlotPricingPage() {
                         <p className="text-xs text-slate-400 mt-1">
                           {addon.description || 'Optional match-day turf add-on'}
                         </p>
+                        <RecordAuditMeta record={addon} compact className="mt-1.5" fallbackCreatedBy="Admin" />
                       </div>
 
                       <div className="text-right shrink-0">

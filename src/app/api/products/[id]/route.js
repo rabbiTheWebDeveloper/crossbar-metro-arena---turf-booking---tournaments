@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/product-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -7,7 +8,7 @@ import { PRODUCT_SCHEMA } from '@/lib/schemas';
 
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, 'products');
+        const { user, denied } = await requirePermission(request, 'products');
         if (denied) return denied;
         const { id } = await params;
         if (!isObjectId(id)) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
@@ -26,6 +27,7 @@ export async function PATCH(request, { params }) {
 
         product.set(data);
         if (data.stock !== undefined) product.inStock = product.stock > 0;
+        applyUpdateAudit(product, user, { fallback: 'Admin Desk', backfillUserId: true });
         await product.save();
 
         return NextResponse.json({

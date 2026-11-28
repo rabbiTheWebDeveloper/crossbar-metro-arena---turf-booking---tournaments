@@ -5,6 +5,7 @@ import { User } from '@/models/user-model';
 import { Investor } from '@/models/investor-model';
 import { Customer } from '@/models/customer-model';
 import { requireAuth, requireSuperAdminDelete, isObjectId, invalidateLiveUserCache } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampUpdate } from '@/lib/audit';
 import { syncCustomerFromUser } from '@/lib/customers';
 import { ACCOUNT_ROLES, VALID_POSITIONS, EMAIL_RE, forbidden, invalid, isPrivileged, sameUser, canEditAccount, isLastActiveAdmin, findStaffRole, withStaffRoleNames } from '@/lib/userAdmin';
 
@@ -113,9 +114,10 @@ export async function PATCH(request, { params }) {
             user.password = String(body.newPassword); // hashed by the pre-save hook
         }
 
+        applyUpdateAudit(user, actor, { fallback: 'Admin', backfillUserId: true });
         await user.save();
         invalidateLiveUserCache(String(user._id));
-        await syncCustomerFromUser(user, { previousPhone }); // no-op unless this is a player account
+        await syncCustomerFromUser(user, { previousPhone, actor }); // no-op unless this is a player account
         return NextResponse.json({ success: true, message: 'Account updated', user: await present(user) });
     } catch (err) {
         return errorResponse(err, 'PATCH /api/users/[id]');
@@ -143,14 +145,16 @@ export async function DELETE(request, { params }) {
         if (await isLastActiveAdmin(user)) return invalid('This is the only active admin account. Make another account an admin first.');
 
         if (permanent) {
-            await Investor.updateMany({ userId: String(user._id) }, { $set: { userId: '' } });
-            await Customer.updateMany({ userId: String(user._id) }, { $set: { userId: '' } }); // the person stays in the customer list
+            const unlinkPatch = { userId: '', ...stampUpdate(actor, { fallback: 'Admin' }) };
+            await Investor.updateMany({ userId: String(user._id) }, { $set: unlinkPatch });
+            await Customer.updateMany({ userId: String(user._id) }, { $set: unlinkPatch }); // the person stays in the customer list
             await User.deleteOne({ _id: user._id });
             invalidateLiveUserCache(String(user._id));
             return NextResponse.json({ success: true, deleted: true, message: `${user.name}'s account was deleted.` });
         }
 
         user.disabled = true;
+        applyUpdateAudit(user, actor, { fallback: 'Admin', backfillUserId: true });
         await user.save();
         invalidateLiveUserCache(String(user._id));
         return NextResponse.json({ success: true, message: 'Account disabled', user: await present(user) });

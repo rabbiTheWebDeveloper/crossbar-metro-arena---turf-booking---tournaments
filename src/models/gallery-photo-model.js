@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const GalleryPhotoSchema = new Schema({
     title: {
@@ -43,7 +44,8 @@ const GalleryPhotoSchema = new Schema({
     tags: {
         type: [String],
         default: []
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

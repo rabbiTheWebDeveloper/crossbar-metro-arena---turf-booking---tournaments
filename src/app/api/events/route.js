@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Tournament } from '@/models/tournament-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -22,7 +23,7 @@ export async function GET() {
 
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'events');
+        const { user, denied } = await requirePermission(request, 'events');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -35,7 +36,8 @@ export async function POST(request) {
             ...data,
             registrationDeadline: data.registrationDeadline || data.dates,
             registeredCount: 0,
-            status: 'open'
+            status: 'open',
+            ...stampCreate(user, { fallback: 'Admin Desk' })
         });
         await tournament.save();
 

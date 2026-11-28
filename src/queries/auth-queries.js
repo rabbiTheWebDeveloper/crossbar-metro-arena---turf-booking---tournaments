@@ -1,6 +1,7 @@
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/user-model';
 import { EmailOtp } from '@/models/email-otp-model';
+import { stampCreateAuditOnly, stampUpdate } from '@/lib/audit';
 
 /**
  * Find user account by MongoDB ObjectId.
@@ -46,7 +47,7 @@ export async function findUsersByIdentifier(parsed) {
 /**
  * Replace any previous unused OTP for the same user + purpose and store a fresh hashed OTP.
  */
-export async function replaceEmailOtp({ userId, email, purpose, codeHash, expiresAt }) {
+export async function replaceEmailOtp({ userId, email, purpose, codeHash, expiresAt, actor = null }) {
     await connectToDatabase();
     await EmailOtp.deleteMany({ userId: String(userId), purpose, usedAt: null });
     return EmailOtp.create({
@@ -55,7 +56,8 @@ export async function replaceEmailOtp({ userId, email, purpose, codeHash, expire
         purpose,
         codeHash,
         attempts: 0,
-        expiresAt
+        expiresAt,
+        ...stampCreateAuditOnly(actor, 'Auth OTP')
     });
 }
 
@@ -69,12 +71,20 @@ export async function findLatestActiveOtp({ userId, purpose, email }) {
     return EmailOtp.findOne(query).sort({ createdAt: -1 });
 }
 
-export async function incrementOtpAttempts(otpId) {
+export async function incrementOtpAttempts(otpId, actor = null) {
     await connectToDatabase();
-    return EmailOtp.findByIdAndUpdate(otpId, { $inc: { attempts: 1 } }, { new: true });
+    return EmailOtp.findByIdAndUpdate(
+        otpId,
+        { $inc: { attempts: 1 }, $set: stampUpdate(actor, { fallback: 'Auth OTP' }) },
+        { new: true }
+    );
 }
 
-export async function markOtpUsed(otpId) {
+export async function markOtpUsed(otpId, actor = null) {
     await connectToDatabase();
-    return EmailOtp.findByIdAndUpdate(otpId, { $set: { usedAt: new Date() } }, { new: true });
+    return EmailOtp.findByIdAndUpdate(
+        otpId,
+        { $set: { usedAt: new Date(), ...stampUpdate(actor, { fallback: 'Auth OTP' }) } },
+        { new: true }
+    );
 }

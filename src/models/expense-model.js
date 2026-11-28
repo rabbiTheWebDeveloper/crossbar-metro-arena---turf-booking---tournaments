@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const ExpenseSchema = new Schema({
     title: {
@@ -31,7 +32,8 @@ const ExpenseSchema = new Schema({
         type: String,
         trim: true,
         default: 'Admin'
-    }
+    },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

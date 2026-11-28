@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Setting } from '@/models/setting-model';
 import { requirePermission, can } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { SETTINGS_SCHEMA, validateSlotPrices, isDayName } from '@/lib/schemas';
 import { isEpsConfigured } from '@/service/eps-service';
@@ -72,6 +73,7 @@ export async function PUT(request) {
         const settings = await Setting.getOrCreateSettings();
         settings.set(data);
         if (slotPrices) settings.slotPrices = slotPrices;
+        applyUpdateAudit(settings, user, { fallback: 'Admin Desk', backfillUserId: true });
         await settings.save();
 
         return NextResponse.json({

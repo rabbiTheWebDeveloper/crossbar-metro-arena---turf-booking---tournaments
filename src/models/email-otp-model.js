@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_ONLY_FIELDS } from '../lib/audit.js';
 
 const EmailOtpSchema = new Schema({
     userId: {
@@ -35,7 +36,8 @@ const EmailOtpSchema = new Schema({
     usedAt: {
         type: Date,
         default: null
-    }
+    },
+    ...AUDIT_ONLY_FIELDS
 }, {
     timestamps: true
 });

@@ -4,6 +4,7 @@ import { getAuthUserFromRequest, setAuthCookies, clearAuthCookies, signJwtToken 
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/user-model';
 import { isObjectId, loadAccess, invalidateLiveUserCache } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { syncCustomerFromUser } from '@/lib/customers';
 
 const tokenPayload = (user) => ({
@@ -106,9 +107,10 @@ export async function PUT(request) {
             user.password = next; // hashed by the pre-save hook
         }
 
+        applyUpdateAudit(user, user, { fallback: user.name || 'Self', backfillUserId: true });
         await user.save();
         invalidateLiveUserCache(String(user._id));
-        await syncCustomerFromUser(user); // keep the customer list entry in step with the profile
+        await syncCustomerFromUser(user, { actor: user }); // keep the customer list entry in step with the profile
         const userJson = { ...user.toJSON(), ...(await loadAccess(user)) };
         const response = NextResponse.json({ success: true, message: 'Profile updated successfully.', user: userJson });
         // Re-issue the token so the name/position in the JWT match the database

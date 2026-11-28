@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Search, Pencil, Phone, Mail, Shield, Ban, CheckCircle2, Loader2, AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -185,6 +186,8 @@ export default function AdminPlayersPage() {
                     : <span>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>}
                 </div>
 
+                <RecordAuditMeta record={{ ...u, userId: u.userId || u.id }} compact fallbackCreatedBy={u.name ? `${u.name} (Self)` : 'System'} />
+
                 <div className="pt-2.5 border-t border-white/[0.06] flex items-center gap-2">
                   <button type="button" onClick={() => openEdit(u)} className="flex-1 py-2 rounded-xl bg-lime-400/10 hover:bg-lime-400 text-lime-400 hover:text-slate-950 font-bold border border-lime-400/20 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                     <Pencil className="w-3.5 h-3.5"/> View / Edit
@@ -230,6 +233,7 @@ export default function AdminPlayersPage() {
                       <div className="min-w-0">
                         <div className="font-bold text-white truncate">{u.name}</div>
                         {u.teamId && <div className="text-[11px] text-slate-500 truncate">Team: {u.teamId}</div>}
+                        <RecordAuditMeta record={{ ...u, userId: u.userId || u.id }} compact className="mt-0.5" fallbackCreatedBy={u.name ? `${u.name} (Self)` : 'System'} />
                       </div>
                     </div>
                   </td>
@@ -271,6 +275,7 @@ export default function AdminPlayersPage() {
             <div>
               <h3 className="text-base font-bold text-white font-display">Edit player profile</h3>
               <p className="text-[11px] text-slate-400 font-mono">ID {editing.id} · joined {editing.createdAt ? new Date(editing.createdAt).toLocaleString() : '—'}</p>
+              <RecordAuditMeta record={{ ...editing, userId: editing.userId || editing.id }} className="mt-1.5" fallbackCreatedBy={editing.name ? `${editing.name} (Self)` : 'System'} />
             </div>
             <button type="button" onClick={() => setEditing(null)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
           </div>

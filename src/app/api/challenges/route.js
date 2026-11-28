@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Challenge } from '@/models/challenge-model';
 import { can, requireAuth, optionalAuth, cleanPhone, rateLimit } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { isIsoDate, todayDhaka } from '@/lib/booking';
 
 /** GET /api/challenges  - open challenges from today onwards (public). ?mine=1 for the caller's own, ?status=all for admins. */
@@ -67,7 +68,6 @@ export async function POST(request) {
             teamName: teamName.slice(0, 60),
             captainName,
             captainPhone,
-            userId: String(user.userId || user.id || ''),
             courtName: 'Crossbar Metro Arena',
             date,
             timeSlot: timeSlot.slice(0, 40),
@@ -76,7 +76,8 @@ export async function POST(request) {
             lookingFor: String(body.lookingFor || 'Opponent Team').slice(0, 40),
             costShare: String(body.costShare || '50/50 Split').slice(0, 40),
             notes: String(body.notes || '').slice(0, 300),
-            status: 'open'
+            status: 'open',
+            ...stampCreate(user, { fallback: captainName })
         });
 
         return NextResponse.json({ success: true, message: 'Challenge posted', challenge: newChallenge.toJSON() }, { status: 201 });

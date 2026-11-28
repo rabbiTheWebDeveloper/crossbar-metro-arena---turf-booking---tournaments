@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission, requireSuperAdminDelete, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Invoice } from '@/models/invoice-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
@@ -15,7 +16,7 @@ async function findInvoice(idOrNo) {
 /** PATCH /api/invoices/:id — update custom invoice details, record payment, or mark paid/cancelled. */
 export async function PATCH(request, { params }) {
     try {
-        const { denied } = await requirePermission(request, INVOICE_PERMS);
+        const { user, denied } = await requirePermission(request, INVOICE_PERMS);
         if (denied) return denied;
         const { id } = await params;
         const { body, error: jsonError } = await readJson(request);
@@ -79,6 +80,7 @@ export async function PATCH(request, { params }) {
             else doc.status = totalAmount === 0 ? (isPayout ? 'disbursed' : 'paid') : 'unpaid';
         }
 
+        applyUpdateAudit(doc, user, { fallback: 'Admin Desk', backfillUserId: true });
         await doc.save();
         return NextResponse.json({
             success: true,

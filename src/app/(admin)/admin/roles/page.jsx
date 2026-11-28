@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useArena } from '@/context/ArenaContext';
 import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_KEYS, ROLE_TEMPLATES, permissionLabel } from '@/lib/permissions';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Plus, Pencil, Trash2, ShieldCheck, KeyRound, Users, Check, AlertTriangle, Lock } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -120,6 +121,7 @@ export default function AdminRolesPage() {
             </div>
             {role.description && <p className="text-xs text-slate-400">{role.description}</p>}
             {chips(role.permissions)}
+            <RecordAuditMeta record={role} compact className="pt-1 border-t border-white/5" fallbackCreatedBy="Admin" />
           </div>
         ))}
       </div>

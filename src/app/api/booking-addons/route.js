@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/apiAuth';
+import { stampCreate } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { BookingAddOn } from '@/models/booking-addon-model';
 import { BOOKING_ADDONS } from '@/data/initialData';
@@ -30,7 +31,7 @@ export async function GET(request) {
 /** POST /api/booking-addons — create a new equipment add-on or restore the 4 built-in defaults. */
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'pricing');
+        const { user, denied } = await requirePermission(request, 'pricing');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -49,7 +50,8 @@ export async function POST(request) {
                         description: tpl.description || '',
                         price: Number(tpl.price) || 0,
                         enabled: true,
-                        sortOrder: i + 1
+                        sortOrder: i + 1,
+                        ...stampCreate(user, { fallback: 'Admin Desk' })
                     });
                 }
             }
@@ -73,7 +75,8 @@ export async function POST(request) {
         const created = await BookingAddOn.create({
             ...data,
             slug,
-            sortOrder: body.sortOrder !== undefined ? data.sortOrder : total + 1
+            sortOrder: body.sortOrder !== undefined ? data.sortOrder : total + 1,
+            ...stampCreate(user, { fallback: 'Admin Desk' })
         });
 
         return NextResponse.json({

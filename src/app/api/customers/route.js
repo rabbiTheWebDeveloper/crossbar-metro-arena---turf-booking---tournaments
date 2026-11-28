@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampCreate, stampCreateAuditOnly } from '@/lib/audit';
 import { connectToDatabase } from '@/lib/mongodb';
 import { readJson, badRequest, errorResponse } from '@/lib/validate';
 import { Customer } from '@/models/customer-model';
@@ -43,7 +44,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
     try {
-        const { denied } = await requirePermission(request, 'players');
+        const { user: actor, denied } = await requirePermission(request, 'players');
         if (denied) return denied;
         const { body, error: jsonError } = await readJson(request);
         if (jsonError) return jsonError;
@@ -78,7 +79,8 @@ export async function POST(request) {
                 email: data.email || `${data.phone}@bookcrossbar.com`,
                 password: loginPassword,
                 role: 'player',
-                disabled: false
+                disabled: false,
+                ...stampCreate(actor, { fallback: 'Admin Desk' })
             });
             await newUser.save();
             userId = String(newUser._id);
@@ -90,7 +92,8 @@ export async function POST(request) {
             userId,
             source: 'manual',
             sources: ['manual'],
-            lastActivityAt: new Date()
+            lastActivityAt: new Date(),
+            ...stampCreateAuditOnly(actor, 'Admin Desk')
         });
         await safeSendWelcomeEmail({
             toEmail: customer.email,

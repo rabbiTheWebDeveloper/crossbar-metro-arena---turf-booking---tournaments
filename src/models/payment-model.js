@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 
 const PaymentSchema = new Schema({
     bookingId: { type: String, trim: true, index: true, default: '' },
@@ -33,7 +34,8 @@ const PaymentSchema = new Schema({
     verifiedAt: { type: Date, default: null },
     errorCode: { type: String, trim: true, default: '' },
     errorMessage: { type: String, trim: true, default: '' },
-    notes: { type: String, trim: true, default: '' }
+    notes: { type: String, trim: true, default: '' },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {

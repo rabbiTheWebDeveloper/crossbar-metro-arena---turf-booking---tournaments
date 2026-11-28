@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { SCHEDULE_SLOTS_DEFINITION, SLOT_SCHEDULE_VERSION, VENUE_INFO } from '../data/initialData.js';
+import { AUDIT_SCHEMA_FIELDS } from '../lib/audit.js';
 const SlotPriceSchema = new Schema({
     slotNumber: { type: Number, required: true },
     startTime: { type: String, required: true },
@@ -57,7 +58,8 @@ const SettingSchema = new Schema({
     epsSandbox: { type: Boolean, default: true },
     // SMS Gateway (sms.net.bd) configuration (never exposed in public toJSON; managed via /api/sms)
     smsApiKey: { type: String, trim: true, default: '' },
-    smsSenderId: { type: String, trim: true, default: '' }
+    smsSenderId: { type: String, trim: true, default: '' },
+    ...AUDIT_SCHEMA_FIELDS
 }, {
     timestamps: true,
     toJSON: {
@@ -83,7 +85,9 @@ SettingSchema.statics.getOrCreateSettings = async function () {
     if (!doc) {
         doc = await this.create({
             slotPrices: SCHEDULE_SLOTS_DEFINITION,
-            slotScheduleVersion: SLOT_SCHEDULE_VERSION
+            slotScheduleVersion: SLOT_SCHEDULE_VERSION,
+            createdBy: 'System',
+            updatedBy: 'System'
         });
         console.log('✅ Initialized default Crossbar Metro Arena Setting document in MongoDB');
         return doc;

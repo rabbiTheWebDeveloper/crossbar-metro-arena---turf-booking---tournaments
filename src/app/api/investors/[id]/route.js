@@ -6,6 +6,7 @@ import { Payout } from '@/models/payout-model';
 import { readJson, validate, badRequest, errorResponse } from '@/lib/validate';
 import { INVESTOR_SCHEMA } from '@/lib/schemas';
 import { requirePermission, requireSuperAdminDelete, isObjectId, cleanPhone } from '@/lib/apiAuth';
+import { applyUpdateAudit, stampUpdate } from '@/lib/audit';
 import { canEditAccount, withStaffRoleNames } from '@/lib/userAdmin';
 
 export async function PUT(request, { params }) {
@@ -68,6 +69,7 @@ export async function PUT(request, { params }) {
         if (body.status && ['active', 'inactive'].includes(body.status)) investor.status = body.status;
         if (body.userId !== undefined) investor.userId = isObjectId(body.userId) ? String(body.userId) : '';
         if (body.joinedDate !== undefined) investor.joinedDate = body.joinedDate;
+        applyUpdateAudit(investor, actor, { fallback: 'Admin Desk' });
 
         await investor.save();
 
@@ -95,6 +97,7 @@ export async function PUT(request, { params }) {
                     }
                 }
                 if (changed) {
+                    applyUpdateAudit(linkedUser, actor, { fallback: 'Admin Desk' });
                     await linkedUser.save();
                     const [uJson] = await withStaffRoleNames([linkedUser.toJSON()]);
                     syncedUserJson = uJson;
@@ -155,7 +158,11 @@ export async function DELETE(request, { params }) {
         }
         if (payoutCount > 0) {
             // Keep the payout history intact; deactivate instead of deleting
-            const inv = await Investor.findByIdAndUpdate(id, { status: 'inactive' }, { new: true });
+            const inv = await Investor.findByIdAndUpdate(
+                id,
+                { status: 'inactive', ...stampUpdate(actor, { fallback: 'Admin Desk' }) },
+                { new: true }
+            );
             return NextResponse.json({
                 success: true,
                 message: `Investor has ${payoutCount} payouts on record, so the account was set to inactive instead of deleted.`,

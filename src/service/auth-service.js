@@ -9,6 +9,7 @@ import {
 } from '@/queries/auth-queries';
 import { signJwtToken } from '@/lib/serverAuth';
 import { cleanPhone, loadAccess } from '@/lib/apiAuth';
+import { applyUpdateAudit } from '@/lib/audit';
 import {
     isDeliverableEmail,
     isMailConfigured,
@@ -211,7 +212,8 @@ export async function requestPasswordReset(identifier) {
         email: user.email,
         purpose: 'password-reset',
         codeHash: hashOtp(code),
-        expiresAt
+        expiresAt,
+        actor: user
     });
 
     await sendEmailOtp({
@@ -271,17 +273,18 @@ export async function confirmPasswordReset({ identifier, code, newPassword }) {
 
     const expectedHash = hashOtp(cleanCode);
     if (!timingSafeHexEqual(otp.codeHash, expectedHash)) {
-        await incrementOtpAttempts(otp._id);
+        await incrementOtpAttempts(otp._id, user);
         return { ok: false, status: 400, error: 'Incorrect reset code. Please check your email and try again.' };
     }
 
-    await markOtpUsed(otp._id);
+    await markOtpUsed(otp._id, user);
     user.password = password; // hashed by pre-save hook
     // Completing email OTP also proves email ownership
     if (user.email && user.email === otp.email && !user.emailVerified) {
         user.emailVerified = true;
         user.emailVerifiedAt = new Date();
     }
+    applyUpdateAudit(user, user, { fallback: user.name || 'Password Reset', backfillUserId: true });
     await user.save();
 
     if (isMailConfigured() && isDeliverableEmail(user.email)) {
@@ -325,6 +328,7 @@ export async function sendEmailVerificationCode(userId, emailOverride) {
             user.email = nextEmail;
             user.emailVerified = false;
             user.emailVerifiedAt = null;
+            applyUpdateAudit(user, user, { fallback: user.name || 'Self', backfillUserId: true });
             await user.save();
             targetEmail = nextEmail;
         }
@@ -354,7 +358,8 @@ export async function sendEmailVerificationCode(userId, emailOverride) {
         email: targetEmail,
         purpose: 'verify-email',
         codeHash: hashOtp(code),
-        expiresAt
+        expiresAt,
+        actor: user
     });
 
     await sendEmailOtp({
@@ -403,13 +408,14 @@ export async function confirmEmailVerification(userId, code) {
     }
 
     if (!timingSafeHexEqual(otp.codeHash, hashOtp(cleanCode))) {
-        await incrementOtpAttempts(otp._id);
+        await incrementOtpAttempts(otp._id, user);
         return { ok: false, status: 400, error: 'Incorrect verification code. Please try again.' };
     }
 
-    await markOtpUsed(otp._id);
+    await markOtpUsed(otp._id, user);
     user.emailVerified = true;
     user.emailVerifiedAt = new Date();
+    applyUpdateAudit(user, user, { fallback: user.name || 'Email Verified', backfillUserId: true });
     await user.save();
 
     const token = signJwtToken(buildTokenPayload(user));

@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { SCHEDULE_SLOTS_DEFINITION } from '@/data/initialData';
 import { buildBookingInvoice } from '@/lib/invoice';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { XCircle, CalendarDays, FileText } from 'lucide-react';
 
 const DEFAULT_WEEKEND_DAYS = ['Friday', 'Saturday'];
@@ -268,6 +269,7 @@ export default function AdminSchedulePage() {
                         <span className="text-slate-500">{b.bookingCode}</span> · ৳{(Number(b.advanceAmount) || 0).toLocaleString()} of ৳{(Number(b.totalPrice) || 0).toLocaleString()}
                         {due > 0 && !isHold ? (<span className="text-amber-400 font-bold ml-1.5">(Due ৳{due.toLocaleString()})</span>) : null}
                       </div>
+                      <RecordAuditMeta record={b} compact className="mt-1" fallbackCreatedBy={b.isWalkIn ? 'Admin Desk' : `${b.captainName || 'Customer'} (Online)`} />
                     </div>)}
                 </div>
               </div>

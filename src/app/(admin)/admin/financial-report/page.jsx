@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useArena, todayDhaka } from '@/context/ArenaContext';
 import { formatMoney, formatDate, formatMonth, shiftMonth, EXPENSE_CATEGORIES, INCOME_SOURCES, expenseCategoryLabel, slotShortLabel } from '@/data/finance';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -373,6 +374,7 @@ export default function AdminFinancialReportPage() {
                   <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
                     {formatDate(e.date, { day: 'numeric', month: 'short', year: 'numeric' })} · {expenseCategoryLabel(e.category)}{e.receiptNote ? ` · ${e.receiptNote}` : ''}
                   </div>
+                  <RecordAuditMeta record={e} compact className="mt-1" fallbackCreatedBy={e.recordedBy || 'Admin'} />
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">

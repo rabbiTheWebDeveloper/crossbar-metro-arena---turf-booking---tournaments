@@ -12,6 +12,7 @@ import {
     buildCustomInvoice
 } from '@/lib/invoice';
 import { printInvoiceDocument } from '@/lib/invoicePdf';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import {
     FileText, Receipt, Plus, Search, Download, Eye, Printer, CheckCircle2,
     Pencil, Trash2, X, Loader2, Users
@@ -684,6 +685,7 @@ export default function AdminInvoicesPage() {
                                                     <div className="text-[11px] text-slate-400 truncate">
                                                         {[inv.recipient?.phone, inv.recipient?.subtitle].filter(Boolean).join(' · ') || '—'}
                                                     </div>
+                                                    {raw && <RecordAuditMeta record={raw} compact className="mt-1" fallbackCreatedBy="Admin Desk" />}
                                                 </td>
                                                 <td className="px-4 py-3 font-mono font-black text-white text-right whitespace-nowrap">
                                                     {money(inv.totalAmount)}

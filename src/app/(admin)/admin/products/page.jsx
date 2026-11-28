@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Plus, Eye, EyeOff, Trash2, Star } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -199,6 +200,7 @@ export default function AdminProductsPage() {
                 </span>
               </div>
               {prod.sizes && prod.sizes.length > 0 && (<div className="text-[10px] font-mono text-slate-500 mt-1 truncate">Sizes: {prod.sizes.join(' · ')}</div>)}
+              <RecordAuditMeta record={prod} compact className="mt-2" fallbackCreatedBy="Admin" />
             </div>
 
             <div className="pt-3 border-t border-white/5 flex gap-1.5">

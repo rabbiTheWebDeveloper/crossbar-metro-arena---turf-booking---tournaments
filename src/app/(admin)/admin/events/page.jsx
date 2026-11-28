@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useArena } from '@/context/ArenaContext';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import RecordAuditMeta from '@/components/admin/RecordAuditMeta';
 import { Plus, Pencil, Trash2, Lock, Unlock } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
@@ -186,6 +187,8 @@ export default function AdminEventsPage() {
               <span>Dates: <span className="text-slate-200">{t.dates}</span></span>
               <span>Deadline: <span className="text-slate-200">{/^\d{4}-\d{2}-\d{2}$/.test(t.registrationDeadline || '') ? parseLocalDate(t.registrationDeadline).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : (t.registrationDeadline || '—')}</span></span>
             </div>
+
+            <RecordAuditMeta record={t} compact fallbackCreatedBy="Admin" />
 
             <div className="flex flex-wrap gap-1.5 pt-1">
               <button type="button" disabled={isBusy} onClick={() => openEdit(t)} className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs flex items-center justify-center gap-1 disabled:opacity-50">
