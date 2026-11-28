@@ -2,9 +2,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHero } from '../../../components/PageHero';
+import { useArena } from '../../../context/ArenaContext';
+import { GOOGLE_MAPS_URL } from '../../../data/initialData';
 import { Users, Share2, Copy, Check, Sparkles, Shirt, Calendar, Trophy } from 'lucide-react';
 export default function SquadBuilderPage() {
     const router = useRouter();
+    const { siteSettings } = useArena();
+    const mapsUrl = siteSettings?.googleMapsUrl || GOOGLE_MAPS_URL;
     const [teamName, setTeamName] = useState('Uttara Metro Squad');
     const [matchTag, setMatchTag] = useState('Crossbar Metro Arena Kickoff ⚽');
     const [format, setFormat] = useState('7v7');
@@ -63,6 +67,7 @@ export default function SquadBuilderPage() {
     const generateWhatsAppShare = () => {
         let squadText = `⚽ *${teamName.toUpperCase()} - MATCH SQUAD* ⚽\n`;
         squadText += `🏟️ *Venue:* Crossbar Metro Arena, Uttara Sector 17, Dhaka\n`;
+        squadText += `📍 *Map:* ${mapsUrl}\n`;
         squadText += `🔥 *Note:* ${matchTag}\n\n`;
         squadText += `*Starting Lineup (${format} - ${formation}):*\n`;
         players.forEach(p => {

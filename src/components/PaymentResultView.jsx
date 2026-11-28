@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import confetti from 'canvas-confetti';
 import { useArena } from '@/context/ArenaContext';
+import { GOOGLE_MAPS_URL } from '@/data/initialData';
 import { formatIsoDate } from '@/lib/dateUtils';
 import { formatMoney, paymentMethodLabel } from '@/data/finance';
 import { buildBookingInvoice, buildTokenInvoice } from '@/lib/invoice';
@@ -112,6 +113,7 @@ function PaymentResultContent({ variant }) {
 
     const venueName = siteSettings?.businessName || 'Crossbar Metro Arena';
     const venueAddress = siteSettings?.address || 'Uttara Metro Center, Sector 17, Dhaka';
+    const mapsUrl = siteSettings?.googleMapsUrl || GOOGLE_MAPS_URL;
     const hotlineDisplay = siteSettings?.phoneFormatted || siteSettings?.phone || '+880 1796-337133';
     const hotlineHref = siteSettings?.phone ? `tel:${String(siteSettings.phone).replace(/[^0-9+]/g, '')}` : 'tel:+8801796337133';
     const baseWhatsapp = siteSettings?.whatsappUrl || '';
@@ -134,7 +136,8 @@ function PaymentResultContent({ variant }) {
             `Date: ${booking.date || '-'}\n` +
             `Kickoff: ${booking.displayTime || '-'}\n` +
             `Paid: ${formatMoney(paid)} · Due at Arena: ${formatMoney(due)}\n` +
-            `Venue: ${venueAddress}\n\n` +
+            `Venue: ${venueAddress}\n` +
+            `Map: ${mapsUrl}\n\n` +
             `See you on the pitch 15 minutes before kickoff!`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     };
@@ -238,7 +241,7 @@ function PaymentResultContent({ variant }) {
                                     <div className="p-3.5 rounded-2xl bg-white/[0.025] border border-white/10 space-y-1">
                                         <div className="text-slate-400 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-emerald-400"/> Venue</div>
                                         <div className="text-sm font-bold text-white">{booking.courtName || venueName}</div>
-                                        <div className="text-[11px] text-slate-400">{venueAddress}</div>
+                                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-[11px] text-emerald-400 hover:underline">{venueAddress} · Open Map →</a>
                                     </div>
                                 </div>
 

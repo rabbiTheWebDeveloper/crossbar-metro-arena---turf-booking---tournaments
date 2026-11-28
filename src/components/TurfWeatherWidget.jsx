@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sun, Moon, Cloud, CloudRain, CloudLightning, CloudFog, Wind, Droplets, RefreshCw, ShieldCheck, CloudOff } from 'lucide-react';
+import { VENUE_COORDINATES } from '../data/initialData';
 
-// Uttara Sector 17, Dhaka
-const LAT = 23.8762;
-const LON = 90.3792;
+// Crossbar Metro Arena, Uttara, Dhaka
+const LAT = VENUE_COORDINATES.latitude;
+const LON = VENUE_COORDINATES.longitude;
 const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability,weather_code&timezone=Asia%2FDhaka&forecast_days=2`;
 
 /** WMO weather code -> label, icon and pitch condition. */

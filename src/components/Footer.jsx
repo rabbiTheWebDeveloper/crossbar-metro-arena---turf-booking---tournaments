@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CrossbarLogo } from './CrossbarLogo';
 import { Phone, Mail, Train, ArrowUp, Smartphone, MessageSquare, Facebook, Instagram, Clock, MapPin } from 'lucide-react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
+import { GOOGLE_MAPS_URL } from '../data/initialData';
 import { usesMainDesign } from './home/routes';
 
 export const Footer = () => {
@@ -112,7 +113,7 @@ export const Footer = () => {
                   </a>
                 </li>)}
               {siteSettings.address && (<li>
-                  <a href={siteSettings.googleMapsUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-[12px] text-slate-400 leading-relaxed py-1.5 hover:text-emerald-400">
+                  <a href={siteSettings.googleMapsUrl || GOOGLE_MAPS_URL} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-[12px] text-slate-400 leading-relaxed py-1.5 hover:text-emerald-400">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5"/>
                     <span>{siteSettings.address}</span>
                   </a>

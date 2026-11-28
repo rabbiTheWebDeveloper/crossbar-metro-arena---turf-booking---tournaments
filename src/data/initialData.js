@@ -1,3 +1,27 @@
+export const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/9pqa9Z1xhphSgWvMA';
+export const VENUE_COORDINATES = { latitude: 23.8580545, longitude: 90.3653792 };
+export const GOOGLE_MAPS_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3648.6258!2d90.3653792!3d23.8580545!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755c3005ddfb04f%3A0x4b3d95a589e8394d!2sCrossbar%20Metro%20Arena!5e0!3m2!1sen!2sbd!4v1732800000000!5m2!1sen!2sbd';
+
+/** Build an iframe-safe Google Maps embed URL from a saved Google Maps link or venue address. */
+export function getGoogleMapsEmbedUrl(mapsUrl, address) {
+    const raw = String(mapsUrl || '').trim();
+    if (!raw || raw === GOOGLE_MAPS_URL || raw.includes('9pqa9Z1xhphSgWvMA') || raw.includes('0x3755c3005ddfb04f') || raw.includes('23.8762,90.3792')) {
+        return GOOGLE_MAPS_EMBED_URL;
+    }
+    if (/^https:\/\/(www\.)?google\.com\/maps\/embed/i.test(raw) || /[?&]output=embed\b/i.test(raw)) {
+        return raw;
+    }
+    const pinMatch = raw.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/) || raw.match(/(?:q=|@|ll=)(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/);
+    if (pinMatch) {
+        return `https://maps.google.com/maps?q=${pinMatch[1]},${pinMatch[2]}&z=16&output=embed`;
+    }
+    if (/goo\.gl\//i.test(raw)) {
+        return GOOGLE_MAPS_EMBED_URL;
+    }
+    const query = encodeURIComponent(address || 'Crossbar Metro Arena, Uttara, Dhaka');
+    return `https://maps.google.com/maps?q=${query}&z=16&output=embed`;
+}
+
 export const VENUE_INFO = {
     businessName: 'Crossbar Metro Arena',
     tagline: 'Dhaka’s Premier Floodlit Outdoor Turf',
@@ -8,7 +32,7 @@ export const VENUE_INFO = {
     address: 'Uttara Metro Center, Sector 17, Dhaka, Bangladesh, 1230',
     metroStation: 'Uttara Center Metro Station (MRT Line-6)',
     metroDetails: 'Directly adjacent to Metro Rail viaduct & station entrance (2 min walk)',
-    googleMapsUrl: 'https://maps.google.com/?q=23.8762,90.3792',
+    googleMapsUrl: GOOGLE_MAPS_URL,
     facebookUrl: 'https://www.facebook.com/crossbarmetroarena',
     facebook: 'https://www.facebook.com/crossbarmetroarena',
     instagramUrl: 'https://www.instagram.com/crossbarmetroarena',

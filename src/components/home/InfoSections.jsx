@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MapPin, Plus, Minus } from 'lucide-react';
+import { MapPin, Plus, Minus, ExternalLink } from 'lucide-react';
 import { useArena, cleanPhone } from '../../context/ArenaContext';
 import { BOOKING_FAQ } from '../../data/faq';
+import { GOOGLE_MAPS_URL, getGoogleMapsEmbedUrl } from '../../data/initialData';
 import { CrossbarLogo } from '../CrossbarLogo';
 import { Container, Eyebrow, SectionTitle, Button, scrollToId } from './ui';
 
@@ -13,42 +14,43 @@ function useContacts() {
     const { siteSettings } = useArena();
     const phoneLabel = siteSettings.phoneFormatted || siteSettings.phone || '';
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
-    const mapsUrl = siteSettings.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(siteSettings.address || 'Crossbar Metro Arena, Uttara, Dhaka')}`;
-    return { siteSettings, phoneLabel, telHref, mapsUrl, whatsappUrl: siteSettings.whatsappUrl || '' };
+    const mapsUrl = siteSettings.googleMapsUrl || GOOGLE_MAPS_URL;
+    const embedUrl = getGoogleMapsEmbedUrl(mapsUrl, siteSettings.address);
+    return { siteSettings, phoneLabel, telHref, mapsUrl, embedUrl, whatsappUrl: siteSettings.whatsappUrl || '' };
 }
 
-/** Stylised street map from the design; the whole tile opens Google Maps. */
-function MapTile({ href }) {
+/** Interactive Google Map embed with a quick action pill to open full directions in Google Maps. */
+function MapTile({ href, embedUrl }) {
     return (
-        <a href={href} target="_blank" rel="noopener noreferrer" aria-label="Open Crossbar Metro Arena in Google Maps" className="group relative block h-[320px] sm:h-[420px] lg:h-[520px] overflow-hidden rounded-[22px] bg-paper">
-            <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
-                <rect width="600" height="520" fill="#d5dccd" />
-                {/* streets */}
-                <g stroke="#f2f5ec" strokeWidth="8">
-                    <path d="M0 60H600M0 140H600M0 260H600M0 380H600M0 460H600" />
-                    <path d="M60 0V520M150 0V520M300 0V520M450 0V520M540 0V520" />
-                </g>
-                {/* metro viaduct */}
-                <path d="M-10 510L590 -10" stroke="#c3cdb8" strokeWidth="14" />
-                {/* the pitch */}
-                <g>
-                    <rect x="330" y="170" width="100" height="72" rx="5" fill="#2d7102" />
-                    <path d="M380 170V242M330 206H430" stroke="#3aa86a" strokeWidth="1.5" />
-                </g>
-            </svg>
-            <span className="absolute left-[45%] top-[23%] inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[15px] font-medium text-paper shadow-lg transition-transform group-hover:-translate-y-0.5">
+        <div className="relative h-[320px] sm:h-[420px] lg:h-[520px] overflow-hidden rounded-[22px] border border-sage bg-paper shadow-sm">
+            <iframe
+                src={embedUrl}
+                title="Crossbar Metro Arena on Google Maps"
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                className="h-full w-full border-0"
+            />
+            <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open Crossbar Metro Arena in Google Maps"
+                className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[14px] font-medium text-paper shadow-lg transition-transform hover:-translate-y-0.5 hover:text-neon"
+            >
                 <MapPin className="h-4 w-4 text-neon" />
-                Crossbar Metro Arena
-            </span>
-        </a>
+                <span>Open in Google Maps</span>
+                <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+            </a>
+        </div>
     );
 }
 
 /** "Find us in Uttara": address, hours, contact and directions. */
 export function LocationSection() {
-    const { siteSettings, phoneLabel, telHref, mapsUrl, whatsappUrl } = useContacts();
+    const { siteSettings, phoneLabel, telHref, mapsUrl, embedUrl, whatsappUrl } = useContacts();
     const rows = [
-        { label: 'Address', value: siteSettings.address },
+        { label: 'Address', value: siteSettings.address, href: mapsUrl, external: true },
         { label: 'Hours', value: siteSettings.openingHours },
         { label: 'Phone & WhatsApp', value: phoneLabel, href: telHref },
         { label: 'Getting here', value: siteSettings.metroDetails || siteSettings.metroStation }
@@ -65,7 +67,9 @@ export function LocationSection() {
                                 <div key={row.label} className="grid gap-1 border-t border-sage py-5 sm:grid-cols-[184px_minmax(0,1fr)] sm:gap-0">
                                     <dt className="font-code text-[12px] uppercase tracking-[0.16em] text-ink/60 sm:pt-1">{row.label}</dt>
                                     <dd className="text-[17px] font-medium text-ink">
-                                        {row.href ? <a href={row.href} className="hover:text-pitch">{row.value}</a> : row.value}
+                                        {row.href
+                                            ? <a href={row.href} {...(row.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="hover:text-pitch">{row.value}</a>
+                                            : row.value}
                                     </dd>
                                 </div>
                             ))}
@@ -76,7 +80,7 @@ export function LocationSection() {
                             <Button variant="outline-ink" href="/venue">Venue &amp; metro guide</Button>
                         </div>
                     </div>
-                    <MapTile href={mapsUrl} />
+                    <MapTile href={mapsUrl} embedUrl={embedUrl} />
                 </div>
             </Container>
         </section>
@@ -161,7 +165,7 @@ export function CtaBand({ freeToday, eveningFree, ready, tomorrow, onBook }) {
 
 /** Footer from the design, linking to every part of the site. */
 export function HomeFooter() {
-    const { siteSettings, phoneLabel, telHref } = useContacts();
+    const { siteSettings, phoneLabel, telHref, mapsUrl } = useContacts();
     const { isVisitor, isAdmin, isInvestor, canAccessAdmin } = useArena();
     const onHome = (usePathname() || '/') === '/';
     // home sections: scroll in place on the home page, link back to it from any other page
@@ -184,6 +188,7 @@ export function HomeFooter() {
             links: [
                 ...(telHref ? [{ label: phoneLabel, href: telHref, external: false }] : []),
                 ...(siteSettings.email ? [{ label: siteSettings.email, href: `mailto:${siteSettings.email}` }] : []),
+                ...(mapsUrl ? [{ label: 'Google Maps', href: mapsUrl, external: true }] : []),
                 ...(siteSettings.facebookUrl ? [{ label: 'Facebook', href: siteSettings.facebookUrl, external: true }] : []),
                 ...(siteSettings.instagramUrl ? [{ label: 'Instagram', href: siteSettings.instagramUrl, external: true }] : [])
             ]

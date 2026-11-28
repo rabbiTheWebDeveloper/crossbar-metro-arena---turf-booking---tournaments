@@ -8,12 +8,12 @@
  * breadcrumb + WebPage schema so Google gets a clean entity graph:
  *   Organization -> WebSite -> WebPage -> (Event | Product | ImageGallery | FAQPage)
  */
-import { VENUE_INFO, COURTS, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
+import { VENUE_INFO, VENUE_COORDINATES, COURTS, SCHEDULE_SLOTS_DEFINITION } from '../data/initialData';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://bookcrossbar.com').replace(/\/+$/, '');
 
-/** Default map pin (Uttara Center Metro Station, Sector 17). Overridden by the googleMapsUrl saved in admin settings. */
-const DEFAULT_GEO = { latitude: 23.8762, longitude: 90.3792 };
+/** Default map pin (Crossbar Metro Arena, Uttara Sector 17). Overridden by coordinates in googleMapsUrl when present. */
+const DEFAULT_GEO = { latitude: VENUE_COORDINATES.latitude, longitude: VENUE_COORDINATES.longitude };
 
 export const siteConfig = {
     name: 'Crossbar Metro Arena',
@@ -123,9 +123,12 @@ export function toE164(phone) {
     return `+880${digits}`;
 }
 
-/** Pull lat/lng out of a Google Maps URL ("?q=23.87,90.37" or "@23.87,90.37"). */
+/** Pull lat/lng out of a Google Maps URL ("!3d23.858!4d90.365", "?q=23.85,90.36" or "@23.85,90.36"). */
 export function geoFromMapsUrl(url) {
-    const m = String(url || '').match(/(?:q=|@|ll=)(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/);
+    const raw = String(url || '');
+    const pin = raw.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+    if (pin) return { latitude: Number(pin[1]), longitude: Number(pin[2]) };
+    const m = raw.match(/(?:q=|@|ll=)(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/);
     if (!m) return DEFAULT_GEO;
     return { latitude: Number(m[1]), longitude: Number(m[2]) };
 }

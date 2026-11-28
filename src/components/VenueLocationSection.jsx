@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { useArena, cleanPhone } from '../context/ArenaContext';
-import { MapPin, Phone, Mail, Globe, Train, Car, Shield, Sparkles, CheckCircle2, MessageSquare, CloudSun, Layers } from 'lucide-react';
+import { GOOGLE_MAPS_URL, getGoogleMapsEmbedUrl } from '../data/initialData';
+import { MapPin, Phone, Mail, Globe, Train, Car, Shield, Sparkles, CheckCircle2, MessageSquare, CloudSun, Layers, ExternalLink } from 'lucide-react';
 import { TurfWeatherWidget } from './TurfWeatherWidget';
 
 /** Digits for a wa.me link from a settings WhatsApp URL or phone number. */
@@ -19,7 +20,8 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
     const [inquiryMsg, setInquiryMsg] = useState('');
     const telHref = siteSettings.phone ? `tel:${cleanPhone(siteSettings.phone)}` : null;
     const waDigits = whatsappDigits(siteSettings);
-    const mapsUrl = siteSettings.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(siteSettings.address || 'Crossbar Metro Arena, Uttara, Dhaka')}`;
+    const mapsUrl = siteSettings.googleMapsUrl || GOOGLE_MAPS_URL;
+    const embedUrl = getGoogleMapsEmbedUrl(mapsUrl, siteSettings.address);
 
     // The "fast message" form hands the text to WhatsApp; nothing is stored or "sent" from here.
     const handleSendInquiry = (e) => {
@@ -75,6 +77,29 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
           </div>
         </div>
 
+        <div className="mb-10 sm:mb-14 rounded-2xl overflow-hidden bg-gradient-to-b from-slate-900 to-[#0b1016] border border-emerald-500/30 shadow-xl">
+          <div className="px-4 sm:px-6 py-3.5 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
+              <MapPin className="w-4 h-4 text-emerald-400 shrink-0"/>
+              <span>Interactive Venue Map · {siteSettings.businessName || 'Crossbar Metro Arena'}</span>
+            </div>
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+              <span>Get Directions on Google Maps</span>
+              <ExternalLink className="w-3.5 h-3.5"/>
+            </a>
+          </div>
+          <div className="relative w-full h-[300px] sm:h-[380px] md:h-[440px] bg-slate-950">
+            <iframe
+              src={embedUrl}
+              title="Crossbar Metro Arena on Google Maps"
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full border-0"
+            />
+          </div>
+        </div>
+
         <div className="mb-10 sm:mb-14">
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -115,7 +140,7 @@ export const VenueLocationSection = ({ onBookSlotClick, hideHeading = false }) =
                 <MapPin className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"/>
                 <div>
                   <div className="text-slate-400 text-[12px] uppercase font-semibold">Location &amp; Address</div>
-                  <div className="text-white font-medium mt-0.5">{siteSettings.address}</div>
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block text-white font-medium mt-0.5 hover:text-emerald-400 transition-colors">{siteSettings.address}</a>
                   <div className="text-emerald-400 text-xs mt-0.5 font-medium">{siteSettings.metroDetails}</div>
                 </div>
               </div>

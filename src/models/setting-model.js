@@ -99,6 +99,10 @@ SettingSchema.statics.getOrCreateSettings = async function () {
         await doc.save();
         console.log(`✅ Slot schedule upgraded from v${previousVersion} to v${SLOT_SCHEDULE_VERSION} (new kick-off times and launch-offer prices)`);
     }
+    if (!doc.googleMapsUrl || doc.googleMapsUrl === 'https://maps.google.com/?q=23.8762,90.3792') {
+        doc.googleMapsUrl = VENUE_INFO.googleMapsUrl;
+        await doc.save();
+    }
     return doc;
 };
 export const Setting = mongoose.models.Setting ||
