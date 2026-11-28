@@ -35,7 +35,12 @@ export const HeroBanner = ({ onBookClick, onTagSquadClick, onTournamentsClick })
         { icon: Swords, label: 'Open challenges', value: isLoadingData ? '…' : String(stats.openChallenges), tone: 'text-white', href: '/matches' }
     ];
 
-    return (<section className="relative overflow-hidden pt-8 pb-14 sm:pt-12 sm:pb-20 md:pt-16 md:pb-28 bg-[#070b0e]">
+    return (<section className="relative min-h-[100svh] flex items-center overflow-hidden pt-8 pb-14 sm:pt-12 sm:pb-20 md:pt-16 md:pb-24 bg-[#070b0e]">
+      <div className="pointer-events-none absolute inset-0 z-0 select-none" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/hero/hero_crossbar_arena_1795877110635.jpg" alt="" width={1376} height={768} fetchPriority="high" loading="eager" decoding="async" sizes="100vw" className="h-full w-full min-h-full min-w-full object-cover object-[60%_52%] sm:object-[55%_48%] lg:object-[center_45%] opacity-55"/>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#070b0e]/65 via-[#070b0e]/45 to-[#070b0e]"/>
+      </div>
       <div className="absolute -top-12 -left-20 w-[450px] sm:w-[750px] h-[500px] sm:h-[750px] pointer-events-none animate-floodlight-left z-0">
         <div className="w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(95,216,15,0.35)_0%,rgba(76,191,2,0.12)_35%,transparent_70%)] blur-[40px] sm:blur-[60px]"/>
       </div>

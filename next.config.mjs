@@ -45,8 +45,9 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'private, no-cache, no-store, must-revalidate' }
         ]
       })),
-      // Static brand assets can be cached for a year
+      // Static brand and hero assets can be cached for a year
       { source: '/brand/(.*)', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
+      { source: '/hero/(.*)', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
     ];
   },
 };

@@ -6,14 +6,33 @@ import { addDaysIso, nowDhakaMinutes } from '../../lib/dateUtils';
 import { Container, Button } from './ui';
 import { PERIODS, PRIMARY_COURT, bdt, dayParts, maxDiscount, openingWindow, periodSummary } from './slots';
 
-/** Photo behind the header and hero, faded into the page colour. Rendered once at the top of the page. */
+const HERO_IMAGE_SRC = '/hero/hero_crossbar_arena_1795877110635.jpg';
+
+/** Full-screen edge-to-edge arena photo behind header + hero, responsive across mobile, tablet, and desktop. */
 export function HeroBackdrop() {
     return (
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[760px] lg:h-[900px] overflow-hidden" aria-hidden="true">
+        <div
+            className="pointer-events-none absolute inset-x-0 -top-[77px] lg:-top-[109px] bottom-0 -z-10 overflow-hidden select-none bg-ink"
+            aria-hidden="true"
+        >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/home/hero-night-pitch.jpg" alt="" width={1536} height={864} fetchPriority="high" decoding="async" className="absolute right-0 top-0 h-full w-full lg:w-[72%] object-cover opacity-40" />
-            <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/30" />
-            <div className="absolute inset-0 bg-gradient-to-b from-ink/50 via-transparent to-ink" />
+            <img
+                src={HERO_IMAGE_SRC}
+                alt=""
+                width={1376}
+                height={768}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+                sizes="100vw"
+                className="absolute inset-0 h-full w-full min-h-full min-w-full object-cover object-[60%_52%] sm:object-[56%_50%] md:object-[52%_48%] lg:object-[center_46%] 2xl:object-[center_44%]"
+            />
+            {/* Subtle top bar vignette so sticky header nav stays legible */}
+            <div className="absolute inset-x-0 top-0 h-28 sm:h-32 bg-gradient-to-b from-ink/80 via-ink/30 to-transparent" />
+            {/* Balanced full-cover scrim: keeps left text readable while showing pavilion, turf, players & Metro train */}
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,18,14,0.48)_0%,rgba(10,18,14,0.42)_55%,rgba(10,18,14,0.62)_100%)] lg:bg-[linear-gradient(90deg,rgba(10,18,14,0.72)_0%,rgba(10,18,14,0.50)_40%,rgba(10,18,14,0.24)_72%,rgba(10,18,14,0.18)_100%)]" />
+            {/* Smooth bottom edge melt into #0a120e so the section transitions seamlessly */}
+            <div className="absolute inset-x-0 bottom-0 h-36 sm:h-44 bg-gradient-to-t from-ink via-ink/70 to-transparent" />
         </div>
     );
 }
@@ -80,42 +99,43 @@ export function HeroSection({ availability, ready, onCheck, onViewPricing }) {
     ];
 
     return (
-        <section className="relative z-10">
-            <Container className="pt-10 lg:pt-[72px] pb-14 lg:pb-[72px]">
-                <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16">
+        <section className="relative flex min-h-[calc(100svh-76px)] lg:min-h-[calc(100svh-108px)] flex-col justify-between">
+            <HeroBackdrop />
+            <Container className="relative z-10 flex flex-1 flex-col justify-between pt-6 sm:pt-10 lg:pt-12 pb-10 sm:pb-12 lg:pb-14">
+                <div className="my-auto grid items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-14 xl:gap-16">
                     <div>
-                        <div className="inline-flex items-center gap-2.5 rounded-full border border-neon/70 px-4 py-2 font-code text-[12px] uppercase tracking-[0.16em] text-neon">
+                        <div className="inline-flex items-center gap-2.5 rounded-full border border-neon/70 bg-ink/60 backdrop-blur-md px-3.5 sm:px-4 py-1.5 sm:py-2 font-code text-[11px] sm:text-[12px] uppercase tracking-[0.16em] text-neon">
                             <span className={`h-2 w-2 rounded-full ${isOpenNow ? 'bg-neon' : 'bg-paper/40'}`} />
                             <span>{pill}</span>
                         </div>
 
-                        <h1 className="mt-8 font-bigs font-bold uppercase leading-[0.9] text-paper text-[58px] sm:text-[88px] lg:text-[104px] xl:text-[120px]">
+                        <h1 className="mt-5 sm:mt-7 font-bigs font-bold uppercase leading-[0.9] text-paper text-[44px] min-[390px]:text-[52px] sm:text-[72px] md:text-[84px] lg:text-[92px] xl:text-[108px] drop-shadow-[0_4px_28px_rgba(0,0,0,0.65)]">
                             Football turf booking in Uttara, Dhaka
                         </h1>
 
-                        <p className="mt-8 max-w-[560px] text-[17px] sm:text-[18px] leading-[1.55] text-paper/90">
+                        <p className="mt-5 sm:mt-7 max-w-[560px] text-[15px] sm:text-[17px] lg:text-[18px] leading-[1.55] text-paper drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">
                             A floodlit {side}-a-side turf at Crossbar Metro Arena, right beside Uttara Center metro station. See what&apos;s free, lock your {slotMinutes}-minute slot in under a minute, and pay with bKash, Nagad or card.
                         </p>
 
                         {discount > 0 ? (
-                            <p className="mt-6 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-neon px-4 py-2.5 text-ink">
-                                <span className="font-code text-[12px] uppercase tracking-[0.16em]">Grand opening launch offer</span>
-                                <span className="font-bigs text-[24px] font-bold uppercase leading-none">Up to {bdt(discount)} off</span>
+                            <p className="mt-5 sm:mt-6 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-neon px-4 py-2.5 text-ink shadow-lg shadow-black/30">
+                                <span className="font-code text-[11px] sm:text-[12px] uppercase tracking-[0.16em]">Grand opening launch offer</span>
+                                <span className="font-bigs text-[22px] sm:text-[24px] font-bold uppercase leading-none">Up to {bdt(discount)} off</span>
                             </p>
                         ) : null}
 
-                        <div className="mt-8 flex flex-wrap gap-3.5">
-                            <Button onClick={() => onCheck(today, 'evening')}>See tonight&apos;s slots</Button>
-                            <Button variant="outline" onClick={onViewPricing}>View pricing</Button>
+                        <div className="mt-6 sm:mt-8 flex flex-col min-[420px]:flex-row flex-wrap gap-3 sm:gap-3.5">
+                            <Button onClick={() => onCheck(today, 'evening')} className="w-full min-[420px]:w-auto shadow-lg shadow-black/30">See tonight&apos;s slots</Button>
+                            <Button variant="outline" onClick={onViewPricing} className="w-full min-[420px]:w-auto bg-ink/55 backdrop-blur-md">View pricing</Button>
                         </div>
                     </div>
 
                     <form
-                        className="rounded-[22px] border border-hairline bg-panel/95 p-6 sm:p-7 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]"
+                        className="w-full max-w-[480px] lg:max-w-none mx-auto rounded-[22px] border border-paper/15 bg-panel/85 backdrop-blur-xl p-5 sm:p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)]"
                         onSubmit={(e) => { e.preventDefault(); onCheck(date, period); }}
                     >
-                        <h2 className="font-bigs text-[34px] font-bold uppercase leading-none text-paper">Find a free slot</h2>
-                        <div className="mt-6 space-y-5">
+                        <h2 className="font-bigs text-[30px] sm:text-[34px] font-bold uppercase leading-none text-paper">Find a free slot</h2>
+                        <div className="mt-5 sm:mt-6 space-y-4 sm:space-y-5">
                             <SelectField label="Date" value={ready ? date : ''} onChange={setDate}>
                                 {/* dates depend on the visitor's clock, so they are filled in after mount */}
                                 {ready ? dateOptions.map(o => <option key={o.iso} value={o.iso}>{o.label}</option>) : <option value="">Today</option>}
@@ -128,21 +148,21 @@ export function HeroSection({ availability, ready, onCheck, onViewPricing }) {
                                 {PERIODS.filter(p => ranges[p.key]).map(p => <option key={p.key} value={p.key}>{p.label} · {ranges[p.key].range}</option>)}
                             </SelectField>
                         </div>
-                        <Button type="submit" className="mt-6 w-full">Check availability</Button>
-                        <p className="mt-5 text-center font-code text-[12px] tracking-[0.04em] text-paper/55">No account needed · BDT 0 booking fee</p>
+                        <Button type="submit" className="mt-5 sm:mt-6 w-full">Check availability</Button>
+                        <p className="mt-4 sm:mt-5 text-center font-code text-[12px] tracking-[0.04em] text-paper/70">No account needed · BDT 0 booking fee</p>
                     </form>
                 </div>
 
-                <dl className="mt-16 lg:mt-[120px] grid grid-cols-2 gap-x-8 gap-y-10 lg:grid-cols-4">
+                <dl className="mt-10 sm:mt-14 lg:mt-16 pt-6 sm:pt-8 border-t border-paper/15 grid grid-cols-2 gap-x-6 gap-y-6 sm:gap-x-8 sm:gap-y-8 lg:grid-cols-4">
                     {stats.map(s => (
                         <div key={s.label}>
-                            <dd className="font-bigs text-[44px] sm:text-[52px] font-bold uppercase leading-none text-neon">{s.value}</dd>
-                            <dt className="mt-3 text-[14px] sm:text-[15px] text-paper/65">{s.label}</dt>
+                            <dd className="font-bigs text-[38px] sm:text-[48px] lg:text-[52px] font-bold uppercase leading-none text-neon drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">{s.value}</dd>
+                            <dt className="mt-2 sm:mt-2.5 text-[13px] sm:text-[15px] text-paper/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.5)]">{s.label}</dt>
                         </div>
                     ))}
                 </dl>
             </Container>
-            <div className="border-b border-hairline" />
+            <div className="relative z-10 border-b border-hairline" />
         </section>
     );
 }

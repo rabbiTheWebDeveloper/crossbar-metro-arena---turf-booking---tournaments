@@ -5,7 +5,7 @@ import { homeFontVariables } from '../../components/home/fonts';
 import { scrollToId } from '../../components/home/ui';
 import { useAvailability } from '../../components/home/slots';
 import { HomeHeader } from '../../components/home/HomeHeader';
-import { HeroBackdrop, HeroSection } from '../../components/home/HeroSection';
+import { HeroSection } from '../../components/home/HeroSection';
 import { SlotPicker } from '../../components/home/SlotPicker';
 import { PricingSection } from '../../components/home/PricingSection';
 import { FacilitiesSection, StepsSection } from '../../components/home/ArenaSections';
@@ -43,7 +43,6 @@ export default function ArenaHomePage() {
 
     return (
         <div className={`home-v2 relative isolate ${homeFontVariables}`}>
-            <HeroBackdrop />
             <HomeHeader />
 
             <HeroSection availability={availability} ready={ready} onCheck={goBook} onViewPricing={() => scrollToId('pricing')} />
